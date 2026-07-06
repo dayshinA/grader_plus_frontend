@@ -5,3 +5,12 @@
 # React Router
 /.react-router/
 /build/
+/.agents/
+.agents/
+
+
+.DS_Store
+.claude/
+CLAUDE.md
+.gitignore
+.env

@@ -1,8 +1,127 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Primary — Loughborough Eminence purple. Pinned exact at 700; ramp built
+     around it toward Jagger (950, exact) at the dark end. Use 600/700 for
+     text/buttons on light backgrounds (both pass WCAG AA), 400 for text on
+     dark backgrounds. */
+  --color-primary-50: #f8f4fb;
+  --color-primary-100: #efe6f5;
+  --color-primary-200: #dfc9ea;
+  --color-primary-300: #c8a3da;
+  --color-primary-400: #ab79c4;
+  --color-primary-500: #8c56a8;
+  --color-primary-600: #77408f;
+  --color-primary-700: #6c3082; /* Eminence, brand-exact */
+  --color-primary-800: #562669;
+  --color-primary-900: #3f1c4d;
+  --color-primary-950: #2d0e52; /* Jagger, brand-exact */
+
+  /* Secondary — Loughborough Malibu blue. Pinned exact at 300 (its native
+     lightness). Use 700+ for text on light backgrounds (600 and lighter are
+     for large text, icons, borders, and fills only — they don't clear 4.5:1). */
+  --color-secondary-50: #f0f9ff;
+  --color-secondary-100: #e0f2fe;
+  --color-secondary-200: #c7e9fc;
+  --color-secondary-300: #94d0f9; /* Malibu, brand-exact */
+  --color-secondary-400: #6bb8ed;
+  --color-secondary-500: #4a9ddb;
+  --color-secondary-600: #357fbd;
+  --color-secondary-700: #2a6396;
+  --color-secondary-800: #234e78;
+  --color-secondary-900: #1d3f60;
+  --color-secondary-950: #142a40;
+
+  /* Semantic status colors — deliberately desaturated (calm/clinical mood,
+     not stoplight-bright). 600+ passes AA text-on-white; 400 passes AA
+     text-on-dark. Info reuses the secondary scale rather than a fifth ramp. */
+  --color-success-50: #f2f8f4;
+  --color-success-100: #e1f0e6;
+  --color-success-200: #c2e0cb;
+  --color-success-300: #9bcbaa;
+  --color-success-400: #71b186;
+  --color-success-500: #4f9468;
+  --color-success-600: #3d7a53;
+  --color-success-700: #326343;
+  --color-success-800: #294f37;
+  --color-success-900: #21402d;
+  --color-success-950: #142a1d;
+
+  --color-warning-50: #fbf4e9;
+  --color-warning-100: #f6e8ce;
+  --color-warning-200: #edd09e;
+  --color-warning-300: #e0b268;
+  --color-warning-400: #ce953f;
+  --color-warning-500: #b87b2a;
+  --color-warning-600: #966220;
+  --color-warning-700: #784e1b;
+  --color-warning-800: #603f19;
+  --color-warning-900: #4f3417;
+  --color-warning-950: #2c1b0c;
+
+  --color-error-50: #fbeeec;
+  --color-error-100: #f5dad6;
+  --color-error-200: #e9b4ac;
+  --color-error-300: #d98a7e;
+  --color-error-400: #c4655a;
+  --color-error-500: #a9483d;
+  --color-error-600: #8b3830;
+  --color-error-700: #702d27;
+  --color-error-800: #5a2621;
+  --color-error-900: #4a1f1c;
+  --color-error-950: #291110;
+
+  /* Semantic mapping layer — lets shadcn-sourced components (bg-primary,
+     text-primary-foreground, bg-destructive, border-input, outline-ring/70,
+     etc.) drop in against this app's brand scales with zero class rewriting.
+     Every value below aliases an already-approved, contrast-checked step
+     from the scales above (see decision #5) or Tailwind's built-in gray-*
+     — this introduces no new colors, only names existing ones semantically.
+     See decision #6 in SYSTEM_DESIGN.md. */
+  --color-background: #ffffff;
+  --color-foreground: var(--color-gray-900);
+
+  --color-primary: var(--color-primary-700); /* Eminence exact; 8.81:1 vs white */
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: var(--color-secondary-300); /* Malibu exact; needs dark text, not white (1.66:1 vs white fails) */
+  --color-secondary-foreground: var(--color-gray-900); /* 10.69:1 vs secondary-300 */
+
+  --color-destructive: var(--color-error-600); /* 7.76:1 vs white */
+  --color-destructive-foreground: #ffffff;
+
+  --color-accent: var(--color-gray-100);
+  --color-accent-foreground: var(--color-gray-900);
+
+  --color-popover: var(--color-background); /* decision #10: elevated surfaces (dropdown/popover content) match page background — no distinct surface color requested yet */
+  --color-popover-foreground: var(--color-foreground);
+
+  --color-muted: var(--color-gray-100);
+  --color-muted-foreground: var(--color-gray-500); /* placeholder/helper text; 4.6:1 vs white at full opacity */
+
+  --color-border: var(--color-gray-300);
+  --color-input: var(--color-gray-300);
+  --color-ring: var(--color-primary-600);
+}
+
+/* Dark-mode overrides for the neutral semantic tokens only — brand fills
+   (primary/secondary/destructive + their foregrounds) are already
+   contrast-safe as isolated colored elements and don't need to flip. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--color-gray-950);
+    --color-foreground: var(--color-gray-100);
+    --color-accent: var(--color-gray-800);
+    --color-accent-foreground: var(--color-gray-100);
+    --color-muted: var(--color-gray-800);
+    --color-muted-foreground: var(--color-gray-400); /* 8.1:1 vs gray-950 at full opacity */
+    --color-border: var(--color-gray-700);
+    --color-input: var(--color-gray-700);
+  }
 }
 
 html,
