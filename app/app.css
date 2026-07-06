@@ -37,9 +37,9 @@
   --color-secondary-900: #1d3f60;
   --color-secondary-950: #142a40;
 
-  /* Semantic status colors — deliberately desaturated (calm/clinical mood,
-     not stoplight-bright). 600+ passes AA text-on-white; 400 passes AA
-     text-on-dark. Info reuses the secondary scale rather than a fifth ramp. */
+  /* Semantic status colors — success stays calm/desaturated; error and
+     warning are saturated, unambiguous red/yellow. Info reuses the
+     secondary scale rather than a fifth ramp. */
   --color-success-50: #f2f8f4;
   --color-success-100: #e1f0e6;
   --color-success-200: #c2e0cb;
@@ -98,7 +98,7 @@
     --color-gray-900
   ); /* 10.69:1 vs secondary-300 */
 
-  --color-destructive: var(--color-error-600); /* 7.76:1 vs white */
+  --color-destructive: var(--color-error-600); /* ≈4.8:1 vs white */
   --color-destructive-foreground: #ffffff;
 
   --color-accent: var(--color-gray-100);
@@ -121,17 +121,20 @@
 
 /* Dark-mode overrides for the neutral semantic tokens only — brand fills
    (primary/secondary/destructive + their foregrounds) are already
-   contrast-safe as isolated colored elements and don't need to flip. */
+   contrast-safe as isolated colored elements and don't need to flip.
+   --color-background is pinned to true black (#000000) here so it matches
+   the html/body dark:bg-black override below — previously this used
+   gray-950, which would have produced two different "blacks" on the page. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: var(--color-gray-950);
+    --color-background: #000000;
     --color-foreground: var(--color-gray-100);
     --color-accent: var(--color-gray-800);
     --color-accent-foreground: var(--color-gray-100);
     --color-muted: var(--color-gray-800);
     --color-muted-foreground: var(
       --color-gray-400
-    ); /* 8.1:1 vs gray-950 at full opacity */
+    ); /* 8.1:1 vs gray-950 at full opacity — still valid against true black too */
     --color-border: var(--color-gray-700);
     --color-input: var(--color-gray-700);
   }
