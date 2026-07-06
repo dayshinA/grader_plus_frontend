@@ -2,8 +2,9 @@
 @plugin "tailwindcss-animate";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Primary — Loughborough Eminence purple. Pinned exact at 700; ramp built
      around it toward Jagger (950, exact) at the dark end. Use 600/700 for
@@ -51,29 +52,29 @@
   --color-success-900: #21402d;
   --color-success-950: #142a1d;
 
-  --color-warning-50: #fbf4e9;
-  --color-warning-100: #f6e8ce;
-  --color-warning-200: #edd09e;
-  --color-warning-300: #e0b268;
-  --color-warning-400: #ce953f;
-  --color-warning-500: #b87b2a;
-  --color-warning-600: #966220;
-  --color-warning-700: #784e1b;
-  --color-warning-800: #603f19;
-  --color-warning-900: #4f3417;
-  --color-warning-950: #2c1b0c;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+  --color-warning-950: #451a03;
 
-  --color-error-50: #fbeeec;
-  --color-error-100: #f5dad6;
-  --color-error-200: #e9b4ac;
-  --color-error-300: #d98a7e;
-  --color-error-400: #c4655a;
-  --color-error-500: #a9483d;
-  --color-error-600: #8b3830;
-  --color-error-700: #702d27;
-  --color-error-800: #5a2621;
-  --color-error-900: #4a1f1c;
-  --color-error-950: #291110;
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-300: #fca5a5;
+  --color-error-400: #f87171;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-800: #991b1b;
+  --color-error-900: #7f1d1d;
+  --color-error-950: #450a0a;
 
   /* Semantic mapping layer — lets shadcn-sourced components (bg-primary,
      text-primary-foreground, bg-destructive, border-input, outline-ring/70,
@@ -85,11 +86,17 @@
   --color-background: #ffffff;
   --color-foreground: var(--color-gray-900);
 
-  --color-primary: var(--color-primary-700); /* Eminence exact; 8.81:1 vs white */
+  --color-primary: var(
+    --color-primary-700
+  ); /* Eminence exact; 8.81:1 vs white */
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: var(--color-secondary-300); /* Malibu exact; needs dark text, not white (1.66:1 vs white fails) */
-  --color-secondary-foreground: var(--color-gray-900); /* 10.69:1 vs secondary-300 */
+  --color-secondary: var(
+    --color-secondary-300
+  ); /* Malibu exact; needs dark text, not white (1.66:1 vs white fails) */
+  --color-secondary-foreground: var(
+    --color-gray-900
+  ); /* 10.69:1 vs secondary-300 */
 
   --color-destructive: var(--color-error-600); /* 7.76:1 vs white */
   --color-destructive-foreground: #ffffff;
@@ -97,11 +104,15 @@
   --color-accent: var(--color-gray-100);
   --color-accent-foreground: var(--color-gray-900);
 
-  --color-popover: var(--color-background); /* decision #10: elevated surfaces (dropdown/popover content) match page background — no distinct surface color requested yet */
+  --color-popover: var(
+    --color-background
+  ); /* decision #10: elevated surfaces (dropdown/popover content) match page background — no distinct surface color requested yet */
   --color-popover-foreground: var(--color-foreground);
 
   --color-muted: var(--color-gray-100);
-  --color-muted-foreground: var(--color-gray-500); /* placeholder/helper text; 4.6:1 vs white at full opacity */
+  --color-muted-foreground: var(
+    --color-gray-500
+  ); /* placeholder/helper text; 4.6:1 vs white at full opacity */
 
   --color-border: var(--color-gray-300);
   --color-input: var(--color-gray-300);
@@ -118,7 +129,9 @@
     --color-accent: var(--color-gray-800);
     --color-accent-foreground: var(--color-gray-100);
     --color-muted: var(--color-gray-800);
-    --color-muted-foreground: var(--color-gray-400); /* 8.1:1 vs gray-950 at full opacity */
+    --color-muted-foreground: var(
+      --color-gray-400
+    ); /* 8.1:1 vs gray-950 at full opacity */
     --color-border: var(--color-gray-700);
     --color-input: var(--color-gray-700);
   }
@@ -126,7 +139,8 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-white dark:bg-black;
+  color-scheme: light;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
