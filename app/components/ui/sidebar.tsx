@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, PanelLeft, type LucideIcon } from "lucide-react";
+import { ChevronDown, PanelLeft, type LucideIcon } from "lucide-react";
 import * as React from "react";
 import { NavLink } from "react-router";
 
@@ -38,11 +38,6 @@ function normalizeGroup(group: SidebarGroupInput): SidebarNavGroup {
   return Array.isArray(group) ? { items: group } : group;
 }
 
-/** "hover" (default): peeks open on mouse-enter, collapses on mouse-leave — v1 behavior.
- *  "manual": stays however the user last set it via the built-in toggle button or a
- *  `SidebarTrigger`; hover has no effect. */
-export type SidebarCollapseMode = "hover" | "manual";
-
 /** Kept in sync with `sidebarVariants` below — export so a consuming layout can size its
  * own content offset without hardcoding the same magic numbers twice. */
 export const SIDEBAR_EXPANDED_WIDTH = "15rem";
@@ -67,6 +62,7 @@ type SidebarContextValue = {
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components -- provider + hook live in one file, same pattern as auth-context.tsx's useAuth
 export function useSidebar() {
   const context = React.useContext(SidebarContext);
   if (!context) {
@@ -82,22 +78,17 @@ function readCollapsedCookie(): boolean | null {
 
 export interface SidebarProviderProps {
   children: React.ReactNode;
-  /** Initial manual-mode collapsed state, used until the persisted cookie (if any) is read
-   * on mount. @default true */
+  /** Initial collapsed state, used until the persisted cookie (if any) is read on mount.
+   * @default true */
   defaultCollapsed?: boolean;
 }
 
-/** Must wrap any `Sidebar`/`SidebarTrigger` pair. Owns manual-collapse + mobile-drawer state,
+/** Must wrap any `Sidebar`/`SidebarTrigger` pair. Owns collapsed + mobile-drawer state,
  * persists the collapsed value to a cookie, and wires the Cmd/Ctrl+B shortcut. */
 export function SidebarProvider({ children, defaultCollapsed = true }: SidebarProviderProps) {
-  const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
+  const [collapsed, setCollapsed] = React.useState(() => readCollapsedCookie() ?? defaultCollapsed);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isMobile = useIsMobile();
-
-  React.useEffect(() => {
-    const stored = readCollapsedCookie();
-    if (stored !== null) setCollapsed(stored);
-  }, []);
 
   React.useEffect(() => {
     document.cookie = `${SIDEBAR_COLLAPSE_COOKIE}=${collapsed}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
@@ -171,24 +162,11 @@ export interface SidebarProps {
   footer?: (isCollapsed: boolean) => React.ReactNode;
   className?: string;
 
-  /** @default "hover" */
-  collapseMode?: SidebarCollapseMode;
-  /** Fires whenever the effective collapsed state changes (including on mount), for any
-   * consumer that needs its own layout (main content offset, etc.) to react to it — this
-   * is a notification, not a controlling prop; the component still owns its own state.
+  /** Fires whenever the collapsed state changes (including on mount), for any consumer
+   * that needs its own layout (main content offset, etc.) to react to it — this is a
+   * notification, not a controlling prop; the component still owns its own state.
    * Not fired while the mobile drawer is active, since content isn't pushed by it. */
   onCollapsedChange?: (isCollapsed: boolean) => void;
-  /**
-   * While true, suppresses hover-triggered auto-collapse regardless of `collapseMode`.
-   * Needed because an open `DropdownMenu` (or any Radix-portal-based overlay) anchored
-   * inside `header`/`footer` renders outside this component's DOM subtree — moving the
-   * pointer onto that open menu fires a real `mouseleave` on the sidebar, which would
-   * otherwise collapse the rail while the menu is still open and visually anchored to a
-   * trigger that just moved/shrank. Wire this to "is any of my own menus open" (e.g. each
-   * `DropdownMenu`'s `onOpenChange`) — see `app/routes/dev/sidebar-preview.tsx`.
-   * @default false
-   */
-  forceExpanded?: boolean;
 }
 
 const sidebarVariants = {
@@ -221,23 +199,19 @@ const staggerVariants = {
   closed: {},
 };
 
-/** Must be rendered under `SidebarProvider`. Desktop: a collapsible nav rail (hover-peek or
- * manual-pin per `collapseMode`). Below the `md` breakpoint: a slide-in drawer instead of the
- * fixed rail, opened/closed via `SidebarTrigger` or `useSidebar().setMobileOpen`. */
+/** Must be rendered under `SidebarProvider`. Desktop: a collapsible nav rail, pinned open or
+ * closed via the built-in toggle button, a `SidebarTrigger` elsewhere, or Cmd/Ctrl+B. Below
+ * the `md` breakpoint: a slide-in drawer instead of the fixed rail, opened/closed via
+ * `SidebarTrigger` or `useSidebar().setMobileOpen`. */
 export function Sidebar({
   groups,
   logo,
   header,
   footer,
   className,
-  collapseMode = "hover",
   onCollapsedChange,
-  forceExpanded = false,
 }: SidebarProps) {
-  const { collapsed, toggleCollapsed, isMobile, mobileOpen, setMobileOpen } = useSidebar();
-  const [isHovering, setIsHovering] = React.useState(false);
-
-  const isCollapsed = collapseMode === "manual" ? collapsed : forceExpanded ? false : !isHovering;
+  const { collapsed: isCollapsed, isMobile, mobileOpen, setMobileOpen } = useSidebar();
 
   const normalizedGroups = React.useMemo(() => groups.map(normalizeGroup), [groups]);
 
@@ -273,32 +247,15 @@ export function Sidebar({
       animate={isCollapsed ? "closed" : "open"}
       variants={sidebarVariants}
       transition={transitionProps}
-      onMouseEnter={collapseMode === "hover" ? () => setIsHovering(true) : undefined}
-      onMouseLeave={collapseMode === "hover" ? () => setIsHovering(false) : undefined}
     >
       <motion.div
         className="relative z-40 flex h-full shrink-0 flex-col bg-background text-muted-foreground"
         variants={staggerVariants}
       >
         <div className="flex grow flex-col items-center">
-          {(logo || collapseMode === "manual") && (
-            <div className="flex h-[54px] w-full shrink-0 items-center justify-between border-b border-border p-2">
-              <div className="flex min-w-0 items-center">{logo?.(isCollapsed)}</div>
-              {collapseMode === "manual" && (
-                <button
-                  type="button"
-                  onClick={toggleCollapsed}
-                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  aria-expanded={!isCollapsed}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronLeft className="h-4 w-4" />
-                  )}
-                </button>
-              )}
+          {logo && (
+            <div className="flex h-[54px] w-full shrink-0 items-center border-b border-border p-2">
+              {logo(isCollapsed)}
             </div>
           )}
 

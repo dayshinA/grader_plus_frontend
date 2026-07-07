@@ -31,7 +31,6 @@ import {
   Sidebar,
   SidebarProvider,
   SidebarTrigger,
-  type SidebarCollapseMode,
   type SidebarGroupInput,
 } from "~/components/ui/sidebar";
 
@@ -59,10 +58,7 @@ const coordinatorGroups: SidebarGroupInput[] = [
 ];
 
 export default function SidebarPreview() {
-  const [mode, setMode] = React.useState<SidebarCollapseMode>("hover");
   const [isCollapsed, setIsCollapsed] = React.useState(true);
-  const [headerMenuOpen, setHeaderMenuOpen] = React.useState(false);
-  const [footerMenuOpen, setFooterMenuOpen] = React.useState(false);
 
   return (
     <SidebarProvider defaultCollapsed>
@@ -70,7 +66,7 @@ export default function SidebarPreview() {
         <div
           className="flex items-center gap-2 border-b border-border p-3"
           style={{
-            paddingLeft: `max(0.75rem, ${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH})`,
+            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 0.75rem)`,
             transition: "padding-left 200ms ease-out",
           }}
         >
@@ -78,29 +74,14 @@ export default function SidebarPreview() {
               Sidebar's own DOM tree — this toolbar isn't rendered inside <Sidebar>. */}
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
-          <span className="text-sm font-medium text-muted-foreground">Collapse mode:</span>
-          <Button
-            size="sm"
-            variant={mode === "hover" ? "default" : "outline"}
-            onClick={() => setMode("hover")}
-          >
-            Hover (auto)
-          </Button>
-          <Button
-            size="sm"
-            variant={mode === "manual" ? "default" : "outline"}
-            onClick={() => setMode("manual")}
-          >
-            Manual (pin)
-          </Button>
+          <span className="text-sm font-medium text-muted-foreground">
+            Toggle via the button, or Cmd/Ctrl+B
+          </span>
         </div>
 
         <Sidebar
-          key={mode}
           groups={coordinatorGroups}
-          collapseMode={mode}
           onCollapsedChange={setIsCollapsed}
-          forceExpanded={headerMenuOpen || footerMenuOpen}
           logo={(isCollapsedNow) => (
             <div className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
@@ -108,7 +89,7 @@ export default function SidebarPreview() {
             </div>
           )}
           header={(isCollapsedNow) => (
-            <DropdownMenu modal={false} onOpenChange={setHeaderMenuOpen}>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex w-full items-center gap-2 px-2">
                   <Avatar className="size-6 rounded-md">
@@ -132,7 +113,7 @@ export default function SidebarPreview() {
           footer={(isCollapsedNow) => (
             <>
               <NavFooterLink isCollapsed={isCollapsedNow} />
-              <DropdownMenu modal={false} onOpenChange={setFooterMenuOpen}>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger className="w-full">
                   <div className="flex h-8 w-full flex-row items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-accent hover:text-accent-foreground">
                     <Avatar className="size-6">
@@ -163,15 +144,16 @@ export default function SidebarPreview() {
         <div
           className="p-6"
           style={{
-            paddingLeft: `max(1.5rem, ${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH})`,
+            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 1.5rem)`,
             transition: "padding-left 200ms ease-out",
           }}
         >
-          <h1 className="text-xl font-semibold">Sidebar preview (v3.0)</h1>
+          <h1 className="text-xl font-semibold">Sidebar preview (v3.1)</h1>
           <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-            The <code>SidebarTrigger</code> button in the toolbar above toggles the rail from
-            outside the sidebar's own DOM — so does <kbd>Cmd/Ctrl+B</kbd>, and the collapsed
-            state now survives a reload (persisted to a cookie). "Extra Options" is a collapsible
+            Collapse/expand is button-only now — no hover-to-peek. The <code>SidebarTrigger</code>{" "}
+            button in the toolbar above toggles the rail from outside the sidebar's own DOM — so
+            does <kbd>Cmd/Ctrl+B</kbd>, and the collapsed state now survives a reload (persisted
+            to a cookie). "Extra Options" is a collapsible
             accordion group — closed by default, and it collapses to a flat icon-only list when
             the whole rail is icon-collapsed. Resize the window below 768px to see the mobile
             drawer: the same trigger now opens a slide-in panel with a backdrop instead of
