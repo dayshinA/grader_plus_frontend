@@ -5,7 +5,7 @@ import {
   LogOut,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Outlet } from "react-router";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import {
@@ -65,28 +65,25 @@ export default function AppLayout() {
   return (
     <SidebarProvider defaultCollapsed>
       <div className="min-h-screen bg-background text-foreground">
-        <div
-          className="flex items-center gap-2 border-b border-border p-3"
-          style={{
-            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 0.75rem)`,
-            transition: "padding-left 200ms ease-out",
-          }}
-        >
+        <div className="flex items-center gap-2 border-b border-border p-3 md:hidden">
           <SidebarTrigger />
-          <span className="text-sm font-semibold md:hidden">GraderPlus</span>
+          <span className="text-sm font-semibold">GraderPlus</span>
         </div>
 
         <Sidebar
           groups={navGroupsByRole[user.role]}
           onCollapsedChange={setIsCollapsed}
-          logo={(isCollapsedNow) => (
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
-              {!isCollapsedNow && (
-                <span className="text-sm font-semibold">GraderPlus</span>
-              )}
-            </div>
-          )}
+          logo={(isCollapsedNow) =>
+            isCollapsedNow ? (
+              <SidebarTrigger />
+            ) : (
+              <div className="flex w-full items-center gap-2">
+                <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
+                <span className="flex-1 truncate text-sm font-semibold">GraderPlus</span>
+                <SidebarTrigger />
+              </div>
+            )
+          }
           footer={(isCollapsedNow) => (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger className="w-full">
@@ -111,11 +108,11 @@ export default function AppLayout() {
         />
 
         <div
-          className="p-4 sm:p-6"
+          className="p-4 sm:p-6 md:pl-(--content-offset)"
           style={{
-            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 1.5rem)`,
+            "--content-offset": `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 1.5rem)`,
             transition: "padding-left 200ms ease-out",
-          }}
+          } as CSSProperties}
         >
           <Outlet />
         </div>

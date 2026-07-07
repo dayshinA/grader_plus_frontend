@@ -63,31 +63,30 @@ export default function SidebarPreview() {
   return (
     <SidebarProvider defaultCollapsed>
       <main className="min-h-screen bg-background text-foreground">
-        <div
-          className="flex items-center gap-2 border-b border-border p-3"
-          style={{
-            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 0.75rem)`,
-            transition: "padding-left 200ms ease-out",
-          }}
-        >
-          {/* Demonstrates the point of SidebarTrigger: it works from outside the
-              Sidebar's own DOM tree — this toolbar isn't rendered inside <Sidebar>. */}
+        {/* Mobile-only: the desktop rail owns its own SidebarTrigger now (in the logo
+            row below), so this bar only needs to exist where the rail doesn't render. */}
+        <div className="flex items-center gap-2 border-b border-border p-3 md:hidden">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm font-medium text-muted-foreground">
-            Toggle via the button, or Cmd/Ctrl+B
+            Tap to open the menu
           </span>
         </div>
 
         <Sidebar
           groups={coordinatorGroups}
           onCollapsedChange={setIsCollapsed}
-          logo={(isCollapsedNow) => (
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
-              {!isCollapsedNow && <span className="text-sm font-semibold">GraderPlus</span>}
-            </div>
-          )}
+          logo={(isCollapsedNow) =>
+            isCollapsedNow ? (
+              <SidebarTrigger />
+            ) : (
+              <div className="flex w-full items-center gap-2">
+                <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
+                <span className="flex-1 truncate text-sm font-semibold">GraderPlus</span>
+                <SidebarTrigger />
+              </div>
+            )
+          }
           header={(isCollapsedNow) => (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -142,22 +141,22 @@ export default function SidebarPreview() {
         />
 
         <div
-          className="p-6"
+          className="p-6 md:pl-(--content-offset)"
           style={{
-            paddingLeft: `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 1.5rem)`,
+            "--content-offset": `calc(${isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH} + 1.5rem)`,
             transition: "padding-left 200ms ease-out",
-          }}
+          } as React.CSSProperties}
         >
-          <h1 className="text-xl font-semibold">Sidebar preview (v3.1)</h1>
+          <h1 className="text-xl font-semibold">Sidebar preview (v3.3)</h1>
           <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-            Collapse/expand is button-only now — no hover-to-peek. The <code>SidebarTrigger</code>{" "}
-            button in the toolbar above toggles the rail from outside the sidebar's own DOM — so
-            does <kbd>Cmd/Ctrl+B</kbd>, and the collapsed state now survives a reload (persisted
-            to a cookie). "Extra Options" is a collapsible
-            accordion group — closed by default, and it collapses to a flat icon-only list when
-            the whole rail is icon-collapsed. Resize the window below 768px to see the mobile
-            drawer: the same trigger now opens a slide-in panel with a backdrop instead of
-            toggling the desktop rail.
+            No top bar on desktop anymore — the rail's own logo row holds the{" "}
+            <code>SidebarTrigger</code> now (just the icon while collapsed, since there's no
+            room for the wordmark too). <kbd>Cmd/Ctrl+B</kbd> still works, and the collapsed
+            state still survives a reload (persisted to a cookie). "Extra Options" is a
+            collapsible accordion group — closed by default, and it collapses to a flat
+            icon-only list when the whole rail is icon-collapsed. Resize the window below 768px
+            to see the mobile drawer: a top bar reappears there (the rail itself doesn't render
+            below <code>md</code>), and its trigger opens a slide-in panel with a backdrop.
           </p>
         </div>
       </main>
