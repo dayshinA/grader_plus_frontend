@@ -46,17 +46,46 @@ export interface RefreshedSession {
   user: unknown;
 }
 
-let getToken: () => string | null = () => null;
+// Token/session storage lives here, not in AuthProvider's React state. A
+// protected route's `clientLoader` can run — and, on a hard reload, does run
+// — before `AuthProvider` has mounted at all (React Router's SPA data router
+// doesn't render the route tree, including root.tsx's <AuthProvider>, until
+// every matched route's clientLoader resolves). A callback-based `getToken`
+// supplied by AuthProvider wouldn't be wired yet at that point. Keeping the
+// token as module state here means it's available regardless of mount order
+// — see `ensureSessionBootstrap` below, which a clientLoader calls directly.
+let currentToken: string | null = null;
+let currentSession: RefreshedSession | null = null;
+
+function getToken(): string | null {
+  return currentToken;
+}
+
+/** Set on login and on any successful refresh. */
+export function setSession(session: RefreshedSession | null): void {
+  currentSession = session;
+  currentToken = session?.access_token ?? null;
+}
+
+/** The last successfully (re)hydrated session, if any — read by AuthProvider
+ * after `ensureSessionBootstrap` settles, and by a clientLoader to decide
+ * whether it's safe to make its own authenticated request. */
+export function getCurrentSession(): RefreshedSession | null {
+  return currentSession;
+}
+
+export function clearSession(): void {
+  setSession(null);
+}
+
 let onUnauthorized: () => void = () => {};
 let onTokenRefreshed: (session: RefreshedSession) => void = () => {};
 
 /** Wired by AuthProvider so api-client never imports the auth feature directly. */
 export function configureApiClient(handlers: {
-  getToken: () => string | null;
   onUnauthorized: () => void;
   onTokenRefreshed: (session: RefreshedSession) => void;
 }) {
-  getToken = handlers.getToken;
   onUnauthorized = handlers.onUnauthorized;
   onTokenRefreshed = handlers.onTokenRefreshed;
 }
@@ -139,6 +168,11 @@ export function refreshSession(): Promise<boolean> {
     refreshPromise = axiosInstance
       .post<RefreshedSession>(REFRESH_URL)
       .then((response) => {
+        // Set unconditionally, before the callback — the callback may not be
+        // wired yet (AuthProvider hasn't mounted, see the token-storage note
+        // above), but the session must still be available to whoever called
+        // this (e.g. a clientLoader's own ensureSessionBootstrap awaiter).
+        setSession(response.data);
         onTokenRefreshed(response.data);
         return true;
       })
@@ -149,6 +183,32 @@ export function refreshSession(): Promise<boolean> {
   }
   return refreshPromise;
 }
+
+let bootstrapPromise: Promise<boolean> | null = null;
+
+/**
+ * Session-recovery attempt made exactly once per page load: whichever caller
+ * asks first — AuthProvider's mount effect, or a protected route's
+ * `clientLoader` (which can run *before* AuthProvider mounts on a hard
+ * reload, see the token-storage note above) — triggers the actual
+ * `refreshSession()` call; everyone else joins the same promise via this
+ * cache. Call this (and check `getCurrentSession()` afterward) at the top of
+ * any protected route's `clientLoader` before making its own authenticated
+ * request — see `ensureAuthenticated()` in `~/features/auth/utils.ts`.
+ */
+export function ensureSessionBootstrap(): Promise<boolean> {
+  if (!bootstrapPromise) {
+    bootstrapPromise = refreshSession();
+  }
+  return bootstrapPromise;
+}
+
+/** Stashed on the axios response by the interceptor below, before `response.data` is
+ * overwritten with the unwrapped payload — lets `apiWithMessage` recover the backend's
+ * own confirmation message (e.g. "User deactivated successfully.") without changing
+ * what every existing `api.<verb>()` caller receives. */
+const API_MESSAGE_KEY = "__apiMessage" as const;
+type ResponseWithApiMessage = AxiosResponse & { [API_MESSAGE_KEY]?: string };
 
 // Every backend response (success or failure) is wrapped in an envelope
 // (`{ success, statusCode, code, message, data? }`) — this interceptor is the
@@ -163,6 +223,7 @@ axiosInstance.interceptors.response.use(
     if (!envelope.success) {
       throwApiError(envelope, hadTokenOnRequest(response.config));
     }
+    (response as ResponseWithApiMessage)[API_MESSAGE_KEY] = envelope.message;
     response.data = envelope.data;
     return response;
   },
@@ -249,5 +310,48 @@ export const api = {
   delete: async <T>(url: string, requestConfig?: AxiosRequestConfig): Promise<T> => {
     const response = await axiosInstance.delete<T>(url, requestConfig);
     return response.data;
+  },
+};
+
+export interface ApiResult<T> {
+  data: T;
+  /** The backend's own confirmation message for this response (e.g. "User deactivated
+   * successfully.") — surface this in a success toast per SYSTEM_DESIGN.md decision #31,
+   * rather than a hand-written string, so the UI always says exactly what the backend did. */
+  message: string;
+}
+
+/**
+ * Same requests as `api.<verb>()`, but resolves `{ data, message }` instead of bare
+ * `data` — for mutations whose result the UI shows back to the user (see decision #31's
+ * "Action feedback" convention: success toasts use the backend's own `message`, not a
+ * hand-written one). Prefer plain `api.<verb>()` for reads/anything whose result isn't
+ * shown as a confirmation.
+ */
+export const apiWithMessage = {
+  post: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<ApiResult<T>> => {
+    const response = (await axiosInstance.post<T>(url, data, requestConfig)) as ResponseWithApiMessage;
+    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+  },
+
+  patch: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<ApiResult<T>> => {
+    const response = (await axiosInstance.patch<T>(url, data, requestConfig)) as ResponseWithApiMessage;
+    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+  },
+
+  delete: async <T>(
+    url: string,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<ApiResult<T>> => {
+    const response = (await axiosInstance.delete<T>(url, requestConfig)) as ResponseWithApiMessage;
+    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
   },
 };

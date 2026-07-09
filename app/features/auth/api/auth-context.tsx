@@ -10,8 +10,12 @@ import {
 import { flushSync } from "react-dom";
 import { useNavigate } from "react-router";
 import {
+  clearSession,
   configureApiClient,
+  ensureSessionBootstrap,
+  getCurrentSession,
   refreshSession as apiRefreshSession,
+  setSession,
 } from "~/lib/api-client";
 import { authService } from "~/features/auth/api/auth.service";
 import type { LoginResponse, User } from "~/features/auth/types";
@@ -34,7 +38,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const tokenRef = useRef<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
@@ -46,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const forceLogoutRedirect = useCallback(() => {
-    tokenRef.current = null;
+    clearSession();
     clearRefreshTimer();
     const next = encodeURIComponent(
       window.location.pathname + window.location.search,
@@ -76,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    tokenRef.current = null;
+    clearSession();
     clearRefreshTimer();
     // Best-effort: revokes the refresh-token cookie server-side. Even if
     // this fails (network down, etc.), the user is still logged out here —
@@ -94,10 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     configureApiClient({
-      getToken: () => tokenRef.current,
       onUnauthorized: forceLogoutRedirect,
       onTokenRefreshed: (session) => {
-        tokenRef.current = session.access_token;
+        // Token/session storage itself lives in api-client.ts now (see its
+        // own comment) — this callback only needs to sync React state.
         setUser(session.user as User);
         scheduleProactiveRefresh(session.expires_in);
       },
@@ -105,29 +108,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [forceLogoutRedirect, scheduleProactiveRefresh]);
 
   // Silent session recovery: the refresh-token cookie survives a hard
-  // reload even though this in-memory access token doesn't. Try once on
-  // mount, before any protected route renders (see ProtectedRoute's
-  // isBootstrapping gate) — success restores the session with no login
-  // screen; failure (no cookie / a fresh visitor) is silent, not an
+  // reload even though this in-memory access token doesn't. `ensureSessionBootstrap`
+  // may already have been triggered — and resolved — by a protected route's
+  // `clientLoader` before this component even mounted (see that function's
+  // own comment); calling it again here just joins the same cached promise,
+  // never a second network request. Success restores the session with no
+  // login screen; failure (no cookie / a fresh visitor) is silent, not an
   // "expired" redirect, since there was never a session to lose here.
   useEffect(() => {
     let cancelled = false;
-    void apiRefreshSession().finally(() => {
-      if (!cancelled) setIsBootstrapping(false);
-    });
+    void ensureSessionBootstrap()
+      .then(() => {
+        if (cancelled) return;
+        // Explicit re-check rather than relying solely on the
+        // onTokenRefreshed callback above: if a clientLoader triggered (and
+        // resolved) the bootstrap before this component mounted, that
+        // callback wasn't registered yet when it fired, so this is the only
+        // place that would otherwise pick up an already-recovered session.
+        const session = getCurrentSession();
+        if (session) {
+          setUser(session.user as User);
+          scheduleProactiveRefresh(session.expires_in);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsBootstrapping(false);
+      });
     return () => {
       cancelled = true;
     };
-    // Runs once on mount only — configureApiClient above is wired first in
-    // effect order, so onTokenRefreshed is already registered by the time
-    // this fires.
-  }, []);
+    // `scheduleProactiveRefresh` is a referentially-stable useCallback (its
+    // own deps chain bottoms out at useNavigate()'s stable identity), so in
+    // practice this still only runs once per mount. configureApiClient above
+    // is wired first in effect order, so onTokenRefreshed is already
+    // registered by the time this fires (for the non-race case).
+  }, [scheduleProactiveRefresh]);
 
   useEffect(() => clearRefreshTimer, [clearRefreshTimer]);
 
   const login = useCallback(
     (response: LoginResponse) => {
-      tokenRef.current = response.access_token;
+      setSession(response);
       setUser(response.user);
       scheduleProactiveRefresh(response.expires_in);
     },

@@ -1,8 +1,16 @@
 import {
+  Building2,
+  ClipboardCheck,
   FileClock,
-  GraduationCap,
+  FileSpreadsheet,
   LayoutDashboard,
+  ListChecks,
   LogOut,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Upload,
+  UserCog,
   Users,
 } from "lucide-react";
 import { useState, type CSSProperties } from "react";
@@ -34,13 +42,69 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
         icon: LayoutDashboard,
         end: true,
       },
+      {
+        label: "Module Settings",
+        href: "/coordinator/module-settings",
+        icon: Settings,
+        end: true,
+      },
+      {
+        label: "Submissions",
+        href: "/coordinator/submissions",
+        icon: Upload,
+        end: true,
+      },
+      {
+        label: "Marker Assignments",
+        href: "/coordinator/marker-assignments",
+        icon: ListChecks,
+        end: true,
+      },
+      {
+        label: "Rubrics",
+        href: "/coordinator/rubrics",
+        icon: ScrollText,
+        end: true,
+      },
+      {
+        label: "Discrepancies",
+        href: "/coordinator/discrepancies",
+        icon: ClipboardCheck,
+        end: true,
+      },
+      {
+        label: "Export",
+        href: "/coordinator/export",
+        icon: FileSpreadsheet,
+        end: true,
+      },
     ],
   ],
   marker: [
     [{ label: "My Projects", href: "/marker/projects", icon: FileClock, end: true }],
   ],
   super_admin: [
-    [{ label: "Users", href: "/super-admin/users", icon: Users, end: true }],
+    [
+      { label: "Users", href: "/super-admin/users", icon: Users, end: true },
+      {
+        label: "Departments",
+        href: "/super-admin/departments",
+        icon: Building2,
+        end: true,
+      },
+      {
+        label: "Department Admin Grants",
+        href: "/super-admin/department-admin-grants",
+        icon: ShieldCheck,
+        end: true,
+      },
+      {
+        label: "Module Grants",
+        href: "/super-admin/module-grants",
+        icon: UserCog,
+        end: true,
+      },
+    ],
   ],
 };
 
@@ -67,7 +131,7 @@ export default function AppLayout() {
       <div className="min-h-screen bg-background text-foreground">
         <div className="flex items-center gap-2 border-b border-border p-3 md:hidden">
           <SidebarTrigger />
-          <span className="text-sm font-semibold">GraderPlus</span>
+          <span className="text-sm font-semibold text-primary">GraderPlus</span>
         </div>
 
         <Sidebar
@@ -78,8 +142,12 @@ export default function AppLayout() {
               <SidebarTrigger />
             ) : (
               <div className="flex w-full items-center gap-2">
-                <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
-                <span className="flex-1 truncate text-sm font-semibold">GraderPlus</span>
+                <img
+                  src="/logo_only_no_text.jpeg"
+                  alt="Loughborough University"
+                  className="h-5 w-5 shrink-0 rounded-sm"
+                />
+                <span className="flex-1 truncate text-sm font-semibold text-primary">GraderPlus</span>
                 <SidebarTrigger />
               </div>
             )
@@ -88,7 +156,7 @@ export default function AppLayout() {
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger className="w-full">
                 <div className="flex h-8 w-full flex-row items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-accent hover:text-accent-foreground">
-                  <Avatar className="size-6">
+                  <Avatar className="size-6 shrink-0">
                     <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
                   </Avatar>
                   {!isCollapsedNow && (

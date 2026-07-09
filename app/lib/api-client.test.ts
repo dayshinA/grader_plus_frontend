@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError, configureApiClient, refreshSession } from "~/lib/api-client";
+import {
+  api,
+  ApiError,
+  clearSession,
+  configureApiClient,
+  refreshSession,
+  setSession,
+} from "~/lib/api-client";
 
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -20,7 +27,6 @@ function urlFrom(input: unknown): string {
 }
 
 const noopHandlers = {
-  getToken: () => null,
   onUnauthorized: () => {},
   onTokenRefreshed: () => {},
 };
@@ -28,6 +34,9 @@ const noopHandlers = {
 describe("api client", () => {
   beforeEach(() => {
     configureApiClient(noopHandlers);
+    // Token/session storage is module state in api-client.ts now (not reset
+    // by configureApiClient itself) — clear it between tests for isolation.
+    clearSession();
   });
 
   afterEach(() => {
@@ -84,7 +93,7 @@ describe("api client", () => {
 
   it("does not fire the unauthorized callback on a 401 from an unauthenticated request (e.g. wrong-password login)", async () => {
     const onUnauthorized = vi.fn();
-    configureApiClient({ ...noopHandlers, getToken: () => null, onUnauthorized });
+    configureApiClient({ ...noopHandlers, onUnauthorized });
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -108,7 +117,7 @@ describe("api client", () => {
   });
 
   it("attaches the Authorization header when a token is present", async () => {
-    configureApiClient({ ...noopHandlers, getToken: () => "abc123" });
+    setSession({ access_token: "abc123", expires_in: 3600, user: {} });
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
@@ -159,15 +168,15 @@ describe("api client", () => {
 
   describe("token refresh", () => {
     it("on a 401 with a token, refreshes once and retries the original request with the new token", async () => {
-      let currentToken = "old-token";
-      const onTokenRefreshed = vi.fn((session: { access_token: string }) => {
-        currentToken = session.access_token;
-      });
+      const onTokenRefreshed = vi.fn();
       configureApiClient({
-        getToken: () => currentToken,
         onUnauthorized: vi.fn(),
         onTokenRefreshed,
       });
+      // refreshSession() sets the current token itself (see api-client.ts) —
+      // this just seeds the *original* request's token so it's eligible for
+      // the retry-on-401 path (hadTokenOnRequest must be true).
+      setSession({ access_token: "old-token", expires_in: 3600, user: {} });
 
       let protectedCallCount = 0;
       const fetchMock = vi.fn((input: unknown) => {
@@ -224,7 +233,8 @@ describe("api client", () => {
 
     it("calls onUnauthorized exactly once and rejects if the refresh attempt also fails", async () => {
       const onUnauthorized = vi.fn();
-      configureApiClient({ getToken: () => "old-token", onUnauthorized, onTokenRefreshed: () => {} });
+      configureApiClient({ onUnauthorized, onTokenRefreshed: () => {} });
+      setSession({ access_token: "old-token", expires_in: 3600, user: {} });
 
       vi.stubGlobal(
         "fetch",

@@ -6,9 +6,11 @@ import { cn } from "~/lib/utils";
 import AlertDialogPreview from "./alert-dialog-preview";
 import AlertPreview from "./alert-preview";
 import ButtonPreview from "./button-preview";
+import DialogPreview from "./dialog-preview";
 import DropdownMenuPreview from "./dropdown-menu-preview";
 import InputPreview from "./input-preview";
 import LoaderOnePreview from "./loader-one-preview";
+import SelectPreview from "./select-preview";
 import SidebarPreview from "./sidebar-preview";
 import TablePreview from "./table-preview";
 import ToolbarPreview from "./toolbar-preview";
@@ -30,6 +32,8 @@ const previews: PreviewEntry[] = [
   { id: "toolbar", label: "Toolbar", Component: ToolbarPreview },
   { id: "alert-dialog", label: "Alert Dialog", Component: AlertDialogPreview },
   { id: "alert", label: "Alert", Component: AlertPreview },
+  { id: "dialog", label: "Dialog", Component: DialogPreview },
+  { id: "select", label: "Select", Component: SelectPreview },
 ];
 
 export default function ComponentPreviewHub() {

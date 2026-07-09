@@ -338,7 +338,7 @@ export const Alert = ({
         >
           {icon ? (
             <motion.div
-              className="mt-0.5 shrink-0 text-foreground [&_svg]:h-[18px] [&_svg]:w-[18px]"
+              className="mt-0.5 shrink-0 text-foreground [&_svg]:h-4.5 [&_svg]:w-4.5"
               variants={iconVariants}
             >
               {icon}
