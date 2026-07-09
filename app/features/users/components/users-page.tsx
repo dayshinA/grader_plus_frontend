@@ -1,5 +1,6 @@
-import { CheckCircle2, MoreHorizontal, Plus, Search } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 
 import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
@@ -105,10 +106,18 @@ export function UsersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-foreground">Users</h1>
-        <Button onClick={() => openFormDialog({ mode: "create" })}>
-          <Plus className="h-4 w-4" />
-          Add user
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/super-admin/users/bulk-import">
+              <Upload className="h-4 w-4" />
+              Bulk import
+            </Link>
+          </Button>
+          <Button onClick={() => openFormDialog({ mode: "create" })}>
+            <Plus className="h-4 w-4" />
+            Add user
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-sm">
@@ -126,6 +135,7 @@ export function UsersPage() {
       {isError && (
         <Alert
           variant="inline"
+          status="error"
           timeout={0}
           title="Couldn't load users"
           message={
@@ -326,7 +336,7 @@ export function UsersPage() {
         <Alert
           key={toast.id}
           variant="toast"
-          icon={<CheckCircle2 className="h-5 w-5" aria-hidden />}
+          status="success"
           title={toast.title}
           reducedMotion
           timeout={6000}

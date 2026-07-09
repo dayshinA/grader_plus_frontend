@@ -4,7 +4,7 @@ import {
   useReducedMotion,
   type Variants,
 } from "framer-motion";
-import { X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import {
   type FocusEvent,
   type ReactNode,
@@ -29,8 +29,14 @@ export type AlertPosition =
 
 export type AlertVariant = "inline" | "toast";
 
+export type AlertStatus = "success" | "error" | "warning" | "info";
+
 export interface AlertProps {
   icon?: ReactNode;
+  /** Picks a default icon + icon color (success/error/warning/info) when `icon` isn't
+   * given, so callers don't have to hand-pick a lucide icon and color per call site.
+   * `icon` still wins if both are passed. Omit for the original neutral, icon-less look. */
+  status?: AlertStatus;
   title: ReactNode;
   message: ReactNode;
   action?: ReactNode;
@@ -44,6 +50,23 @@ export interface AlertProps {
 }
 
 const DEFAULT_TOAST_POSITION: AlertPosition = "top-right";
+
+/** Reuses the `success`/`error`/`warning` scales already defined in `app.css` (decision
+ * #5/#6) — same fixed, non-dark-flipping brand fills as `--color-destructive`, since
+ * these render as isolated colored icons rather than full-surface tokens. */
+const statusIconClasses: Record<AlertStatus, string> = {
+  success: "text-success-600",
+  error: "text-destructive",
+  warning: "text-warning-600",
+  info: "text-secondary-700",
+};
+
+const statusIcons: Record<AlertStatus, ReactNode> = {
+  success: <CheckCircle2 aria-hidden />,
+  error: <XCircle aria-hidden />,
+  warning: <AlertTriangle aria-hidden />,
+  info: <Info aria-hidden />,
+};
 
 const positionClasses: Record<AlertPosition, string> = {
   "top-left": "fixed top-4 inset-x-4 sm:inset-x-auto sm:left-4 sm:right-auto",
@@ -112,6 +135,7 @@ function getIconVariants(reduceMotion: boolean): Variants {
 
 export const Alert = ({
   icon,
+  status,
   title,
   message,
   action,
@@ -275,6 +299,9 @@ export const Alert = ({
     onDismiss?.();
   }, [onDismiss]);
 
+  const resolvedIcon = icon ?? (status ? statusIcons[status] : undefined);
+  const iconColorClass = status ? statusIconClasses[status] : "text-foreground";
+
   const dy = resolvedPosition ? entryY[resolvedPosition] : -8;
   const childVariants = getChildVariants(reduceMotion);
   const iconVariants = getIconVariants(reduceMotion);
@@ -336,12 +363,15 @@ export const Alert = ({
           role="status"
           variants={containerVariants}
         >
-          {icon ? (
+          {resolvedIcon ? (
             <motion.div
-              className="mt-0.5 shrink-0 text-foreground [&_svg]:h-4.5 [&_svg]:w-4.5"
+              className={cn(
+                "mt-0.5 shrink-0 [&_svg]:h-4.5 [&_svg]:w-4.5",
+                iconColorClass,
+              )}
               variants={iconVariants}
             >
-              {icon}
+              {resolvedIcon}
             </motion.div>
           ) : null}
 

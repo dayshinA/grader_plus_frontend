@@ -96,6 +96,38 @@ export default function AlertPreview() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
+          <code>status</code> — auto-picked colored icon (success/error/warning/info)
+        </h2>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-6">
+          <Alert
+            status="success"
+            message="Two markers and one moderator are now assigned to this project."
+            timeout={0}
+            title="Marker assignment saved"
+          />
+          <Alert
+            status="error"
+            message="Something went wrong. Please try again."
+            timeout={0}
+            title="Couldn't load users"
+          />
+          <Alert
+            status="warning"
+            message="One marker still hasn't submitted their evaluation."
+            timeout={0}
+            title="Grading incomplete"
+          />
+          <Alert
+            status="info"
+            message="Demo scheduling isn't confirmed as in-scope yet."
+            timeout={0}
+            title="Heads up"
+          />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">
           <code>reducedMotion</code> — forced fast-fade regardless of OS preference
         </h2>
         <Button

@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Alert } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { PasswordInput } from "~/components/ui/password-input";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { useChangePassword } from "~/features/auth/api/use-change-password";
 import { ApiError } from "~/lib/api-client";
@@ -67,9 +67,8 @@ export default function ChangePassword() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="currentPassword">Current password</Label>
-            <Input
+            <PasswordInput
               id="currentPassword"
-              type="password"
               autoComplete="current-password"
               required
               value={currentPassword}
@@ -79,9 +78,8 @@ export default function ChangePassword() {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="newPassword">New password</Label>
-            <Input
+            <PasswordInput
               id="newPassword"
-              type="password"
               autoComplete="new-password"
               minLength={8}
               required

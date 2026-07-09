@@ -58,4 +58,22 @@ describe("usersService", () => {
     expect(apiWithMessage.delete).toHaveBeenCalledWith("/users/u1");
     expect(result).toEqual({ data: { id: "u1" }, message: "User deactivated successfully." });
   });
+
+  it("bulkImportUsers posts a FormData body containing the file under field name 'file'", async () => {
+    const importResult = {
+      totalRows: 1,
+      createdCount: 1,
+      errorCount: 0,
+      results: [{ row: 2, email: "a@test.com", status: "created" as const, tempPassword: "Abc123!!" }],
+    };
+    vi.mocked(apiWithMessage.post).mockResolvedValue({ data: importResult, message: "1 row processed: 1 created, 0 failed." });
+    const file = new File(["email,fullName,role\na@test.com,A,marker\n"], "users.csv", { type: "text/csv" });
+    const appendSpy = vi.spyOn(FormData.prototype, "append");
+
+    const result = await usersService.bulkImportUsers(file);
+
+    expect(apiWithMessage.post).toHaveBeenCalledWith("/users/bulk-import", expect.any(FormData));
+    expect(appendSpy).toHaveBeenCalledWith("file", file);
+    expect(result).toEqual({ data: importResult, message: "1 row processed: 1 created, 0 failed." });
+  });
 });

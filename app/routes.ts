@@ -37,6 +37,10 @@ export default [
       layout("routes/auth/require-super-admin.tsx", [
         route("super-admin/users", "routes/super-admin/users.tsx"),
         route(
+          "super-admin/users/bulk-import",
+          "routes/super-admin/users.bulk-import.tsx",
+        ),
+        route(
           "super-admin/departments",
           "routes/super-admin/departments.tsx",
         ),

@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { useBulkImportUsers } from "~/features/users/api/use-bulk-import-users";
 import { useCreateUser } from "~/features/users/api/use-create-user";
 import { useDeactivateUser } from "~/features/users/api/use-deactivate-user";
 import { useUpdateUser } from "~/features/users/api/use-update-user";
@@ -15,6 +16,7 @@ vi.mock("~/features/users/api/users.service", () => ({
     createUser: vi.fn(),
     updateUser: vi.fn(),
     deactivateUser: vi.fn(),
+    bulkImportUsers: vi.fn(),
   },
 }));
 
@@ -93,6 +95,28 @@ describe("user mutation hooks", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(usersService.deactivateUser).toHaveBeenCalledWith("u1");
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: usersQueryKey });
+  });
+
+  it("useBulkImportUsers calls the service with the file and invalidates on success", async () => {
+    const { wrapper, invalidateSpy } = createWrapper();
+    const importResult = {
+      totalRows: 1,
+      createdCount: 1,
+      errorCount: 0,
+      results: [{ row: 2, email: "a@test.com", status: "created" as const, tempPassword: "Abc123!!" }],
+    };
+    vi.mocked(usersService.bulkImportUsers).mockResolvedValue({
+      data: importResult,
+      message: "1 row processed: 1 created, 0 failed.",
+    });
+    const file = new File(["email,fullName,role\n"], "users.csv", { type: "text/csv" });
+
+    const { result } = renderHook(() => useBulkImportUsers(), { wrapper });
+    result.current.mutate(file);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(usersService.bulkImportUsers).toHaveBeenCalledWith(file);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: usersQueryKey });
   });
 });

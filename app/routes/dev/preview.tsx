@@ -8,8 +8,10 @@ import AlertPreview from "./alert-preview";
 import ButtonPreview from "./button-preview";
 import DialogPreview from "./dialog-preview";
 import DropdownMenuPreview from "./dropdown-menu-preview";
+import FileInputPreview from "./file-input-preview";
 import InputPreview from "./input-preview";
 import LoaderOnePreview from "./loader-one-preview";
+import PasswordInputPreview from "./password-input-preview";
 import SelectPreview from "./select-preview";
 import SidebarPreview from "./sidebar-preview";
 import TablePreview from "./table-preview";
@@ -25,6 +27,8 @@ interface PreviewEntry {
 const previews: PreviewEntry[] = [
   { id: "button", label: "Button", Component: ButtonPreview },
   { id: "input", label: "Input", Component: InputPreview },
+  { id: "password-input", label: "Password Input", Component: PasswordInputPreview },
+  { id: "file-input", label: "File Input", Component: FileInputPreview },
   { id: "loader-one", label: "Loader One", Component: LoaderOnePreview },
   { id: "dropdown-menu", label: "Dropdown Menu", Component: DropdownMenuPreview },
   { id: "sidebar", label: "Sidebar", Component: SidebarPreview },

@@ -26,3 +26,21 @@ export interface UpdateUserRequest {
   learnId?: string | null;
   isActive?: boolean;
 }
+
+export interface BulkImportRowResult {
+  /** 1-indexed; header row is row 1, so the first data row is row 2. */
+  row: number;
+  email: string;
+  status: "created" | "error";
+  /** Present only when status is "created" — plaintext, one-time, never retrievable again. */
+  tempPassword?: string;
+  /** Present only when status is "error". */
+  error?: string;
+}
+
+export interface BulkImportResult {
+  totalRows: number;
+  createdCount: number;
+  errorCount: number;
+  results: BulkImportRowResult[];
+}

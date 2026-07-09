@@ -11,6 +11,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { PasswordInput } from "~/components/ui/password-input";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import { useCreateUser } from "~/features/users/api/use-create-user";
 import { useUpdateUser } from "~/features/users/api/use-update-user";
 import type { UserResponse } from "~/features/users/types";
 import { ApiError } from "~/lib/api-client";
+import { generateSecurePassword } from "~/utils/generate-password";
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "coordinator", label: "Coordinator" },
@@ -136,7 +138,7 @@ export function UserFormDialog({
           <DialogTitle>{mode === "create" ? "Add user" : "Edit user"}</DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Create a new account. They'll receive a temporary password to distribute manually."
+              ? "Create a new account. Set a password below (or generate one) and share it with them manually — there's no email delivery."
               : "Update this user's details. Leave the password blank to keep it unchanged."}
           </DialogDescription>
         </DialogHeader>
@@ -144,6 +146,7 @@ export function UserFormDialog({
         {error && (
           <Alert
             variant="inline"
+            status="error"
             timeout={0}
             title={mode === "create" ? "Couldn't create user" : "Couldn't update user"}
             message={error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
@@ -203,12 +206,23 @@ export function UserFormDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="user-password">
-              {mode === "create" ? "Password" : "New password (leave blank to keep current)"}
-            </Label>
-            <Input
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="user-password">
+                {mode === "create" ? "Password" : "New password (leave blank to keep current)"}
+              </Label>
+              <Button
+                className="h-auto p-0 text-xs"
+                onClick={() =>
+                  setForm((prev) => ({ ...prev, password: generateSecurePassword() }))
+                }
+                type="button"
+                variant="link"
+              >
+                Generate secure password
+              </Button>
+            </div>
+            <PasswordInput
               id="user-password"
-              type="password"
               autoComplete="new-password"
               required={mode === "create"}
               minLength={8}
