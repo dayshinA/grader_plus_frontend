@@ -1,5 +1,6 @@
 import { MoreHorizontal, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 
 import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
@@ -174,6 +175,13 @@ export function DepartmentsPage() {
                           onSelect={() => openFormDialog({ mode: "edit", department })}
                         >
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            to={`/super-admin/department-admin-grants?departmentId=${department.id}`}
+                          >
+                            Manage admins
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setDeactivateTarget(department)}>
                           {department.isActive ? "Deactivate" : "Reactivate"}
