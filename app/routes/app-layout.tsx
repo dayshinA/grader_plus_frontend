@@ -3,6 +3,7 @@ import {
   ClipboardCheck,
   FileClock,
   FileSpreadsheet,
+  GraduationCap,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -96,6 +97,12 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
         label: "Department Admin Grants",
         href: "/super-admin/department-admin-grants",
         icon: ShieldCheck,
+        end: true,
+      },
+      {
+        label: "Modules",
+        href: "/super-admin/modules",
+        icon: GraduationCap,
         end: true,
       },
       {

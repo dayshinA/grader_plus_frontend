@@ -48,6 +48,7 @@ export default [
           "super-admin/department-admin-grants",
           "routes/super-admin/department-admin-grants.tsx",
         ),
+        route("super-admin/modules", "routes/super-admin/modules.tsx"),
         route(
           "super-admin/module-grants",
           "routes/super-admin/module-grants.tsx",
