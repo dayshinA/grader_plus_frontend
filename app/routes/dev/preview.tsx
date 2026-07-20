@@ -15,6 +15,7 @@ import PasswordInputPreview from "./password-input-preview";
 import SelectPreview from "./select-preview";
 import SidebarPreview from "./sidebar-preview";
 import TablePreview from "./table-preview";
+import TabsPreview from "./tabs-preview";
 import ToolbarPreview from "./toolbar-preview";
 
 interface PreviewEntry {
@@ -38,6 +39,7 @@ const previews: PreviewEntry[] = [
   { id: "alert", label: "Alert", Component: AlertPreview },
   { id: "dialog", label: "Dialog", Component: DialogPreview },
   { id: "select", label: "Select", Component: SelectPreview },
+  { id: "tabs", label: "Tabs", Component: TabsPreview },
 ];
 
 export default function ComponentPreviewHub() {

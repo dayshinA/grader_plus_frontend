@@ -25,6 +25,14 @@ describe("departmentsService", () => {
     expect(api.get).toHaveBeenCalledWith("/departments");
   });
 
+  it("getCoordinators calls GET /departments/:id/coordinators", async () => {
+    vi.mocked(api.get).mockResolvedValue([]);
+
+    await departmentsService.getCoordinators("d1");
+
+    expect(api.get).toHaveBeenCalledWith("/departments/d1/coordinators");
+  });
+
   it("createDepartment calls POST /departments with the request body and resolves { data, message }", async () => {
     const request = { code: "SCI", name: "School of Science" };
     const created = { id: "d1", ...request, isActive: true, createdAt: "2026-07-11" };

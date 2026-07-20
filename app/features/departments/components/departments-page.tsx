@@ -183,6 +183,11 @@ export function DepartmentsPage() {
                             Manage admins
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/super-admin/module-grants?departmentId=${department.id}`}>
+                            Manage module-creation grants
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setDeactivateTarget(department)}>
                           {department.isActive ? "Deactivate" : "Reactivate"}
                         </DropdownMenuItem>

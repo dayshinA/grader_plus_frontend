@@ -1,6 +1,6 @@
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
-import { ModulesPage } from "~/features/academic-modules/components/modules-page";
+import { ModuleSettingsPage } from "~/features/academic-modules/components/module-settings-page";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
 import { departmentsService } from "~/features/departments/api/departments.service";
@@ -17,7 +17,9 @@ export async function clientLoader() {
   if (!(await ensureAuthenticated())) return null;
   // GET /departments now self-filters by role (2026-07-11 backend fix, SYSTEM_DESIGN.md decision
   // #33) — a Coordinator gets back only the departments they administer or hold a creation grant
-  // in, so it's safe (and needed, for the create-module department picker) to prefetch here too.
+  // in, each with an `isAdmin` flag. Prefetched here for both the create-module department
+  // picker AND `ModuleSettingsPage`'s decision of whether to show the FR40 Delegate Permissions
+  // tab at all (decision #34) — an `isAdmin: true` row is what unlocks it.
   // No users prefetch needed — GET /users is still Super-Admin-only.
   await Promise.all([
     queryClient.ensureQueryData({
@@ -33,5 +35,5 @@ export async function clientLoader() {
 }
 
 export default function CoordinatorModuleSettings() {
-  return <ModulesPage viewer="coordinator" />;
+  return <ModuleSettingsPage />;
 }
