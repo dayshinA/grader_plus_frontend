@@ -36,82 +36,125 @@ import type { Role } from "~/features/auth/types";
 
 const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
   coordinator: [
-    [
-      {
-        label: "Dashboard",
-        href: "/coordinator/dashboard",
-        icon: LayoutDashboard,
-        end: true,
-      },
-      {
-        label: "Module Settings",
-        href: "/coordinator/module-settings",
-        icon: Settings,
-        end: true,
-      },
-      {
-        label: "Submissions",
-        href: "/coordinator/submissions",
-        icon: Upload,
-        end: true,
-      },
-      {
-        label: "Marker Assignments",
-        href: "/coordinator/marker-assignments",
-        icon: ListChecks,
-        end: true,
-      },
-      {
-        label: "Rubrics",
-        href: "/coordinator/rubrics",
-        icon: ScrollText,
-        end: true,
-      },
-      {
-        label: "Discrepancies",
-        href: "/coordinator/discrepancies",
-        icon: ClipboardCheck,
-        end: true,
-      },
-      {
-        label: "Export",
-        href: "/coordinator/export",
-        icon: FileSpreadsheet,
-        end: true,
-      },
-    ],
+    {
+      label: "Overview",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Dashboard",
+          href: "/coordinator/dashboard",
+          icon: LayoutDashboard,
+          end: true,
+        },
+      ],
+    },
+    {
+      label: "Setup",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Module Settings",
+          href: "/coordinator/module-settings",
+          icon: Settings,
+          end: true,
+        },
+        {
+          label: "Rubrics",
+          href: "/coordinator/rubrics",
+          icon: ScrollText,
+          end: true,
+        },
+      ],
+    },
+    {
+      label: "Grading",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Submissions",
+          href: "/coordinator/submissions",
+          icon: Upload,
+          end: true,
+        },
+        {
+          label: "Marker Assignments",
+          href: "/coordinator/marker-assignments",
+          icon: ListChecks,
+          end: true,
+        },
+        {
+          label: "Discrepancies",
+          href: "/coordinator/discrepancies",
+          icon: ClipboardCheck,
+          end: true,
+        },
+      ],
+    },
+    {
+      label: "Reporting",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Export",
+          href: "/coordinator/export",
+          icon: FileSpreadsheet,
+          end: true,
+        },
+      ],
+    },
   ],
   marker: [
     [{ label: "My Projects", href: "/marker/projects", icon: FileClock, end: true }],
   ],
   super_admin: [
-    [
-      { label: "Users", href: "/super-admin/users", icon: Users, end: true },
-      {
-        label: "Departments",
-        href: "/super-admin/departments",
-        icon: Building2,
-        end: true,
-      },
-      {
-        label: "Department Admin Grants",
-        href: "/super-admin/department-admin-grants",
-        icon: ShieldCheck,
-        end: true,
-      },
-      {
-        label: "Modules",
-        href: "/super-admin/modules",
-        icon: GraduationCap,
-        end: true,
-      },
-      {
-        label: "Module Grants",
-        href: "/super-admin/module-grants",
-        icon: UserCog,
-        end: true,
-      },
-    ],
+    {
+      label: "Users",
+      collapsible: true,
+      defaultOpen: true,
+      items: [{ label: "Users", href: "/super-admin/users", icon: Users, end: true }],
+    },
+    {
+      label: "Departments",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Departments",
+          href: "/super-admin/departments",
+          icon: Building2,
+          end: true,
+        },
+        {
+          label: "Department Admin Grants",
+          href: "/super-admin/department-admin-grants",
+          icon: ShieldCheck,
+          end: true,
+        },
+      ],
+    },
+    {
+      label: "Modules",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Modules",
+          href: "/super-admin/modules",
+          icon: GraduationCap,
+          end: true,
+        },
+        {
+          label: "Module Grants",
+          href: "/super-admin/module-grants",
+          icon: UserCog,
+          end: true,
+        },
+      ],
+    },
   ],
 };
 

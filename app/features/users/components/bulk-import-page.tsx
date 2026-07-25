@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -5,6 +6,7 @@ import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { FileInput } from "~/components/ui/file-input";
+import { PageHeader } from "~/components/ui/page-header";
 import {
   Table,
   TableBody,
@@ -61,20 +63,20 @@ export function BulkImportPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/super-admin/users">← Back to users</Link>
-          </Button>
-        </div>
-        <h1 className="text-xl font-semibold text-foreground">Bulk import users</h1>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/super-admin/users">← Back to users</Link>
+        </Button>
+      </div>
+
+      <PageHeader title="Bulk import users" icon={Upload}>
         <p className="text-sm text-muted-foreground">
           Upload a .csv or .xlsx file with columns <code>email</code>, <code>fullName</code>,{" "}
           <code>role</code>, and an optional <code>learnId</code>. Up to 500 rows per file. Each
           created account gets a one-time temporary password shown below — there&apos;s no email
           delivery, so distribute it manually before leaving this page.
         </p>
-      </div>
+      </PageHeader>
 
       {!result && (
         <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">

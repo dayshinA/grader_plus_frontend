@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus, Search, Upload } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Upload, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
+import { PageHeader } from "~/components/ui/page-header";
 import {
   Pagination,
   PaginationContent,
@@ -104,33 +105,36 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Users</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/super-admin/users/bulk-import">
-              <Upload className="h-4 w-4" />
-              Bulk import
-            </Link>
-          </Button>
-          <Button onClick={() => openFormDialog({ mode: "create" })}>
-            <Plus className="h-4 w-4" />
-            Add user
-          </Button>
+      <PageHeader
+        title="Users"
+        icon={Users}
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/super-admin/users/bulk-import">
+                <Upload className="h-4 w-4" />
+                Bulk import
+              </Link>
+            </Button>
+            <Button onClick={() => openFormDialog({ mode: "create" })}>
+              <Plus className="h-4 w-4" />
+              Add user
+            </Button>
+          </>
+        }
+      >
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Input
+            type="search"
+            placeholder="Search by name or email"
+            className="pl-9"
+            value={search}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            aria-label="Search users"
+          />
         </div>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-        <Input
-          type="search"
-          placeholder="Search by name or email"
-          className="pl-9"
-          value={search}
-          onChange={(event) => handleSearchChange(event.target.value)}
-          aria-label="Search users"
-        />
-      </div>
+      </PageHeader>
 
       {isError && (
         <Alert

@@ -1,4 +1,4 @@
-import { MoreHorizontal, Plus, Search } from "lucide-react";
+import { Building2, MoreHorizontal, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
+import { PageHeader } from "~/components/ui/page-header";
 import {
   Pagination,
   PaginationContent,
@@ -98,25 +99,28 @@ export function DepartmentsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Departments</h1>
-        <Button onClick={() => openFormDialog({ mode: "create" })}>
-          <Plus className="h-4 w-4" />
-          Add department
-        </Button>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-        <Input
-          type="search"
-          placeholder="Search by code or name"
-          className="pl-9"
-          value={search}
-          onChange={(event) => handleSearchChange(event.target.value)}
-          aria-label="Search departments"
-        />
-      </div>
+      <PageHeader
+        title="Departments"
+        icon={Building2}
+        actions={
+          <Button onClick={() => openFormDialog({ mode: "create" })}>
+            <Plus className="h-4 w-4" />
+            Add department
+          </Button>
+        }
+      >
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Input
+            type="search"
+            placeholder="Search by code or name"
+            className="pl-9"
+            value={search}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            aria-label="Search departments"
+          />
+        </div>
+      </PageHeader>
 
       {isError && (
         <Alert

@@ -1,4 +1,4 @@
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { PageHeader } from "~/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -109,35 +110,38 @@ export function DepartmentAdminGrantsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Department Admin Grants</h1>
-        <Button
-          onClick={() => {
-            setAssignDialogOpen(true);
-            setAssignDialogNonce((n) => n + 1);
-          }}
-          disabled={!selectedDepartment}
-        >
-          <UserPlus className="h-4 w-4" />
-          Assign Department Admin
-        </Button>
-      </div>
-
-      <div className="max-w-sm">
-        <Select value={departmentId ?? undefined} onValueChange={handleDepartmentChange}>
-          <SelectTrigger aria-label="Select a department">
-            <SelectValue placeholder="Select a department" />
-          </SelectTrigger>
-          <SelectContent>
-            {(departments ?? []).map((department) => (
-              <SelectItem key={department.id} value={department.id}>
-                {department.name}
-                {!department.isActive ? " (Inactive)" : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        title="Department Admin Grants"
+        icon={ShieldCheck}
+        actions={
+          <Button
+            onClick={() => {
+              setAssignDialogOpen(true);
+              setAssignDialogNonce((n) => n + 1);
+            }}
+            disabled={!selectedDepartment}
+          >
+            <UserPlus className="h-4 w-4" />
+            Assign Department Admin
+          </Button>
+        }
+      >
+        <div className="max-w-sm">
+          <Select value={departmentId ?? undefined} onValueChange={handleDepartmentChange}>
+            <SelectTrigger aria-label="Select a department">
+              <SelectValue placeholder="Select a department" />
+            </SelectTrigger>
+            <SelectContent>
+              {(departments ?? []).map((department) => (
+                <SelectItem key={department.id} value={department.id}>
+                  {department.name}
+                  {!department.isActive ? " (Inactive)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </PageHeader>
 
       {departmentNotFound && (
         <Alert

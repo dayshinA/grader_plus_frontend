@@ -1,12 +1,15 @@
+import { ClipboardCheck } from "lucide-react";
+import { PageHeader } from "~/components/ui/page-header";
+
 export function meta() {
   return [{ title: "Discrepancies — GraderPlus" }];
 }
 
 export default function Discrepancies() {
   return (
-    <div>
-      <h1 className="text-xl font-semibold text-foreground">Discrepancies</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Coming soon.</p>
+    <div className="flex flex-col gap-4">
+      <PageHeader title="Discrepancies" icon={ClipboardCheck} />
+      <p className="text-sm text-muted-foreground">Coming soon.</p>
     </div>
   );
 }
