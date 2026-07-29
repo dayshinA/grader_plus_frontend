@@ -34,7 +34,7 @@ describe("departmentsService", () => {
   });
 
   it("createDepartment calls POST /departments with the request body and resolves { data, message }", async () => {
-    const request = { code: "SCI", name: "School of Science" };
+    const request = { code: "CS", name: "Department of Computer Science", schoolId: "s1" };
     const created = { id: "d1", ...request, isActive: true, createdAt: "2026-07-11" };
     vi.mocked(apiWithMessage.post).mockResolvedValue({
       data: created,

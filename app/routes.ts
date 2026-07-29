@@ -15,6 +15,10 @@ export default [
           "coordinator/module-settings",
           "routes/coordinator/module-settings.tsx",
         ),
+        route(
+          "coordinator/school-settings",
+          "routes/coordinator/school-settings.tsx",
+        ),
         route("coordinator/submissions", "routes/coordinator/submissions.tsx"),
         route(
           "coordinator/marker-assignments",
@@ -39,6 +43,11 @@ export default [
         route(
           "super-admin/users/bulk-import",
           "routes/super-admin/users.bulk-import.tsx",
+        ),
+        route("super-admin/schools", "routes/super-admin/schools.tsx"),
+        route(
+          "super-admin/school-admin-grants",
+          "routes/super-admin/school-admin-grants.tsx",
         ),
         route(
           "super-admin/departments",

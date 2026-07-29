@@ -4,6 +4,7 @@ import {
   FileClock,
   FileSpreadsheet,
   GraduationCap,
+  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -58,6 +59,15 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
           label: "Module Settings",
           href: "/coordinator/module-settings",
           icon: Settings,
+          end: true,
+        },
+        {
+          // Added 2026-07-29 (FR41-43) — always visible to every Coordinator, with an empty
+          // state for non-School-Admins, per decision #38 (matches this app's static-nav
+          // convention rather than introducing grant-conditional nav).
+          label: "School Settings",
+          href: "/coordinator/school-settings",
+          icon: Landmark,
           end: true,
         },
         {
@@ -116,6 +126,26 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
       collapsible: true,
       defaultOpen: true,
       items: [{ label: "Users", href: "/super-admin/users", icon: Users, end: true }],
+    },
+    {
+      // Added 2026-07-29 (FR41-43) — new hierarchy level above Departments.
+      label: "Schools",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Schools",
+          href: "/super-admin/schools",
+          icon: Landmark,
+          end: true,
+        },
+        {
+          label: "School Admin Grants",
+          href: "/super-admin/school-admin-grants",
+          icon: ShieldCheck,
+          end: true,
+        },
+      ],
     },
     {
       label: "Departments",

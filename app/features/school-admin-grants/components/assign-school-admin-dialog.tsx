@@ -17,70 +17,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { useGrantDepartmentAdmin } from "~/features/department-admin-grants/api/use-grant-department-admin";
-import type { DepartmentAdminGrantResponse } from "~/features/department-admin-grants/types";
+import { useGrantSchoolAdmin } from "~/features/school-admin-grants/api/use-grant-school-admin";
+import type { SchoolAdminGrantResponse } from "~/features/school-admin-grants/types";
 import type { UserResponse } from "~/features/users/types";
 import { ApiError } from "~/lib/api-client";
 
-export interface EligibleCoordinatorOption {
-  id: string;
-  label: string;
-}
-
-interface AssignDepartmentAdminDialogProps {
+interface AssignSchoolAdminDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  departmentId: string;
-  departmentName: string;
-  /** Active coordinators with no existing grant row (active or revoked) for this department —
-   * a previously revoked coordinator already has a row of their own, with its own Re-grant
-   * action, so isn't offered here again. Accepts either the Super Admin viewer's full
-   * `UserResponse[]` (name + email available) or the School-Admin-Coordinator viewer's lighter
-   * `EligibleCoordinatorOption[]` (from `GET /departments/:departmentId/coordinators`, id + label
-   * only) — added 2026-07-29 (FR43), same dual-type pattern `AssignModuleCreationGrantDialog`
-   * already established (decision #34), reused here rather than a second near-duplicate dialog. */
-  eligibleCoordinators: UserResponse[] | EligibleCoordinatorOption[];
+  schoolId: string;
+  schoolName: string;
+  /** Active coordinators with no existing grant row (active or revoked) for this school — a
+   * previously revoked coordinator already has a row of their own, with its own Re-grant
+   * action, so isn't offered here again. Always the Super Admin viewer's full `UserResponse[]`
+   * — School Admin assignment is never delegable, so there's no lighter Coordinator-viewer
+   * variant to support here (unlike `AssignDepartmentAdminDialog`, decision #38). */
+  eligibleCoordinators: UserResponse[];
   /** Called after a successful grant, once the dialog has closed —
    * `apiMessage` is the backend's own confirmation message (see decision #31). */
-  onSuccess?: (grant: DepartmentAdminGrantResponse, apiMessage: string) => void;
-}
-
-function toOption(
-  coordinator: UserResponse | EligibleCoordinatorOption,
-): EligibleCoordinatorOption {
-  if ("label" in coordinator) return coordinator;
-  return { id: coordinator.id, label: `${coordinator.fullName} (${coordinator.email})` };
+  onSuccess?: (grant: SchoolAdminGrantResponse, apiMessage: string) => void;
 }
 
 /**
- * Note: this component is remounted by its caller (via a `key` that changes every
- * time the dialog is opened) rather than resetting its own state in an effect —
- * same convention as `UserFormDialog`/`DepartmentFormDialog`.
+ * Note: this component is remounted by its caller (via a `key` that changes every time the
+ * dialog is opened) rather than resetting its own state in an effect — same convention as
+ * `AssignDepartmentAdminDialog`.
  */
-export function AssignDepartmentAdminDialog({
+export function AssignSchoolAdminDialog({
   open,
   onOpenChange,
-  departmentId,
-  departmentName,
+  schoolId,
+  schoolName,
   eligibleCoordinators,
   onSuccess,
-}: AssignDepartmentAdminDialogProps) {
+}: AssignSchoolAdminDialogProps) {
   const [coordinatorId, setCoordinatorId] = useState("");
-  const grantDepartmentAdmin = useGrantDepartmentAdmin();
+  const grantSchoolAdmin = useGrantSchoolAdmin();
 
   // Passed to the nested Select below as its portal container — see
   // SelectContentProps.container's doc comment for why this is needed
   // (Dialog's focus-trap vs. a document.body-portaled Select popover).
   const [dialogNode, setDialogNode] = useState<HTMLDivElement | null>(null);
 
-  const options = eligibleCoordinators.map(toOption);
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!coordinatorId) return;
 
-    grantDepartmentAdmin.mutate(
-      { departmentId, coordinatorId },
+    grantSchoolAdmin.mutate(
+      { schoolId, coordinatorId },
       {
         onSuccess: ({ data: grant, message }) => {
           onOpenChange(false);
@@ -90,17 +74,17 @@ export function AssignDepartmentAdminDialog({
     );
   }
 
-  const error = grantDepartmentAdmin.error;
-  const isPending = grantDepartmentAdmin.isPending;
-  const hasEligibleCoordinators = options.length > 0;
+  const error = grantSchoolAdmin.error;
+  const isPending = grantSchoolAdmin.isPending;
+  const hasEligibleCoordinators = eligibleCoordinators.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent ref={setDialogNode}>
         <DialogHeader>
-          <DialogTitle>Assign Department Admin</DialogTitle>
+          <DialogTitle>Assign School Admin</DialogTitle>
           <DialogDescription>
-            Grant a Coordinator oversight of every module in {departmentName}.
+            Grant a Coordinator oversight of every department and module in {schoolName}.
           </DialogDescription>
         </DialogHeader>
 
@@ -111,7 +95,7 @@ export function AssignDepartmentAdminDialog({
               status="info"
               timeout={0}
               title="No eligible coordinators"
-              message="Every active coordinator already has a grant record for this department."
+              message="Every active coordinator already has a grant record for this school."
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -126,26 +110,24 @@ export function AssignDepartmentAdminDialog({
                 variant="inline"
                 status="error"
                 timeout={0}
-                title="Couldn't assign Department Admin"
+                title="Couldn't assign School Admin"
                 message={
-                  error instanceof ApiError
-                    ? error.message
-                    : "Something went wrong. Please try again."
+                  error instanceof ApiError ? error.message : "Something went wrong. Please try again."
                 }
               />
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="assign-coordinator">Coordinator</Label>
+                <Label htmlFor="assign-school-coordinator">Coordinator</Label>
                 <Select value={coordinatorId} onValueChange={setCoordinatorId}>
-                  <SelectTrigger id="assign-coordinator">
+                  <SelectTrigger id="assign-school-coordinator">
                     <SelectValue placeholder="Select a coordinator" />
                   </SelectTrigger>
                   <SelectContent container={dialogNode}>
-                    {options.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
+                    {eligibleCoordinators.map((coordinator) => (
+                      <SelectItem key={coordinator.id} value={coordinator.id}>
+                        {coordinator.fullName} ({coordinator.email})
                       </SelectItem>
                     ))}
                   </SelectContent>

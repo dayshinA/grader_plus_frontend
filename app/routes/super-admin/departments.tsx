@@ -2,6 +2,8 @@ import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
 import { departmentsService } from "~/features/departments/api/departments.service";
 import { DepartmentsPage } from "~/features/departments/components/departments-page";
+import { schoolsQueryKey } from "~/features/schools/api/use-schools";
+import { schoolsService } from "~/features/schools/api/schools.service";
 import { queryClient } from "~/lib/query-client";
 
 export function meta() {
@@ -14,10 +16,18 @@ export async function clientLoader() {
   // silent-session-recovery attempt has to happen here too, not just in
   // AuthProvider's own mount effect.
   if (!(await ensureAuthenticated())) return null;
-  await queryClient.ensureQueryData({
-    queryKey: departmentsQueryKey,
-    queryFn: departmentsService.getDepartments,
-  });
+  // Schools prefetched too as of 2026-07-29 (FR41) — needed for the create/edit form's required
+  // school picker and the list's School column.
+  await Promise.all([
+    queryClient.ensureQueryData({
+      queryKey: departmentsQueryKey,
+      queryFn: departmentsService.getDepartments,
+    }),
+    queryClient.ensureQueryData({
+      queryKey: schoolsQueryKey,
+      queryFn: schoolsService.getSchools,
+    }),
+  ]);
   return null;
 }
 

@@ -33,12 +33,19 @@ describe("department mutation hooks", () => {
   it("useCreateDepartment calls the service and invalidates the departments query on success", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     vi.mocked(departmentsService.createDepartment).mockResolvedValue({
-      data: { id: "d1", code: "SCI", name: "School of Science", isActive: true, createdAt: "2026-07-11" },
+      data: {
+        id: "d1",
+        code: "CS",
+        name: "Department of Computer Science",
+        schoolId: "s1",
+        isActive: true,
+        createdAt: "2026-07-11",
+      },
       message: "Department created successfully.",
     });
 
     const { result } = renderHook(() => useCreateDepartment(), { wrapper });
-    result.current.mutate({ code: "SCI", name: "School of Science" });
+    result.current.mutate({ code: "CS", name: "Department of Computer Science", schoolId: "s1" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(departmentsService.createDepartment).toHaveBeenCalledOnce();
@@ -48,7 +55,14 @@ describe("department mutation hooks", () => {
   it("useUpdateDepartment calls the service with id/request and invalidates on success", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     vi.mocked(departmentsService.updateDepartment).mockResolvedValue({
-      data: { id: "d1", code: "SCI", name: "School of Science", isActive: true, createdAt: "2026-07-11" },
+      data: {
+        id: "d1",
+        code: "CS",
+        name: "Department of Computer Science",
+        schoolId: "s1",
+        isActive: true,
+        createdAt: "2026-07-11",
+      },
       message: "Department updated successfully.",
     });
 
