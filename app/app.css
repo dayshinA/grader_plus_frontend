@@ -114,6 +114,15 @@
     --color-gray-500
   ); /* placeholder/helper text; 4.6:1 vs white at full opacity */
 
+  /* decision #36: soft status-chip tokens (light fill + dark text) for Badge's
+     success/warning variants — first consumer, dashboard's per-student/per-marker
+     status badges. Not a solid fill like primary/destructive, so flips with the
+     other neutral tokens below rather than staying pinned. */
+  --color-success: var(--color-success-100);
+  --color-success-foreground: var(--color-success-800);
+  --color-warning: var(--color-warning-100);
+  --color-warning-foreground: var(--color-warning-800);
+
   --color-border: var(--color-gray-300);
   --color-input: var(--color-gray-300);
   --color-ring: var(--color-primary-600);
@@ -135,6 +144,10 @@
     --color-muted-foreground: var(
       --color-gray-400
     ); /* 8.1:1 vs gray-950 at full opacity — still valid against true black too */
+    --color-success: var(--color-success-900);
+    --color-success-foreground: var(--color-success-300);
+    --color-warning: var(--color-warning-900);
+    --color-warning-foreground: var(--color-warning-300);
     --color-border: var(--color-gray-700);
     --color-input: var(--color-gray-700);
   }
