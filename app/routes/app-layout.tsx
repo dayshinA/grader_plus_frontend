@@ -33,10 +33,23 @@ import {
   type SidebarGroupInput,
 } from "~/components/ui/sidebar";
 import { useAuth } from "~/features/auth/api/auth-context";
-import type { Role } from "~/features/auth/types";
+import { hasRole } from "~/features/permissions/utils";
+import type { UserPermissionsSummary } from "~/features/permissions/types";
 
-const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
-  coordinator: [
+// TODO(CH-16, Phase 4): this whole block is a deliberate stop-gap. The proper
+// rebuild has each nav item declare the permission that makes it relevant, with
+// the list filtered from `summary.permissionKeys` — that's the only shape that
+// gets a School Admin's nav right without special-casing, and the only one that
+// stops a department-scoped Coordinator (who holds `modules.create` and nothing
+// else) being shown six items that 403.
+//
+// It isn't done here because it depends on Phase 2's delegation nav entry and on
+// reversing decision #38, neither of which exist yet. Until then these three
+// arrays are the pre-RBAC ones, picked by the user's most senior role instead of
+// by the deleted `user.role`. Known wrong in two ways for one session:
+//   - a department-scoped-only Coordinator sees items they can't use (CH-17), and
+//   - the three grant entries below point at routes deleted in Phase 2.
+const coordinatorNavGroups: SidebarGroupInput[] = [
     {
       label: "Overview",
       collapsible: true,
@@ -116,11 +129,13 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
         },
       ],
     },
-  ],
-  marker: [
-    [{ label: "My Projects", href: "/marker/projects", icon: FileClock, end: true }],
-  ],
-  super_admin: [
+];
+
+const markerNavGroups: SidebarGroupInput[] = [
+  [{ label: "My Projects", href: "/marker/projects", icon: FileClock, end: true }],
+];
+
+const adminNavGroups: SidebarGroupInput[] = [
     {
       label: "Users",
       collapsible: true,
@@ -185,8 +200,33 @@ const navGroupsByRole: Record<Role, SidebarGroupInput[]> = {
         },
       ],
     },
-  ],
-};
+];
+
+/**
+ * Picks a nav group array by the user's most senior role template, using the
+ * same seniority order as `landingPath`. Stop-gap — see the TODO(CH-16) above.
+ *
+ * Note this shows a School Admin and a Department Admin the coordinator nav,
+ * which is correct: they work out of the assessment screens for their whole
+ * scope (decision #39).
+ */
+function navGroupsFor(
+  summary: UserPermissionsSummary | null,
+): SidebarGroupInput[] {
+  if (hasRole(summary, "super_admin")) return adminNavGroups;
+  if (
+    hasRole(summary, "school_admin") ||
+    hasRole(summary, "department_admin") ||
+    hasRole(summary, "project_coordinator")
+  ) {
+    return coordinatorNavGroups;
+  }
+  if (hasRole(summary, "marker")) return markerNavGroups;
+  // No assignments, or a template this build doesn't know. ProtectedRoute and
+  // landingPath already route these users to /unauthorized, so this layout
+  // shouldn't render for them at all — an empty nav is the safe fallback.
+  return [];
+}
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -197,7 +237,7 @@ function initials(fullName: string): string {
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, permissions, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   if (!user) {
@@ -215,7 +255,7 @@ export default function AppLayout() {
         </div>
 
         <Sidebar
-          groups={navGroupsByRole[user.role]}
+          groups={navGroupsFor(permissions)}
           onCollapsedChange={setIsCollapsed}
           logo={(isCollapsedNow) =>
             isCollapsedNow ? (

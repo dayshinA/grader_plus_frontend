@@ -1,3 +1,5 @@
+import { Upload } from "lucide-react";
+import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { BulkImportPage } from "~/features/users/components/bulk-import-page";
 
 export function meta() {
@@ -5,5 +7,9 @@ export function meta() {
 }
 
 export default function SuperAdminUsersBulkImport() {
-  return <BulkImportPage />;
+  return (
+    <PermissionGate permissions={["users.bulk_import"]} title="Bulk Import" icon={Upload}>
+      <BulkImportPage />
+    </PermissionGate>
+  );
 }

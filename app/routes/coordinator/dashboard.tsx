@@ -1,3 +1,5 @@
+import { LayoutDashboard } from "lucide-react";
+import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
 import { ensureAuthenticated } from "~/features/auth/utils";
@@ -13,9 +15,17 @@ export async function clientLoader() {
   // fire before AuthProvider has mounted, so a silent-session-recovery attempt has to happen
   // here too, not just in AuthProvider's own mount effect.
   if (!(await ensureAuthenticated())) return null;
+  // prefetchQuery, not ensureQueryData: under the RBAC model a list endpoint
+  // 403s for a caller who lacks the permission (rather than returning an empty
+  // 200), and a clientLoader runs *before* the component — so ensureQueryData's
+  // throw escaped PermissionGate entirely and rendered the raw ErrorBoundary.
+  // prefetchQuery is TanStack's documented graceful-degradation path: it never
+  // throws, so the prefetch stays a head start and the component decides what
+  // to show. Its own useQuery re-runs and surfaces any genuine error.
+  // See BUGS.md 2026-07-31.
   // Only the module list is prefetchable here — the dashboard query itself is keyed by
   // moduleId, which isn't resolved until DashboardPage picks/defaults it from the URL param.
-  await queryClient.ensureQueryData({
+  await queryClient.prefetchQuery({
     queryKey: academicModulesQueryKey,
     queryFn: academicModulesService.getModules,
   });
@@ -23,5 +33,9 @@ export async function clientLoader() {
 }
 
 export default function CoordinatorDashboard() {
-  return <DashboardPage />;
+  return (
+    <PermissionGate permissions={["dashboard.view"]} title="Dashboard" icon={LayoutDashboard}>
+      <DashboardPage />
+    </PermissionGate>
+  );
 }

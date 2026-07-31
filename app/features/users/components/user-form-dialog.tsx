@@ -19,14 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import type { Role } from "~/features/auth/types";
 import { useCreateUser } from "~/features/users/api/use-create-user";
 import { useUpdateUser } from "~/features/users/api/use-update-user";
-import type { UserResponse } from "~/features/users/types";
+import type { LegacyRole, UserResponse } from "~/features/users/types";
 import { ApiError } from "~/lib/api-client";
 import { generateSecurePassword } from "~/utils/generate-password";
 
-const ROLE_OPTIONS: { value: Role; label: string }[] = [
+// TODO(CH-11, Phase 3): replaced by the role-template + scope pickers built in
+// Phase 2. These three values no longer exist server-side.
+const ROLE_OPTIONS: { value: LegacyRole; label: string }[] = [
   { value: "coordinator", label: "Coordinator" },
   { value: "marker", label: "Marker" },
   { value: "super_admin", label: "Super Admin" },
@@ -46,7 +47,7 @@ interface UserFormDialogProps {
 const EMPTY_FORM = {
   email: "",
   fullName: "",
-  role: "marker" as Role,
+  role: "marker" as LegacyRole,
   learnId: "",
   password: "",
 };
@@ -70,7 +71,11 @@ export function UserFormDialog({
       ? {
           email: user.email,
           fullName: user.fullName,
-          role: user.role,
+          // TODO(CH-12, Phase 3): edit mode loses the role field entirely —
+          // PATCH /users/:id rejects it, and GET /users no longer returns one
+          // to prefill from. Defaulting keeps the form compiling until the
+          // field is removed and replaced by a link to the delegation screen.
+          role: "marker" as LegacyRole,
           learnId: user.learnId ?? "",
           password: "",
         }
@@ -181,7 +186,7 @@ export function UserFormDialog({
             <Label htmlFor="user-role">Role</Label>
             <Select
               value={form.role}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, role: value as Role }))}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, role: value as LegacyRole }))}
             >
               <SelectTrigger id="user-role">
                 <SelectValue />

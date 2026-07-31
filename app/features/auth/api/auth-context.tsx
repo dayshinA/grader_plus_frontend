@@ -10,6 +10,7 @@ import {
 import { flushSync } from "react-dom";
 import { useNavigate } from "react-router";
 import {
+  ApiError,
   clearSession,
   configureApiClient,
   ensureSessionBootstrap,
@@ -18,6 +19,8 @@ import {
   setSession,
 } from "~/lib/api-client";
 import { authService } from "~/features/auth/api/auth.service";
+import { permissionsService } from "~/features/permissions/api/permissions.service";
+import type { UserPermissionsSummary } from "~/features/permissions/types";
 import type { LoginResponse, User } from "~/features/auth/types";
 
 /** How long before expires_in to proactively refresh, and the floor if expires_in is already tiny. */
@@ -26,9 +29,31 @@ const MIN_REFRESH_DELAY_MS = 5_000;
 
 interface AuthContextValue {
   user: User | null;
-  /** True until the mount-time silent-refresh attempt (session recovery across a hard reload) settles. */
+  /**
+   * The caller's RBAC summary from `GET /role-assignments/me` — the only source
+   * of identity or capability in this app (the JWT is `{ sub, email }` and the
+   * login response carries no role). Null exactly when `user` is null.
+   *
+   * Read it through the predicates in `~/features/permissions/utils`, and treat
+   * it as coarse UI gating only: `permissionKeys` is scope-blind and the server
+   * still checks every request.
+   */
+  permissions: UserPermissionsSummary | null;
+  /**
+   * True until the mount-time silent-refresh attempt (session recovery across a
+   * hard reload) **and** the `/role-assignments/me` call that follows it both
+   * settle. Covering the second call matters: without it `ProtectedRoute` reads
+   * a null summary on a genuinely-permitted route and flash-redirects to
+   * /unauthorized.
+   */
   isBootstrapping: boolean;
-  login: (response: LoginResponse) => void;
+  /**
+   * Resolves with the summary once the session is fully established. **Rejects**
+   * if `/role-assignments/me` fails, having already torn the session back down
+   * (decision #40) — the caller is on /login already, so this surfaces as the
+   * login form's own error state rather than a redirect to where it already is.
+   */
+  login: (response: LoginResponse) => Promise<UserPermissionsSummary>;
   logout: () => void;
   markPasswordChanged: () => void;
 }
@@ -37,9 +62,43 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<UserPermissionsSummary | null>(
+    null,
+  );
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const permissionsPromiseRef = useRef<Promise<UserPermissionsSummary | null> | null>(
+    null,
+  );
   const navigate = useNavigate();
+
+  /**
+   * Single-flight fetch of the RBAC summary, mirroring `refreshSession()`'s
+   * dedupe in api-client. Both the `onTokenRefreshed` callback and the
+   * bootstrap effect below fire on a hard reload — the bootstrap's own refresh
+   * *is* what triggers that callback — so without deduping, every page load
+   * would issue two identical `/role-assignments/me` requests.
+   *
+   * Resolves null rather than throwing; each caller decides what a failure
+   * means (see decision #40 — fatal in every case, but the *shape* of "fatal"
+   * differs between login and mid-session).
+   */
+  const loadPermissions =
+    useCallback((): Promise<UserPermissionsSummary | null> => {
+      if (!permissionsPromiseRef.current) {
+        permissionsPromiseRef.current = permissionsService
+          .getMyPermissions()
+          .then((summary) => {
+            setPermissions(summary);
+            return summary;
+          })
+          .catch(() => null)
+          .finally(() => {
+            permissionsPromiseRef.current = null;
+          });
+      }
+      return permissionsPromiseRef.current;
+    }, []);
 
   const clearRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -54,7 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const next = encodeURIComponent(
       window.location.pathname + window.location.search,
     );
-    flushSync(() => setUser(null));
+    flushSync(() => {
+      setUser(null);
+      setPermissions(null);
+    });
     navigate(`/login?next=${next}&expired=1`, { replace: true });
   }, [navigate, clearRefreshTimer]);
 
@@ -91,7 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // a `?next=...&expired=1` redirect meant only for forced session expiry.
     // Our explicit replace below always runs after, so it wins and leaves a
     // clean `/login` URL.
-    flushSync(() => setUser(null));
+    flushSync(() => {
+      setUser(null);
+      setPermissions(null);
+    });
     navigate("/login", { replace: true });
   }, [navigate, clearRefreshTimer]);
 
@@ -103,9 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // own comment) — this callback only needs to sync React state.
         setUser(session.user as User);
         scheduleProactiveRefresh(session.expires_in);
+        // Refetch the RBAC summary on *every* refresh, not just at login. A
+        // role can be revoked mid-session and takes effect on the very next
+        // request, so a stale cached summary shows nav items and buttons that
+        // 403 the moment they're used — a real UX bug, not a theoretical one.
+        // Deduped against the bootstrap effect below by loadPermissions.
+        void loadPermissions().then((summary) => {
+          if (!summary) forceLogoutRedirect();
+        });
       },
     });
-  }, [forceLogoutRedirect, scheduleProactiveRefresh]);
+  }, [forceLogoutRedirect, scheduleProactiveRefresh, loadPermissions]);
 
   // Silent session recovery: the refresh-token cookie survives a hard
   // reload even though this in-memory access token doesn't. `ensureSessionBootstrap`
@@ -118,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     void ensureSessionBootstrap()
-      .then(() => {
+      .then(async () => {
         if (cancelled) return;
         // Explicit re-check rather than relying solely on the
         // onTokenRefreshed callback above: if a clientLoader triggered (and
@@ -126,10 +199,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // callback wasn't registered yet when it fired, so this is the only
         // place that would otherwise pick up an already-recovered session.
         const session = getCurrentSession();
-        if (session) {
-          setUser(session.user as User);
-          scheduleProactiveRefresh(session.expires_in);
-        }
+        if (!session) return;
+        setUser(session.user as User);
+        scheduleProactiveRefresh(session.expires_in);
+        // Awaited inside the `.then`, so the `.finally` below (and therefore
+        // isBootstrapping) waits for the summary too — ProtectedRoute must not
+        // start gating on a null summary. In the common case this joins the
+        // request onTokenRefreshed already started rather than issuing a
+        // second one.
+        const summary = await loadPermissions();
+        if (!cancelled && !summary) forceLogoutRedirect();
       })
       .finally(() => {
         if (!cancelled) setIsBootstrapping(false);
@@ -137,22 +216,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // `loadPermissions` and `forceLogoutRedirect` are referentially stable for
+    // the same reason, so adding them here doesn't re-run this effect.
     // `scheduleProactiveRefresh` is a referentially-stable useCallback (its
     // own deps chain bottoms out at useNavigate()'s stable identity), so in
     // practice this still only runs once per mount. configureApiClient above
     // is wired first in effect order, so onTokenRefreshed is already
     // registered by the time this fires (for the non-race case).
-  }, [scheduleProactiveRefresh]);
+  }, [scheduleProactiveRefresh, loadPermissions, forceLogoutRedirect]);
 
   useEffect(() => clearRefreshTimer, [clearRefreshTimer]);
 
   const login = useCallback(
-    (response: LoginResponse) => {
+    async (response: LoginResponse): Promise<UserPermissionsSummary> => {
+      // The token has to be in place before /role-assignments/me goes out —
+      // it's an authenticated call, and api-client reads the token from module
+      // state on every request.
       setSession(response);
+      const summary = await loadPermissions();
+
+      if (!summary) {
+        // Decision #40: without the summary no screen can be gated, so the
+        // session is unusable. Tear it back down rather than leaving a
+        // half-authenticated shell. No redirect — the caller is the login
+        // form, which surfaces this as its own error state; redirecting to
+        // /login from /login would just discard the message.
+        clearSession();
+        clearRefreshTimer();
+        setUser(null);
+        setPermissions(null);
+        throw new ApiError({
+          success: false,
+          statusCode: 0,
+          code: "PERMISSIONS_LOAD_FAILED",
+          message: "Signed in, but your roles couldn't be loaded. Please try again.",
+        });
+      }
+
       setUser(response.user);
       scheduleProactiveRefresh(response.expires_in);
+      return summary;
     },
-    [scheduleProactiveRefresh],
+    [scheduleProactiveRefresh, loadPermissions, clearRefreshTimer],
   );
 
   const markPasswordChanged = useCallback(() => {
@@ -163,7 +268,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isBootstrapping, login, logout, markPasswordChanged }}
+      value={{
+        user,
+        permissions,
+        isBootstrapping,
+        login,
+        logout,
+        markPasswordChanged,
+      }}
     >
       {children}
     </AuthContext.Provider>

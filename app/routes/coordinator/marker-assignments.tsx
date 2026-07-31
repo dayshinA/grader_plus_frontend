@@ -1,5 +1,6 @@
 import { ListChecks } from "lucide-react";
 import { PageHeader } from "~/components/ui/page-header";
+import { PermissionGate } from "~/features/permissions/components/permission-gate";
 
 export function meta() {
   return [{ title: "Marker Assignments — GraderPlus" }];
@@ -7,9 +8,11 @@ export function meta() {
 
 export default function MarkerAssignments() {
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Marker Assignments" icon={ListChecks} />
-      <p className="text-sm text-muted-foreground">Coming soon.</p>
-    </div>
+    <PermissionGate permissions={["markers.assign"]} title="Marker Assignments" icon={ListChecks}>
+      <div className="flex flex-col gap-4">
+        <PageHeader title="Marker Assignments" icon={ListChecks} />
+        <p className="text-sm text-muted-foreground">Coming soon.</p>
+      </div>
+    </PermissionGate>
   );
 }

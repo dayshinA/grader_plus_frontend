@@ -8,8 +8,12 @@ export default [
   layout("routes/auth/require-auth.tsx", [
     route("change-password", "routes/change-password.tsx"),
 
+    // The three URL prefixes below are section names, not role claims
+    // (SYSTEM_DESIGN.md decision #39). A user holds several role templates at
+    // once now, so each group is gated on holding a relevant *permission*
+    // anywhere rather than on being one role — see each wrapper's own comment.
     layout("routes/app-layout.tsx", [
-      layout("routes/auth/require-coordinator.tsx", [
+      layout("routes/auth/require-workspace.tsx", [
         route("coordinator/dashboard", "routes/coordinator/dashboard.tsx"),
         route(
           "coordinator/module-settings",
@@ -31,14 +35,14 @@ export default [
         ),
         route("coordinator/export", "routes/coordinator/export.tsx"),
       ]),
-      layout("routes/auth/require-marker.tsx", [
+      layout("routes/auth/require-marking.tsx", [
         route("marker/projects", "routes/marker/projects.tsx"),
         route(
           "marker/projects/:studentId",
           "routes/marker/projects.$studentId.tsx",
         ),
       ]),
-      layout("routes/auth/require-super-admin.tsx", [
+      layout("routes/auth/require-admin.tsx", [
         route("super-admin/users", "routes/super-admin/users.tsx"),
         route(
           "super-admin/users/bulk-import",

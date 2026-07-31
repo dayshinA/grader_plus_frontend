@@ -1,3 +1,5 @@
+import { Settings } from "lucide-react";
+import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
 import { ModuleSettingsPage } from "~/features/academic-modules/components/module-settings-page";
@@ -15,6 +17,14 @@ export async function clientLoader() {
   // fire before AuthProvider has mounted, so a silent-session-recovery attempt has to happen
   // here too, not just in AuthProvider's own mount effect.
   if (!(await ensureAuthenticated())) return null;
+  // prefetchQuery, not ensureQueryData: under the RBAC model a list endpoint
+  // 403s for a caller who lacks the permission (rather than returning an empty
+  // 200), and a clientLoader runs *before* the component — so ensureQueryData's
+  // throw escaped PermissionGate entirely and rendered the raw ErrorBoundary.
+  // prefetchQuery is TanStack's documented graceful-degradation path: it never
+  // throws, so the prefetch stays a head start and the component decides what
+  // to show. Its own useQuery re-runs and surfaces any genuine error.
+  // See BUGS.md 2026-07-31.
   // GET /departments now self-filters by role (2026-07-11 backend fix, SYSTEM_DESIGN.md decision
   // #33) — a Coordinator gets back only the departments they administer or hold a creation grant
   // in, each with an `isAdmin` flag. Prefetched here for both the create-module department
@@ -22,11 +32,11 @@ export async function clientLoader() {
   // tab at all (decision #34) — an `isAdmin: true` row is what unlocks it.
   // No users prefetch needed — GET /users is still Super-Admin-only.
   await Promise.all([
-    queryClient.ensureQueryData({
+    queryClient.prefetchQuery({
       queryKey: academicModulesQueryKey,
       queryFn: academicModulesService.getModules,
     }),
-    queryClient.ensureQueryData({
+    queryClient.prefetchQuery({
       queryKey: departmentsQueryKey,
       queryFn: departmentsService.getDepartments,
     }),
@@ -35,5 +45,9 @@ export async function clientLoader() {
 }
 
 export default function CoordinatorModuleSettings() {
-  return <ModuleSettingsPage />;
+  return (
+    <PermissionGate permissions={["modules.view", "modules.create"]} title="Module Settings" icon={Settings}>
+      <ModuleSettingsPage />
+    </PermissionGate>
+  );
 }

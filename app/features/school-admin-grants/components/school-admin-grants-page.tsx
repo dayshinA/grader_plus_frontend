@@ -99,7 +99,9 @@ export function SchoolAdminGrantsPage() {
     const grantedCoordinatorIds = new Set((grants ?? []).map((grant) => grant.coordinatorId));
     return (users ?? []).filter(
       (user) =>
-        user.role === "coordinator" && user.isActive && !grantedCoordinatorIds.has(user.id),
+        // TODO: dead code — this whole feature folder is deleted in Phase 2
+        // (its endpoints no longer exist). Filter relaxed only to compile.
+        user.isActive && !grantedCoordinatorIds.has(user.id),
     );
   }, [users, grants]);
 

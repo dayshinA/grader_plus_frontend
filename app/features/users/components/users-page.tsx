@@ -38,12 +38,6 @@ import { ApiError } from "~/lib/api-client";
 const PAGE_SIZE = 10;
 const PAGINATION_ITEMS_TO_DISPLAY = 5;
 
-const ROLE_LABELS: Record<UserResponse["role"], string> = {
-  coordinator: "Coordinator",
-  marker: "Marker",
-  super_admin: "Super Admin",
-};
-
 type FormDialogState =
   { mode: "create" } | { mode: "edit"; user: UserResponse } | null;
 
@@ -156,7 +150,6 @@ export function UsersPage() {
             <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
               <TableHead>Learn ID</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -166,7 +159,7 @@ export function UsersPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Loading users...
@@ -177,7 +170,6 @@ export function UsersPage() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{ROLE_LABELS[user.role]}</TableCell>
                   <TableCell>{user.learnId ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant={user.isActive ? "default" : "outline"}>
@@ -216,7 +208,7 @@ export function UsersPage() {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {search ? "No users match your search." : "No users yet."}

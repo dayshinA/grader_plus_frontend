@@ -1,3 +1,5 @@
+import { Building2 } from "lucide-react";
+import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
 import { departmentsService } from "~/features/departments/api/departments.service";
@@ -16,14 +18,22 @@ export async function clientLoader() {
   // silent-session-recovery attempt has to happen here too, not just in
   // AuthProvider's own mount effect.
   if (!(await ensureAuthenticated())) return null;
+  // prefetchQuery, not ensureQueryData: under the RBAC model a list endpoint
+  // 403s for a caller who lacks the permission (rather than returning an empty
+  // 200), and a clientLoader runs *before* the component — so ensureQueryData's
+  // throw escaped PermissionGate entirely and rendered the raw ErrorBoundary.
+  // prefetchQuery is TanStack's documented graceful-degradation path: it never
+  // throws, so the prefetch stays a head start and the component decides what
+  // to show. Its own useQuery re-runs and surfaces any genuine error.
+  // See BUGS.md 2026-07-31.
   // Schools prefetched too as of 2026-07-29 (FR41) — needed for the create/edit form's required
   // school picker and the list's School column.
   await Promise.all([
-    queryClient.ensureQueryData({
+    queryClient.prefetchQuery({
       queryKey: departmentsQueryKey,
       queryFn: departmentsService.getDepartments,
     }),
-    queryClient.ensureQueryData({
+    queryClient.prefetchQuery({
       queryKey: schoolsQueryKey,
       queryFn: schoolsService.getSchools,
     }),
@@ -32,5 +42,9 @@ export async function clientLoader() {
 }
 
 export default function SuperAdminDepartments() {
-  return <DepartmentsPage />;
+  return (
+    <PermissionGate permissions={["departments.create"]} title="Departments" icon={Building2}>
+      <DepartmentsPage />
+    </PermissionGate>
+  );
 }

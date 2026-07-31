@@ -203,6 +203,19 @@ export function ensureSessionBootstrap(): Promise<boolean> {
   return bootstrapPromise;
 }
 
+/**
+ * Test-only. `bootstrapPromise` is deliberately a once-per-page-load cache, and
+ * nothing in the app should ever clear it — but a test file shares one module
+ * instance across all its cases, so without this the *first* test to mount
+ * `AuthProvider` fixes the bootstrap result for every test after it (a suite
+ * whose first case has no session would silently never exercise recovery
+ * again). Call from `beforeEach`, never from application code.
+ */
+export function resetSessionBootstrapForTests(): void {
+  bootstrapPromise = null;
+  refreshPromise = null;
+}
+
 /** Stashed on the axios response by the interceptor below, before `response.data` is
  * overwritten with the unwrapped payload — lets `apiWithMessage` recover the backend's
  * own confirmation message (e.g. "User deactivated successfully.") without changing

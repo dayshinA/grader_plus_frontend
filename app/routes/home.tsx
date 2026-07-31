@@ -1,10 +1,10 @@
 import { Navigate } from "react-router";
 import { LoaderOne } from "~/components/ui/loader-one";
 import { useAuth } from "~/features/auth/api/auth-context";
-import { roleLandingPath } from "~/features/auth/utils";
+import { landingPath } from "~/features/auth/utils";
 
 export default function Home() {
-  const { user, isBootstrapping } = useAuth();
+  const { user, permissions, isBootstrapping } = useAuth();
 
   // Same isBootstrapping gate as ProtectedRoute — this route sits outside
   // require-auth.tsx (it has to decide whether to send an unauthenticated
@@ -25,5 +25,5 @@ export default function Home() {
     return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to={roleLandingPath(user.role)} replace />;
+  return <Navigate to={landingPath(permissions)} replace />;
 }

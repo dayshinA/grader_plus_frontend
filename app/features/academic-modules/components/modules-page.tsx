@@ -123,7 +123,14 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
   const superAdminCoordinatorOptions: ModuleFormDialogOption[] = useMemo(
     () =>
       (users ?? [])
-        .filter((user) => user.role === "coordinator" && user.isActive)
+        // TODO(CH-14, Phase 3): this filtered `GET /users` by `user.role ===
+        // "coordinator"`, a field the backend no longer returns. The real fix is
+        // GET /schools/:id/coordinators or /departments/:id/coordinators, which
+        // needs a scope this picker doesn't have in hand yet. Until then the list
+        // is every active user: the backend still rejects a non-Coordinator with
+        // 422 INVALID_COORDINATOR, so a wrong pick fails loudly rather than
+        // silently creating a broken module.
+        .filter((user) => user.isActive)
         .map((user) => ({ id: user.id, label: `${user.fullName} (${user.email})` })),
     [users],
   );

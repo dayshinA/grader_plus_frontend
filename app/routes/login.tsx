@@ -6,7 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { PasswordInput } from "~/components/ui/password-input";
 import { useLogin } from "~/features/auth/api/use-login";
-import { roleLandingPath } from "~/features/auth/utils";
+import { landingPath } from "~/features/auth/utils";
 import { ApiError } from "~/lib/api-client";
 
 export function meta() {
@@ -30,7 +30,7 @@ export default function Login() {
       {
         onSuccess: (data) => {
           if (!data) return;
-          navigate(next ?? roleLandingPath(data.user.role), { replace: true });
+          navigate(next ?? landingPath(data.permissions), { replace: true });
         },
       },
     );
