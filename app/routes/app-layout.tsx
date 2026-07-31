@@ -12,7 +12,6 @@ import {
   Settings,
   ShieldCheck,
   Upload,
-  UserCog,
   Users,
 } from "lucide-react";
 import { useState, type CSSProperties } from "react";
@@ -33,8 +32,11 @@ import {
   type SidebarGroupInput,
 } from "~/components/ui/sidebar";
 import { useAuth } from "~/features/auth/api/auth-context";
-import { hasRole } from "~/features/permissions/utils";
-import type { UserPermissionsSummary } from "~/features/permissions/types";
+import { hasPermission, hasRole } from "~/features/permissions/utils";
+import type {
+  PermissionKey,
+  UserPermissionsSummary,
+} from "~/features/permissions/types";
 
 // TODO(CH-16, Phase 4): this whole block is a deliberate stop-gap. The proper
 // rebuild has each nav item declare the permission that makes it relevant, with
@@ -129,6 +131,25 @@ const coordinatorNavGroups: SidebarGroupInput[] = [
         },
       ],
     },
+    {
+      // Added 2026-07-31 (CH-09). Present in *both* nav arrays and filtered on
+      // `roles.assign`: School Admins and Department Admins hold it and see the
+      // coordinator nav, so without an entry here the delegation screen would
+      // be unreachable from the nav for exactly the people it exists for. A
+      // plain Coordinator or Marker holds no `roles.assign` and never sees it.
+      label: "Delegation",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          label: "Role Assignments",
+          href: "/super-admin/role-assignments",
+          icon: ShieldCheck,
+          end: true,
+          requires: "roles.assign" satisfies PermissionKey,
+        },
+      ],
+    },
 ];
 
 const markerNavGroups: SidebarGroupInput[] = [
@@ -143,8 +164,11 @@ const adminNavGroups: SidebarGroupInput[] = [
       items: [{ label: "Users", href: "/super-admin/users", icon: Users, end: true }],
     },
     {
-      // Added 2026-07-29 (FR41-43) — new hierarchy level above Departments.
-      label: "Schools",
+      // The three "... Grants" items that used to sit alongside Schools,
+      // Departments and Modules are gone with CH-06/07/08 — their twelve
+      // endpoints no longer exist. All three collapse into the single
+      // Delegation entry below (CH-09).
+      label: "Organisation",
       collapsible: true,
       defaultOpen: true,
       items: [
@@ -155,52 +179,59 @@ const adminNavGroups: SidebarGroupInput[] = [
           end: true,
         },
         {
-          label: "School Admin Grants",
-          href: "/super-admin/school-admin-grants",
-          icon: ShieldCheck,
-          end: true,
-        },
-      ],
-    },
-    {
-      label: "Departments",
-      collapsible: true,
-      defaultOpen: true,
-      items: [
-        {
           label: "Departments",
           href: "/super-admin/departments",
           icon: Building2,
           end: true,
         },
         {
-          label: "Department Admin Grants",
-          href: "/super-admin/department-admin-grants",
-          icon: ShieldCheck,
-          end: true,
-        },
-      ],
-    },
-    {
-      label: "Modules",
-      collapsible: true,
-      defaultOpen: true,
-      items: [
-        {
           label: "Modules",
           href: "/super-admin/modules",
           icon: GraduationCap,
           end: true,
         },
+      ],
+    },
+    {
+      label: "Delegation",
+      collapsible: true,
+      defaultOpen: true,
+      items: [
         {
-          label: "Module Grants",
-          href: "/super-admin/module-grants",
-          icon: UserCog,
+          label: "Role Assignments",
+          href: "/super-admin/role-assignments",
+          icon: ShieldCheck,
           end: true,
+          requires: "roles.assign" satisfies PermissionKey,
         },
       ],
     },
 ];
+
+/**
+ * Drops any item whose `requires` permission the user doesn't hold, then any
+ * group left with nothing in it.
+ *
+ * This is a deliberately bounded down payment on CH-16 (Phase 4), not the
+ * rebuild: only the Delegation entry declares a `requires` today. CH-16
+ * generalises it to every item, which is what finally fixes a
+ * department-scoped-only Coordinator being shown items that 403 (CH-17).
+ */
+function filterByPermissions(
+  groups: SidebarGroupInput[],
+  summary: UserPermissionsSummary | null,
+): SidebarGroupInput[] {
+  return groups
+    .map((group) => {
+      const normalized = Array.isArray(group) ? { items: group } : group;
+      const items = normalized.items.filter(
+        (item) =>
+          !item.requires || hasPermission(summary, item.requires as PermissionKey),
+      );
+      return Array.isArray(group) ? items : { ...normalized, items };
+    })
+    .filter((group) => (Array.isArray(group) ? group.length : group.items.length) > 0);
+}
 
 /**
  * Picks a nav group array by the user's most senior role template, using the
@@ -213,15 +244,17 @@ const adminNavGroups: SidebarGroupInput[] = [
 function navGroupsFor(
   summary: UserPermissionsSummary | null,
 ): SidebarGroupInput[] {
-  if (hasRole(summary, "super_admin")) return adminNavGroups;
+  if (hasRole(summary, "super_admin")) {
+    return filterByPermissions(adminNavGroups, summary);
+  }
   if (
     hasRole(summary, "school_admin") ||
     hasRole(summary, "department_admin") ||
     hasRole(summary, "project_coordinator")
   ) {
-    return coordinatorNavGroups;
+    return filterByPermissions(coordinatorNavGroups, summary);
   }
-  if (hasRole(summary, "marker")) return markerNavGroups;
+  if (hasRole(summary, "marker")) return filterByPermissions(markerNavGroups, summary);
   // No assignments, or a template this build doesn't know. ProtectedRoute and
   // landingPath already route these users to /unauthorized, so this layout
   // shouldn't render for them at all — an empty nav is the safe fallback.

@@ -1,6 +1,6 @@
 import { Building2, MoreHorizontal, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 
 import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
@@ -234,18 +234,13 @@ export function DepartmentsPage() {
                         >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link
-                            to={`/super-admin/department-admin-grants?departmentId=${department.id}`}
-                          >
-                            Manage admins
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/super-admin/module-grants?departmentId=${department.id}`}>
-                            Manage module-creation grants
-                          </Link>
-                        </DropdownMenuItem>
+                        {/* The "Manage admins" and "Manage module-creation grants"
+                            actions are gone with CH-07/CH-08: delegation is no
+                            longer scope-centric (pick a department, then manage
+                            its admins) but user-centric (pick a person, then
+                            manage every role they hold). There is no
+                            department-filtered view of /super-admin/role-assignments
+                            to link to — see decision #42. */}
                         <DropdownMenuItem onSelect={() => setDeactivateTarget(department)}>
                           {department.isActive ? "Deactivate" : "Reactivate"}
                         </DropdownMenuItem>

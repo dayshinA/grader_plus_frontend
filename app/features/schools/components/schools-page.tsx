@@ -171,11 +171,9 @@ export function SchoolsPage() {
                         <DropdownMenuItem onSelect={() => openFormDialog({ mode: "edit", school })}>
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/super-admin/school-admin-grants?schoolId=${school.id}`}>
-                            Manage admins
-                          </Link>
-                        </DropdownMenuItem>
+                        {/* "Manage admins" is gone with CH-06 — delegation is
+                            user-centric now, not school-centric. See
+                            departments-page.tsx for the same note. */}
                         <DropdownMenuItem asChild>
                           <Link to={`/super-admin/departments?schoolId=${school.id}`}>
                             View departments

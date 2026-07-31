@@ -50,21 +50,20 @@ export default [
         ),
         route("super-admin/schools", "routes/super-admin/schools.tsx"),
         route(
-          "super-admin/school-admin-grants",
-          "routes/super-admin/school-admin-grants.tsx",
-        ),
-        route(
           "super-admin/departments",
           "routes/super-admin/departments.tsx",
         ),
-        route(
-          "super-admin/department-admin-grants",
-          "routes/super-admin/department-admin-grants.tsx",
-        ),
         route("super-admin/modules", "routes/super-admin/modules.tsx"),
+        // One delegation screen replacing the three grant routes deleted in
+        // CH-06/07/08 (school-admin-grants, department-admin-grants,
+        // module-grants), whose twelve backend endpoints no longer exist.
+        // Reachable by anyone holding `roles.assign` — not only Super Admins —
+        // so despite the prefix this is not a Super-Admin-only screen
+        // (decision #39: the prefixes are section names, not role claims).
+        // Supports `?userId=` for deep-linking from a user row (decision #41).
         route(
-          "super-admin/module-grants",
-          "routes/super-admin/module-grants.tsx",
+          "super-admin/role-assignments",
+          "routes/super-admin/role-assignments.tsx",
         ),
       ]),
     ]),
