@@ -1,19 +1,4 @@
-/**
- * ⚠️ TODO(CH-11/CH-12, Phase 3) — the *request* types below are still the
- * pre-RBAC shapes and are wrong against the current backend. `POST /users` now
- * takes `roleTemplateKey` + `scopeType` + `scopeId?` + `extraPermissionKeys?`
- * (creating a user always bundles a role assignment), and `PATCH /users/:id`
- * rejects any role field outright — role changes go through `/role-assignments`.
- *
- * They're left compiling rather than half-migrated because rewriting the form
- * around the role-template and scope pickers is Phase 3's job, and those pickers
- * don't exist until Phase 2. Creating and editing users is therefore broken
- * against the live backend for exactly as long as that takes; the backend
- * rejects the stale body with a 422, which is loud rather than silent.
- *
- * `UserResponse` below is **not** given the same treatment — see its comment.
- */
-export type LegacyRole = "coordinator" | "marker" | "super_admin";
+import type { PermissionKey, RoleTemplateKey, ScopeType } from "~/features/permissions/types";
 
 /**
  * `role` is gone, matching the backend: `GET /users` now returns
@@ -33,19 +18,36 @@ export interface UserResponse {
   createdAt: string;
 }
 
+/**
+ * Body of `POST /users`. Creating a user always bundles an initial role assignment — mirrors
+ * `CreateRoleAssignmentRequest` (minus `userId`, since the user is new) plus the account fields.
+ * Verbatim from `src/users/dto/create-user.dto.ts`, read 2026-07-31. Subject to the same Rule 1
+ * (extras) / Rule 2 (hierarchy) checks as any standalone grant — see
+ * `~/features/role-assignments/utils`'s doc comment. There is no DB transaction backing this: if
+ * the bundled role assignment fails, the backend hard-deletes the just-created user row to
+ * compensate, so from the UI's perspective the whole operation either succeeds or never happened.
+ */
 export interface CreateUserRequest {
   email: string;
   password: string;
   fullName: string;
-  role: LegacyRole;
+  roleTemplateKey: RoleTemplateKey;
+  scopeType: ScopeType;
+  /** Required unless `scopeType` is `"global"`, forbidden when it is. */
+  scopeId?: string;
+  extraPermissionKeys?: PermissionKey[];
   learnId?: string | null;
 }
 
+/**
+ * Body of `PATCH /users/:id`. Deliberately **not** `Partial<CreateUserRequest>` — role assignment
+ * is its own concern, handled exclusively through `/role-assignments`. A role field here is
+ * rejected outright rather than silently ignored.
+ */
 export interface UpdateUserRequest {
   email?: string;
   password?: string;
   fullName?: string;
-  role?: LegacyRole;
   learnId?: string | null;
   isActive?: boolean;
 }

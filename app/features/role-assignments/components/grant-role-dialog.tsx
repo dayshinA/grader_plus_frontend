@@ -1,6 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Alert } from "~/components/ui/alert";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -10,12 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { usePermissionCatalogue } from "~/features/permissions/api/use-permission-catalogue";
 import type { PermissionKey, RoleTemplateKey } from "~/features/permissions/types";
 import { useCreateRoleAssignment } from "~/features/role-assignments/api/use-create-role-assignment";
 import { useScopeOptions } from "~/features/role-assignments/api/use-scope-options";
+import { ExtrasFieldset } from "~/features/role-assignments/components/extras-fieldset";
 import { RoleTemplatePicker } from "~/features/role-assignments/components/role-template-picker";
 import {
   ScopePicker,
@@ -81,11 +80,6 @@ export function GrantRoleDialog({
   const availableExtras = useMemo(
     () => grantableExtras(catalogue, permissionKeysAtScope(summary, chain)),
     [catalogue, summary, chain],
-  );
-
-  const functionalExtras = availableExtras.filter((e) => e.category === "functional");
-  const administrativeExtras = availableExtras.filter(
-    (e) => e.category === "administrative",
   );
 
   function toggleExtra(key: PermissionKey) {
@@ -175,29 +169,13 @@ export function GrantRoleDialog({
             />
           )}
 
-          {roleTemplateKey && availableExtras.length > 0 && (
-            <fieldset className="flex flex-col gap-2 rounded-lg border border-border p-3">
-              <legend className="px-1 text-sm font-medium">
-                Extra permissions (optional)
-              </legend>
-              <p className="text-xs text-muted-foreground">
-                On top of the role's defaults. Only permissions you hold here are listed.
-              </p>
-              <ExtrasGroup
-                label="Day-to-day"
-                entries={functionalExtras}
-                selected={extras}
-                onToggle={toggleExtra}
-                disabled={createAssignment.isPending}
-              />
-              <ExtrasGroup
-                label="Administrative"
-                entries={administrativeExtras}
-                selected={extras}
-                onToggle={toggleExtra}
-                disabled={createAssignment.isPending}
-              />
-            </fieldset>
+          {roleTemplateKey && (
+            <ExtrasFieldset
+              availableExtras={availableExtras}
+              selected={extras}
+              onToggle={toggleExtra}
+              disabled={createAssignment.isPending}
+            />
           )}
 
           <DialogFooter>
@@ -221,59 +199,5 @@ export function GrantRoleDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface ExtrasGroupProps {
-  label: string;
-  entries: { id: string; key: PermissionKey; description: string }[];
-  selected: PermissionKey[];
-  onToggle: (key: PermissionKey) => void;
-  disabled?: boolean;
-}
-
-/**
- * The two catalogue halves rendered as checkbox lists. Plain inputs rather than
- * a new component: there's no shared `Checkbox` primitive in this repo yet, and
- * inventing one for a single call site would need its own doc and preview.
- * Flagged as a follow-up rather than done half-way here.
- */
-function ExtrasGroup({
-  label,
-  entries,
-  selected,
-  onToggle,
-  disabled,
-}: ExtrasGroupProps) {
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="flex flex-col gap-1">
-        {entries.map((entry) => (
-          <Label
-            key={entry.id}
-            htmlFor={`extra-${entry.key}`}
-            className="flex items-start gap-2 text-sm font-normal"
-          >
-            <input
-              id={`extra-${entry.key}`}
-              type="checkbox"
-              className="mt-0.5 size-4 shrink-0 accent-primary"
-              checked={selected.includes(entry.key)}
-              onChange={() => onToggle(entry.key)}
-              disabled={disabled}
-            />
-            <span className="flex flex-col">
-              <span>{entry.description}</span>
-              <Badge variant="outline" className="mt-0.5 w-fit font-mono text-[10px]">
-                {entry.key}
-              </Badge>
-            </span>
-          </Label>
-        ))}
-      </div>
-    </div>
   );
 }

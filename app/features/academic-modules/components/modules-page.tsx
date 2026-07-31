@@ -35,8 +35,8 @@ import {
   type ModuleFormDialogOption,
 } from "~/features/academic-modules/components/module-form-dialog";
 import type { AcademicModuleResponse } from "~/features/academic-modules/types";
+import { useDepartmentCoordinators } from "~/features/departments/api/use-department-coordinators";
 import { useDepartments } from "~/features/departments/api/use-departments";
-import { useUsers } from "~/features/users/api/use-users";
 import { ApiError } from "~/lib/api-client";
 
 const PAGE_SIZE = 10;
@@ -64,10 +64,17 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
   const { data: modules, isLoading, isError, error } = useAcademicModules();
   // GET /departments is now self-filtering by role (2026-07-11 backend fix — see decision #33):
   // a Coordinator gets back only the departments they administer or hold a creation grant in,
-  // each with a real name and an `isAdmin` flag. GET /users is still Super-Admin-only, so the
-  // Coordinator column below (and the coordinator picker in the form dialog) stays Super-Admin-only.
+  // each with a real name and an `isAdmin` flag.
   const { data: departments } = useDepartments();
-  const { data: users } = useUsers({ enabled: isSuperAdmin });
+  // Coordinator column below (and the coordinator picker in the form dialog) stays
+  // Super-Admin-only. Sourced from GET /departments/:id/coordinators rather than GET /users —
+  // see `superAdminCoordinatorOptions`'s own comment for why. Any department id from the list
+  // above satisfies the route's auth gate; the endpoint returns every active coordinator
+  // system-wide regardless of which one is passed (confirmed in `use-delegation-candidates.ts`,
+  // Phase 2), so the first department is enough.
+  const { data: coordinators } = useDepartmentCoordinators(
+    isSuperAdmin ? departments?.[0]?.id : undefined,
+  );
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,9 +104,9 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
 
   const coordinatorsById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const user of users ?? []) map.set(user.id, user.fullName);
+    for (const coordinator of coordinators ?? []) map.set(coordinator.id, coordinator.fullName);
     return map;
-  }, [users]);
+  }, [coordinators]);
 
   // Shared by both viewers now that GET /departments self-filters: Super Admin gets every
   // department (all with isAdmin: true, per the backend's own convention) with inactive ones
@@ -120,19 +127,18 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
     [departments],
   );
 
+  // `GET /departments/:id/coordinators` returns every active coordinator system-wide, not just
+  // ones in that department — it's an auth-scoped endpoint, not a data-scoped one (see
+  // `DepartmentsService.findCoordinators` and `use-delegation-candidates.ts`'s own comment). So
+  // there's nothing to filter by `isActive` here (coordinators are already active-only) or by
+  // department (the list is already everyone).
   const superAdminCoordinatorOptions: ModuleFormDialogOption[] = useMemo(
     () =>
-      (users ?? [])
-        // TODO(CH-14, Phase 3): this filtered `GET /users` by `user.role ===
-        // "coordinator"`, a field the backend no longer returns. The real fix is
-        // GET /schools/:id/coordinators or /departments/:id/coordinators, which
-        // needs a scope this picker doesn't have in hand yet. Until then the list
-        // is every active user: the backend still rejects a non-Coordinator with
-        // 422 INVALID_COORDINATOR, so a wrong pick fails loudly rather than
-        // silently creating a broken module.
-        .filter((user) => user.isActive)
-        .map((user) => ({ id: user.id, label: `${user.fullName} (${user.email})` })),
-    [users],
+      (coordinators ?? []).map((coordinator) => ({
+        id: coordinator.id,
+        label: `${coordinator.fullName} (${coordinator.email})`,
+      })),
+    [coordinators],
   );
 
   const filteredModules = useMemo(() => {
@@ -160,7 +166,7 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
   }
 
   // Base: Code, Name, Department, Marking Deadline, Status, Actions (6) — Coordinator column
-  // added only for the Super Admin viewer, since GET /users is still Super-Admin-only.
+  // added only for the Super Admin viewer (a UI scope choice, not an endpoint restriction).
   const columnCount = 6 + (isSuperAdmin ? 1 : 0);
 
   return (

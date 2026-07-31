@@ -51,7 +51,9 @@ describe("user mutation hooks", () => {
       email: "new@lboro.ac.uk",
       password: "password123",
       fullName: "New User",
-      role: "marker",
+      roleTemplateKey: "marker",
+      scopeType: "module",
+      scopeId: "module-1",
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -108,7 +110,11 @@ describe("user mutation hooks", () => {
       data: importResult,
       message: "1 row processed: 1 created, 0 failed.",
     });
-    const file = new File(["email,fullName,role\n"], "users.csv", { type: "text/csv" });
+    const file = new File(
+      ["email,fullName,roleTemplateKey,scopeType,scopeId\n"],
+      "users.csv",
+      { type: "text/csv" },
+    );
 
     const { result } = renderHook(() => useBulkImportUsers(), { wrapper });
     result.current.mutate(file);

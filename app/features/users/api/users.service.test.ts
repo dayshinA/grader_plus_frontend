@@ -30,9 +30,18 @@ describe("usersService", () => {
       email: "new@lboro.ac.uk",
       password: "password123",
       fullName: "New User",
-      role: "marker" as const,
+      roleTemplateKey: "marker" as const,
+      scopeType: "module" as const,
+      scopeId: "module-1",
     };
-    const created = { id: "u1", ...request, learnId: null, isActive: true, createdAt: "2026-07-09" };
+    const created = {
+      id: "u1",
+      email: request.email,
+      fullName: request.fullName,
+      learnId: null,
+      isActive: true,
+      createdAt: "2026-07-09",
+    };
     vi.mocked(apiWithMessage.post).mockResolvedValue({ data: created, message: "User created successfully." });
 
     const result = await usersService.createUser(request);
@@ -67,7 +76,11 @@ describe("usersService", () => {
       results: [{ row: 2, email: "a@test.com", status: "created" as const, tempPassword: "Abc123!!" }],
     };
     vi.mocked(apiWithMessage.post).mockResolvedValue({ data: importResult, message: "1 row processed: 1 created, 0 failed." });
-    const file = new File(["email,fullName,role\na@test.com,A,marker\n"], "users.csv", { type: "text/csv" });
+    const file = new File(
+      ["email,fullName,roleTemplateKey,scopeType,scopeId\na@test.com,A,marker,module,module-1\n"],
+      "users.csv",
+      { type: "text/csv" },
+    );
     const appendSpy = vi.spyOn(FormData.prototype, "append");
 
     const result = await usersService.bulkImportUsers(file);
