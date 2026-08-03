@@ -35,9 +35,11 @@ import {
   type ModuleFormDialogOption,
 } from "~/features/academic-modules/components/module-form-dialog";
 import type { AcademicModuleResponse } from "~/features/academic-modules/types";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { useDepartmentCoordinators } from "~/features/departments/api/use-department-coordinators";
 import { useDepartments } from "~/features/departments/api/use-departments";
-import { ApiError } from "~/lib/api-client";
+import { hasRole } from "~/features/permissions/utils";
+import { ApiError, is403 } from "~/lib/api-client";
 
 const PAGE_SIZE = 10;
 const PAGINATION_ITEMS_TO_DISPLAY = 5;
@@ -47,10 +49,6 @@ type FormDialogState =
   | { mode: "edit"; module: AcademicModuleResponse }
   | null;
 
-interface ModulesPageProps {
-  viewer: "coordinator" | "super_admin";
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     year: "numeric",
@@ -59,22 +57,28 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ModulesPage({ viewer }: ModulesPageProps) {
-  const isSuperAdmin = viewer === "super_admin";
+// CH-15 (Phase 4): no more `viewer` prop threaded down from the route — both
+// `/coordinator/module-settings` and `/super-admin/modules` render this same component and it
+// derives its own Super-Admin-ness from the RBAC summary (role *identity*, not a capability —
+// see `hasRole`'s own doc comment).
+export function ModulesPage() {
+  const { permissions: summary } = useAuth();
+  const isSuperAdmin = hasRole(summary, "super_admin");
   const { data: modules, isLoading, isError, error } = useAcademicModules();
   // GET /departments is now self-filtering by role (2026-07-11 backend fix — see decision #33):
   // a Coordinator gets back only the departments they administer or hold a creation grant in,
   // each with a real name and an `isAdmin` flag.
   const { data: departments } = useDepartments();
-  // Coordinator column below (and the coordinator picker in the form dialog) stays
-  // Super-Admin-only. Sourced from GET /departments/:id/coordinators rather than GET /users —
-  // see `superAdminCoordinatorOptions`'s own comment for why. Any department id from the list
-  // above satisfies the route's auth gate; the endpoint returns every active coordinator
-  // system-wide regardless of which one is passed (confirmed in `use-delegation-candidates.ts`,
-  // Phase 2), so the first department is enough.
-  const { data: coordinators } = useDepartmentCoordinators(
-    isSuperAdmin ? departments?.[0]?.id : undefined,
-  );
+  // CH-15: fetched for every viewer now, not Super-Admin-only — a School/Department Admin also
+  // needs coordinator names to render the now-visible-but-read-only Coordinator field on edit
+  // (`ModuleFormDialog`). Sourced from GET /departments/:id/coordinators rather than GET /users —
+  // see `coordinatorOptions`'s own comment for why. Any department id from the list above
+  // satisfies the route's auth gate; the endpoint returns every active coordinator system-wide
+  // regardless of which one is passed (confirmed in `use-delegation-candidates.ts`, Phase 2), so
+  // the first department is enough. A plain Coordinator whose account can't reach this endpoint
+  // just gets `coordinators: undefined` — degrades to the same "—" fallback already used for
+  // unresolved department/coordinator names, not an error.
+  const { data: coordinators } = useDepartmentCoordinators(departments?.[0]?.id);
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,8 +135,9 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
   // ones in that department — it's an auth-scoped endpoint, not a data-scoped one (see
   // `DepartmentsService.findCoordinators` and `use-delegation-candidates.ts`'s own comment). So
   // there's nothing to filter by `isActive` here (coordinators are already active-only) or by
-  // department (the list is already everyone).
-  const superAdminCoordinatorOptions: ModuleFormDialogOption[] = useMemo(
+  // department (the list is already everyone). Shared by every viewer as of CH-15 — see the
+  // `useDepartmentCoordinators` call above.
+  const coordinatorOptions: ModuleFormDialogOption[] = useMemo(
     () =>
       (coordinators ?? []).map((coordinator) => ({
         id: coordinator.id,
@@ -168,6 +173,7 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
   // Base: Code, Name, Department, Marking Deadline, Status, Actions (6) — Coordinator column
   // added only for the Super Admin viewer (a UI scope choice, not an endpoint restriction).
   const columnCount = 6 + (isSuperAdmin ? 1 : 0);
+  const isForbidden = isError && is403(error);
 
   return (
     <div className="flex flex-col gap-4">
@@ -194,7 +200,10 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
         </div>
       </PageHeader>
 
-      {isError && (
+      {/* CH-17: a 403 here means "nothing this account is allowed to list" (a department-scoped
+          Coordinator whose grant doesn't carry modules.view, most commonly) — that renders as the
+          table's own empty state below, not an error banner. Any other failure still does. */}
+      {isError && !isForbidden && (
         <Alert
           variant="inline"
           status="error"
@@ -262,8 +271,22 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columnCount} className="h-24 text-center text-muted-foreground">
-                  {search ? "No modules match your search." : "No modules yet."}
+                <TableCell colSpan={columnCount} className="text-center text-muted-foreground">
+                  {search ? (
+                    <div className="flex h-24 items-center justify-center">
+                      No modules match your search.
+                    </div>
+                  ) : isForbidden ? (
+                    <div className="flex h-24 flex-col items-center justify-center gap-2">
+                      <span>You don't have any modules to see yet.</span>
+                      <Button size="sm" onClick={() => openFormDialog({ mode: "create" })}>
+                        <Plus className="h-4 w-4" />
+                        Create your first module
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex h-24 items-center justify-center">No modules yet.</div>
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -348,10 +371,9 @@ export function ModulesPage({ viewer }: ModulesPageProps) {
         open={formDialog !== null}
         onOpenChange={(open) => !open && setFormDialog(null)}
         mode={formDialog?.mode ?? "create"}
-        viewer={viewer}
         module={formDialog?.mode === "edit" ? formDialog.module : undefined}
         departmentOptions={departmentOptions}
-        coordinatorOptions={isSuperAdmin ? superAdminCoordinatorOptions : undefined}
+        coordinatorOptions={coordinatorOptions}
         onSuccess={(mode, savedModule, apiMessage) =>
           showToast(
             apiMessage,

@@ -21,6 +21,8 @@ import {
 import { useCreateModule } from "~/features/academic-modules/api/use-create-module";
 import { useUpdateModule } from "~/features/academic-modules/api/use-update-module";
 import type { AcademicModuleResponse } from "~/features/academic-modules/types";
+import { useAuth } from "~/features/auth/api/auth-context";
+import { hasRole } from "~/features/permissions/utils";
 import { ApiError } from "~/lib/api-client";
 
 export interface ModuleFormDialogOption {
@@ -32,18 +34,16 @@ interface ModuleFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
-  viewer: "coordinator" | "super_admin";
   /** Required when mode is "edit" — the module being edited. */
   module?: AcademicModuleResponse;
   /**
-   * Department picker options, both sourced from `GET /departments` (self-filtering by role
-   * since the 2026-07-11 backend fix — see SYSTEM_DESIGN.md decision #33).
-   * - `viewer="coordinator"`: only shown in create mode — only departments the coordinator
-   *   already administers or holds a creation grant in (server-filtered, always active).
-   * - `viewer="super_admin"`: every department, shown in both create and edit mode.
+   * Department picker options, sourced from `GET /departments` (self-filtering by role since
+   * the 2026-07-11 backend fix — see SYSTEM_DESIGN.md decision #33). A non-Super-Admin's list is
+   * already server-filtered to departments they administer or hold a creation grant in.
    */
   departmentOptions: ModuleFormDialogOption[];
-  /** Super Admin viewer only — active coordinators, shown in both create and edit mode. */
+  /** Active coordinators (`GET /departments/:id/coordinators`), shown in both create (Super
+   * Admin only, required) and edit mode (everyone, read-only unless Super Admin — CH-15). */
   coordinatorOptions?: ModuleFormDialogOption[];
   /** Called after a successful create/update, once the dialog has closed —
    * `apiMessage` is the backend's own confirmation message (see decision #31). */
@@ -78,12 +78,13 @@ export function ModuleFormDialog({
   open,
   onOpenChange,
   mode,
-  viewer,
   module,
   departmentOptions,
   coordinatorOptions,
   onSuccess,
 }: ModuleFormDialogProps) {
+  const { permissions: summary } = useAuth();
+  const isSuperAdmin = hasRole(summary, "super_admin");
   const [form, setForm] = useState(() =>
     mode === "edit" && module
       ? {
@@ -107,13 +108,20 @@ export function ModuleFormDialog({
   // a document.body-portaled Select popover).
   const [dialogNode, setDialogNode] = useState<HTMLDivElement | null>(null);
 
-  const showDepartmentField = viewer === "super_admin" || mode === "create";
-  const showCoordinatorField = viewer === "super_admin";
+  // CH-15: the department/coordinator fields are always shown now (not hidden for a
+  // non-Super-Admin on edit) because the backend silently ignores a change to either field from
+  // anyone but a Super Admin — showing them, disabled, is what stops that from reading as a
+  // save that quietly did nothing. Create mode keeps the coordinator picker Super-Admin-only:
+  // the backend forces a non-Super-Admin's coordinatorId to their own id, so there's nothing to
+  // pick.
+  const showDepartmentField = true;
+  const showCoordinatorField = isSuperAdmin || mode === "edit";
+  const departmentFieldDisabled = mode === "edit" && !isSuperAdmin;
+  const coordinatorFieldDisabled = !isSuperAdmin;
   const hasDepartmentOptions = departmentOptions.length > 0;
   // A Coordinator with no admin/creation grant in any department has nowhere to create a
   // module yet — see SYSTEM_DESIGN.md decision #33.
-  const blockedByNoDepartments =
-    mode === "create" && viewer === "coordinator" && !hasDepartmentOptions;
+  const blockedByNoDepartments = mode === "create" && !isSuperAdmin && !hasDepartmentOptions;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,7 +139,7 @@ export function ModuleFormDialog({
         {
           ...base,
           departmentId: form.departmentId,
-          ...(viewer === "super_admin" ? { coordinatorId: form.coordinatorId } : {}),
+          ...(isSuperAdmin ? { coordinatorId: form.coordinatorId } : {}),
         },
         {
           onSuccess: ({ data: created, message }) => {
@@ -149,7 +157,10 @@ export function ModuleFormDialog({
         id: module.id,
         request: {
           ...base,
-          ...(viewer === "super_admin"
+          // Read-only for anyone but Super Admin (see showDepartmentField/showCoordinatorField
+          // above) — omitted here too, though the disabled fields already stop the value from
+          // having changed.
+          ...(isSuperAdmin
             ? { departmentId: form.departmentId, coordinatorId: form.coordinatorId }
             : {}),
         },
@@ -275,6 +286,7 @@ export function ModuleFormDialog({
                   <Select
                     value={form.departmentId}
                     onValueChange={(value) => setForm((prev) => ({ ...prev, departmentId: value }))}
+                    disabled={departmentFieldDisabled}
                   >
                     <SelectTrigger id="module-department">
                       <SelectValue placeholder="Select a department" />
@@ -287,6 +299,11 @@ export function ModuleFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  {departmentFieldDisabled && (
+                    <p className="text-xs text-muted-foreground">
+                      Only a Super Admin can move a module to a different department.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -298,6 +315,7 @@ export function ModuleFormDialog({
                     onValueChange={(value) =>
                       setForm((prev) => ({ ...prev, coordinatorId: value }))
                     }
+                    disabled={coordinatorFieldDisabled}
                   >
                     <SelectTrigger id="module-coordinator">
                       <SelectValue placeholder="Select a coordinator" />
@@ -310,6 +328,11 @@ export function ModuleFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  {coordinatorFieldDisabled && (
+                    <p className="text-xs text-muted-foreground">
+                      Only a Super Admin can reassign a module's coordinator.
+                    </p>
+                  )}
                 </div>
               )}
 

@@ -39,6 +39,21 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * CH-17 (Phase 4): under the RBAC model, a caller who lacks the relevant permission gets a bare
+ * 403 from a **list** endpoint (e.g. `GET /academic-modules` for a department-scoped Coordinator
+ * whose grant doesn't carry `modules.view`, or any Mode B list for a user with zero role
+ * assignments), not the old model's `200 []`. On a list/collection read, treat this as "nothing to
+ * show" and render the screen's normal empty state rather than an error banner.
+ *
+ * ⚠️ **Reads only.** A 403 on a *write* (create/update/delete) is a real failure — surfacing it as
+ * a quiet empty state would make a rejected action look like it silently succeeded. Never call
+ * this to decide how a mutation's error renders.
+ */
+export function is403(error: unknown): boolean {
+  return error instanceof ApiError && error.statusCode === 403;
+}
+
 /** Shape of POST /auth/refresh's unwrapped data — kept domain-agnostic here (api-client never imports the auth feature, see configureApiClient below). */
 export interface RefreshedSession {
   access_token: string;

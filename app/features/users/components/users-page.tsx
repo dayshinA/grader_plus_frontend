@@ -33,7 +33,7 @@ import { useUsers } from "~/features/users/api/use-users";
 import { DeactivateUserDialog } from "~/features/users/components/deactivate-user-dialog";
 import { UserFormDialog } from "~/features/users/components/user-form-dialog";
 import type { UserResponse } from "~/features/users/types";
-import { ApiError } from "~/lib/api-client";
+import { ApiError, is403 } from "~/lib/api-client";
 
 const PAGE_SIZE = 10;
 const PAGINATION_ITEMS_TO_DISPLAY = 5;
@@ -97,6 +97,11 @@ export function UsersPage() {
     setCurrentPage(1);
   }
 
+  // CH-17: GET /users (users.view) 403s for a School/Department Admin who only holds
+  // users.create (SYSTEM_DESIGN.md decision #42) — that renders as this screen's own empty
+  // state, with a "create your first user" affordance, not an error banner.
+  const isForbidden = isError && is403(error);
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -130,7 +135,7 @@ export function UsersPage() {
         </div>
       </PageHeader>
 
-      {isError && (
+      {isError && !isForbidden && (
         <Alert
           variant="inline"
           status="error"
@@ -207,11 +212,22 @@ export function UsersPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {search ? "No users match your search." : "No users yet."}
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  {search ? (
+                    <div className="flex h-24 items-center justify-center">
+                      No users match your search.
+                    </div>
+                  ) : isForbidden ? (
+                    <div className="flex h-24 flex-col items-center justify-center gap-2">
+                      <span>You don't have any users to see yet.</span>
+                      <Button size="sm" onClick={() => openFormDialog({ mode: "create" })}>
+                        <Plus className="h-4 w-4" />
+                        Create your first user
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex h-24 items-center justify-center">No users yet.</div>
+                  )}
                 </TableCell>
               </TableRow>
             )}

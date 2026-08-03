@@ -6,8 +6,6 @@ import { ModulesPage } from "~/features/academic-modules/components/modules-page
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
 import { departmentsService } from "~/features/departments/api/departments.service";
-import { usersQueryKey } from "~/features/users/api/use-users";
-import { usersService } from "~/features/users/api/users.service";
 import { queryClient } from "~/lib/query-client";
 
 export function meta() {
@@ -27,9 +25,10 @@ export async function clientLoader() {
   // throws, so the prefetch stays a head start and the component decides what
   // to show. Its own useQuery re-runs and surfaces any genuine error.
   // See BUGS.md 2026-07-31.
-  // All three are needed immediately: the module list itself, plus departments/users for the
-  // Department/Coordinator table columns and the create/edit dialog's pickers (Super Admin can
-  // call both GET /departments and GET /users, unlike a Coordinator viewer of this same page).
+  // Both needed immediately: the module list itself, plus departments for the Department column
+  // and the create/edit dialog's department picker. No GET /users prefetch — the Coordinator
+  // picker (Super-Admin-only) sources from GET /departments/:id/coordinators, not GET /users, as
+  // of Phase 3 (CH-14); this route kept a stale prefetch for it until cleaned up here (CH-15).
   await Promise.all([
     queryClient.prefetchQuery({
       queryKey: academicModulesQueryKey,
@@ -39,10 +38,6 @@ export async function clientLoader() {
       queryKey: departmentsQueryKey,
       queryFn: departmentsService.getDepartments,
     }),
-    queryClient.prefetchQuery({
-      queryKey: usersQueryKey,
-      queryFn: usersService.getUsers,
-    }),
   ]);
   return null;
 }
@@ -50,7 +45,7 @@ export async function clientLoader() {
 export default function SuperAdminModules() {
   return (
     <PermissionGate permissions={["modules.create"]} title="Modules" icon={GraduationCap}>
-      <ModulesPage viewer="super_admin" />
+      <ModulesPage />
     </PermissionGate>
   );
 }

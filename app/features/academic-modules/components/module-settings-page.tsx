@@ -21,10 +21,13 @@ import { ModulesPage } from "~/features/academic-modules/components/modules-page
  * department-admin-only account. Verified against the live backend 2026-07-31.
  *
  * Kept as its own component rather than pointing the route straight at
- * `ModulesPage`: the route is the Coordinator-facing one and `ModulesPage` is
- * shared with `/super-admin/modules`, so the `viewer` prop still has to be
- * pinned here. That prop itself goes in CH-15 (Phase 4).
+ * `ModulesPage`, even though it's now a one-line passthrough: the route is the
+ * Coordinator-facing one and `ModulesPage` is shared with `/super-admin/modules`,
+ * and this file is the natural place to hang route-specific composition if this
+ * screen ever needs any again (as it did pre-CH-08). CH-15 (Phase 4) dropped the
+ * `viewer` prop this used to pin — `ModulesPage` derives Super-Admin-ness itself
+ * from the RBAC summary now.
  */
 export function ModuleSettingsPage() {
-  return <ModulesPage viewer="coordinator" />;
+  return <ModulesPage />;
 }

@@ -32,8 +32,13 @@ export async function clientLoader() {
 }
 
 export default function SuperAdminUsers() {
+  // Widened 2026-08-01 (CH-16) from `users.view` alone — a School/Department Admin holds
+  // `users.create` but not `users.view` (SYSTEM_DESIGN.md decision #42), and CH-11 (Phase 3)
+  // already built the create-user flow to work for them. `GET /users` (users.view) still 403s
+  // for that caller — UsersPage handles that as an empty state with a "create your first user"
+  // affordance, not an error, same CH-17 convention as ModulesPage. See BUGS.md 2026-08-01.
   return (
-    <PermissionGate permissions={["users.view"]} title="Users" icon={Users}>
+    <PermissionGate permissions={["users.view", "users.create"]} title="Users" icon={Users}>
       <UsersPage />
     </PermissionGate>
   );

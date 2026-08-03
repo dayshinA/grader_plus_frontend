@@ -24,10 +24,10 @@ export interface SidebarNavItem {
    * Optional app-level tag naming what makes this item relevant. `Sidebar`
    * itself never reads it — the component stays generic and content-agnostic —
    * but a consuming layout can filter its own `groups` on it before passing
-   * them in. GraderPlus uses it to carry a `PermissionKey` (see
-   * `app-layout.tsx`).
+   * them in. GraderPlus uses it to carry one `PermissionKey`, or an any-of
+   * list of them (see `app-layout.tsx`'s `filterByPermissions`).
    */
-  requires?: string;
+  requires?: string | string[];
 }
 
 /** A group can be a plain array (always-visible, existing shorthand) or an object opting into

@@ -38,20 +38,45 @@ import type {
   UserPermissionsSummary,
 } from "~/features/permissions/types";
 
-// TODO(CH-16, Phase 4): this whole block is a deliberate stop-gap. The proper
-// rebuild has each nav item declare the permission that makes it relevant, with
-// the list filtered from `summary.permissionKeys` — that's the only shape that
-// gets a School Admin's nav right without special-casing, and the only one that
-// stops a department-scoped Coordinator (who holds `modules.create` and nothing
-// else) being shown six items that 403.
-//
-// It isn't done here because it depends on Phase 2's delegation nav entry and on
-// reversing decision #38, neither of which exist yet. Until then these three
-// arrays are the pre-RBAC ones, picked by the user's most senior role instead of
-// by the deleted `user.role`. Known wrong in two ways for one session:
-//   - a department-scoped-only Coordinator sees items they can't use (CH-17), and
-//   - the three grant entries below point at routes deleted in Phase 2.
-const coordinatorNavGroups: SidebarGroupInput[] = [
+/**
+ * CH-16 (Phase 4) rebuild. One unified nav definition — no more picking a whole
+ * array by the user's most senior role template (the pre-CH-16 stop-gap, and
+ * before that the deleted `Record<Role, …>`). Every item declares the
+ * permission(s) that make it relevant and `filterByPermissions` below drops
+ * whatever the caller's `summary.permissionKeys` doesn't cover, then drops any
+ * group left empty. This is what makes a department-scoped Coordinator (who
+ * holds nothing but `modules.create`) see Module Settings and nothing else
+ * (CH-17), and what gives a School/Department Admin a nav path to `Users` —
+ * they hold `users.create` even though `GET /users` (and so `users.view`) is
+ * Super-Admin-only, a gap the old role-bucketed nav had no way to expose (see
+ * BUGS.md, found while building this).
+ *
+ * Confirmed with Dayshin (`AskUserQuestion`, 2026-08-01) as a full merge rather
+ * than keeping separate role-bucketed arrays: a Super Admin holds every
+ * permission in the catalogue (`require-workspace.tsx`/`require-marking.tsx`'s
+ * own comments already establish they pass every route guard), so under a true
+ * permission-filtered nav they legitimately see the assessment-workspace groups
+ * too, alongside the admin-console ones — accepted as correct rather than
+ * special-cased away. See SYSTEM_DESIGN.md decision #44.
+ *
+ * One deliberate exception: `Schools`/`Departments`/`Modules` under
+ * "Organisation" stay gated on `hasRole(summary, "super_admin")` in addition to
+ * their permission, computed below rather than declared via `requires`. These
+ * are the dedicated Super-Admin oversight views (decision #33 built
+ * `/super-admin/modules` specifically so Super Admin didn't have to share the
+ * Coordinator's own screen) — `departments.create`/`modules.create` are also
+ * held by a School Admin/Coordinator respectively, and without this extra
+ * identity check every one of them would additionally see a second, redundant
+ * "Departments"/"Modules" entry pointing at the Super-Admin oversight route
+ * rather than their own scoped screen. This mirrors CH-15's identical
+ * identity-vs-capability distinction for the module form's coordinator picker.
+ */
+function buildNavGroups(
+  summary: UserPermissionsSummary | null,
+): SidebarGroupInput[] {
+  const isSuperAdmin = hasRole(summary, "super_admin");
+
+  const groups: SidebarGroupInput[] = [
     {
       label: "Overview",
       collapsible: true,
@@ -62,6 +87,7 @@ const coordinatorNavGroups: SidebarGroupInput[] = [
           href: "/coordinator/dashboard",
           icon: LayoutDashboard,
           end: true,
+          requires: "dashboard.view" satisfies PermissionKey,
         },
       ],
     },
@@ -75,21 +101,26 @@ const coordinatorNavGroups: SidebarGroupInput[] = [
           href: "/coordinator/module-settings",
           icon: Settings,
           end: true,
+          requires: ["modules.view", "modules.create"] satisfies PermissionKey[],
         },
         {
-          // Added 2026-07-29 (FR41-43) — always visible to every Coordinator, with an empty
-          // state for non-School-Admins, per decision #38 (matches this app's static-nav
-          // convention rather than introducing grant-conditional nav).
+          // Decision #38 reversed 2026-08-01 (CH-16): the frontend can now tell
+          // School Admin apart from a plain Coordinator directly
+          // (`/role-assignments/me`), so this no longer needs to stay
+          // always-visible-with-an-empty-state — gated on `departments.create`,
+          // matching the route's own `PermissionGate` (`school-settings.tsx`).
           label: "School Settings",
           href: "/coordinator/school-settings",
           icon: Landmark,
           end: true,
+          requires: "departments.create" satisfies PermissionKey,
         },
         {
           label: "Rubrics",
           href: "/coordinator/rubrics",
           icon: ScrollText,
           end: true,
+          requires: "rubrics.manage" satisfies PermissionKey,
         },
       ],
     },
@@ -103,18 +134,21 @@ const coordinatorNavGroups: SidebarGroupInput[] = [
           href: "/coordinator/submissions",
           icon: Upload,
           end: true,
+          requires: "submissions.upload" satisfies PermissionKey,
         },
         {
           label: "Marker Assignments",
           href: "/coordinator/marker-assignments",
           icon: ListChecks,
           end: true,
+          requires: "markers.assign" satisfies PermissionKey,
         },
         {
           label: "Discrepancies",
           href: "/coordinator/discrepancies",
           icon: ClipboardCheck,
           end: true,
+          requires: "discrepancies.view" satisfies PermissionKey,
         },
       ],
     },
@@ -128,71 +162,77 @@ const coordinatorNavGroups: SidebarGroupInput[] = [
           href: "/coordinator/export",
           icon: FileSpreadsheet,
           end: true,
+          requires: "grades.export" satisfies PermissionKey,
         },
       ],
     },
+    [
+      {
+        label: "My Projects",
+        href: "/marker/projects",
+        icon: FileClock,
+        end: true,
+        requires: "evaluations.submit" satisfies PermissionKey,
+      },
+    ],
     {
-      // Added 2026-07-31 (CH-09). Present in *both* nav arrays and filtered on
-      // `roles.assign`: School Admins and Department Admins hold it and see the
-      // coordinator nav, so without an entry here the delegation screen would
-      // be unreachable from the nav for exactly the people it exists for. A
-      // plain Coordinator or Marker holds no `roles.assign` and never sees it.
-      label: "Delegation",
+      // Widened 2026-08-01 (CH-16) from `users.view` alone — a School/Department
+      // Admin holds `users.create` but not `users.view` (SYSTEM_DESIGN.md
+      // decision #42), so an any-of on both is what actually gets them a nav
+      // path here. See the matching route-level fix in
+      // `routes/super-admin/users.tsx` and BUGS.md.
+      label: "Users",
       collapsible: true,
       defaultOpen: true,
       items: [
         {
-          label: "Role Assignments",
-          href: "/super-admin/role-assignments",
-          icon: ShieldCheck,
+          label: "Users",
+          href: "/super-admin/users",
+          icon: Users,
           end: true,
-          requires: "roles.assign" satisfies PermissionKey,
+          requires: ["users.view", "users.create"] satisfies PermissionKey[],
         },
       ],
-    },
-];
-
-const markerNavGroups: SidebarGroupInput[] = [
-  [{ label: "My Projects", href: "/marker/projects", icon: FileClock, end: true }],
-];
-
-const adminNavGroups: SidebarGroupInput[] = [
-    {
-      label: "Users",
-      collapsible: true,
-      defaultOpen: true,
-      items: [{ label: "Users", href: "/super-admin/users", icon: Users, end: true }],
     },
     {
       // The three "... Grants" items that used to sit alongside Schools,
       // Departments and Modules are gone with CH-06/07/08 — their twelve
       // endpoints no longer exist. All three collapse into the single
-      // Delegation entry below (CH-09).
+      // Delegation entry below (CH-09). Super-Admin-only — see this
+      // function's own doc comment for why.
       label: "Organisation",
       collapsible: true,
       defaultOpen: true,
-      items: [
-        {
-          label: "Schools",
-          href: "/super-admin/schools",
-          icon: Landmark,
-          end: true,
-        },
-        {
-          label: "Departments",
-          href: "/super-admin/departments",
-          icon: Building2,
-          end: true,
-        },
-        {
-          label: "Modules",
-          href: "/super-admin/modules",
-          icon: GraduationCap,
-          end: true,
-        },
-      ],
+      items: isSuperAdmin
+        ? [
+            {
+              label: "Schools",
+              href: "/super-admin/schools",
+              icon: Landmark,
+              end: true,
+              requires: "schools.create" satisfies PermissionKey,
+            },
+            {
+              label: "Departments",
+              href: "/super-admin/departments",
+              icon: Building2,
+              end: true,
+              requires: "departments.create" satisfies PermissionKey,
+            },
+            {
+              label: "Modules",
+              href: "/super-admin/modules",
+              icon: GraduationCap,
+              end: true,
+              requires: "modules.create" satisfies PermissionKey,
+            },
+          ]
+        : [],
     },
     {
+      // Added 2026-07-31 (CH-09), filtered on `roles.assign`: School Admins and
+      // Department Admins hold it, and a plain Coordinator or Marker holds
+      // neither and never sees it.
       label: "Delegation",
       collapsible: true,
       defaultOpen: true,
@@ -206,17 +246,23 @@ const adminNavGroups: SidebarGroupInput[] = [
         },
       ],
     },
-];
+  ];
 
-/**
- * Drops any item whose `requires` permission the user doesn't hold, then any
- * group left with nothing in it.
- *
- * This is a deliberately bounded down payment on CH-16 (Phase 4), not the
- * rebuild: only the Delegation entry declares a `requires` today. CH-16
- * generalises it to every item, which is what finally fixes a
- * department-scoped-only Coordinator being shown items that 403 (CH-17).
- */
+  return filterByPermissions(groups, summary);
+}
+
+/** Any-of when `requires` is an array, single-key check otherwise. */
+function itemIsVisible(
+  requires: PermissionKey | PermissionKey[] | undefined,
+  summary: UserPermissionsSummary | null,
+): boolean {
+  if (!requires) return true;
+  const keys = Array.isArray(requires) ? requires : [requires];
+  return keys.some((key) => hasPermission(summary, key));
+}
+
+/** Drops any item whose `requires` permission(s) the user doesn't hold, then any group left with
+ * nothing in it. */
 function filterByPermissions(
   groups: SidebarGroupInput[],
   summary: UserPermissionsSummary | null,
@@ -224,41 +270,12 @@ function filterByPermissions(
   return groups
     .map((group) => {
       const normalized = Array.isArray(group) ? { items: group } : group;
-      const items = normalized.items.filter(
-        (item) =>
-          !item.requires || hasPermission(summary, item.requires as PermissionKey),
+      const items = normalized.items.filter((item) =>
+        itemIsVisible(item.requires as PermissionKey | PermissionKey[] | undefined, summary),
       );
       return Array.isArray(group) ? items : { ...normalized, items };
     })
     .filter((group) => (Array.isArray(group) ? group.length : group.items.length) > 0);
-}
-
-/**
- * Picks a nav group array by the user's most senior role template, using the
- * same seniority order as `landingPath`. Stop-gap — see the TODO(CH-16) above.
- *
- * Note this shows a School Admin and a Department Admin the coordinator nav,
- * which is correct: they work out of the assessment screens for their whole
- * scope (decision #39).
- */
-function navGroupsFor(
-  summary: UserPermissionsSummary | null,
-): SidebarGroupInput[] {
-  if (hasRole(summary, "super_admin")) {
-    return filterByPermissions(adminNavGroups, summary);
-  }
-  if (
-    hasRole(summary, "school_admin") ||
-    hasRole(summary, "department_admin") ||
-    hasRole(summary, "project_coordinator")
-  ) {
-    return filterByPermissions(coordinatorNavGroups, summary);
-  }
-  if (hasRole(summary, "marker")) return filterByPermissions(markerNavGroups, summary);
-  // No assignments, or a template this build doesn't know. ProtectedRoute and
-  // landingPath already route these users to /unauthorized, so this layout
-  // shouldn't render for them at all — an empty nav is the safe fallback.
-  return [];
 }
 
 function initials(fullName: string): string {
@@ -288,7 +305,7 @@ export default function AppLayout() {
         </div>
 
         <Sidebar
-          groups={navGroupsFor(permissions)}
+          groups={buildNavGroups(permissions)}
           onCollapsedChange={setIsCollapsed}
           logo={(isCollapsedNow) =>
             isCollapsedNow ? (

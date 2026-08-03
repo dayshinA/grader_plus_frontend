@@ -22,6 +22,7 @@ import { authService } from "~/features/auth/api/auth.service";
 import { permissionsService } from "~/features/permissions/api/permissions.service";
 import type { UserPermissionsSummary } from "~/features/permissions/types";
 import type { LoginResponse, User } from "~/features/auth/types";
+import { queryClient } from "~/lib/query-client";
 
 /** How long before expires_in to proactively refresh, and the floor if expires_in is already tiny. */
 const REFRESH_BUFFER_SECONDS = 60;
@@ -110,6 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const forceLogoutRedirect = useCallback(() => {
     clearSession();
     clearRefreshTimer();
+    // See logout()'s matching comment below — same stale-cache-across-accounts bug, reachable
+    // via forced session expiry too (e.g. a revoked refresh token) if someone signs back in as a
+    // different user in the same tab afterward.
+    queryClient.clear();
     const next = encodeURIComponent(
       window.location.pathname + window.location.search,
     );
@@ -143,6 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearSession();
     clearRefreshTimer();
+    // Found 2026-08-01 while manually verifying Phase 4 (BUGS.md): without this, TanStack
+    // Query's cache is a plain module-level singleton (`app/lib/query-client.ts`) that survives
+    // a client-side logout/login untouched — signing in as a different account in the same tab
+    // (no hard reload in between) rendered the *previous* account's cached list data (e.g.
+    // Users) until the background refetch settled, rather than that account's own real state.
+    // Clearing it here means every query starts genuinely fresh for whoever just signed in.
+    queryClient.clear();
     // Best-effort: revokes the refresh-token cookie server-side. Even if
     // this fails (network down, etc.), the user is still logged out here —
     // the access token is already discarded and the UI moves on regardless.
