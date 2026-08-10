@@ -261,6 +261,46 @@ export function resetSessionBootstrapForTests(): void {
 const API_MESSAGE_KEY = "__apiMessage" as const;
 type ResponseWithApiMessage = AxiosResponse & { [API_MESSAGE_KEY]?: string };
 
+/**
+ * Marks a request whose response is **not** the JSON envelope, so the interceptor below leaves
+ * `response.data` alone instead of unwrapping it.
+ *
+ * Exactly one route in the API needs this: `GET /academic-modules/:moduleId/export`, which returns
+ * a raw `text/csv` body for Learn (`@Res()` without passthrough, so the backend's own
+ * ResponseInterceptor never gets to wrap it). Without the flag that body has no `success` field,
+ * the interceptor reads it as a *failed* envelope, and a perfectly good CSV surfaces as an
+ * `ApiError` with an `undefined` statusCode.
+ *
+ * Reads only — no mutation in this API returns a raw body. Set via `api.getRaw`, never by callers.
+ */
+const RAW_RESPONSE_KEY = "__rawResponse" as const;
+type RawRequestConfig = AxiosRequestConfig & { [RAW_RESPONSE_KEY]?: boolean };
+
+function isRawRequest(requestConfig?: AxiosRequestConfig): boolean {
+  return Boolean((requestConfig as RawRequestConfig | undefined)?.[RAW_RESPONSE_KEY]);
+}
+
+/**
+ * The filename the backend chose, out of `Content-Disposition: attachment; filename="…"`.
+ *
+ * Null when the header is absent or unparseable, so a caller supplies its own fallback rather than
+ * inventing a wrong-looking name. Handles the quoted and bare forms; RFC 5987's `filename*` is not
+ * produced by this backend, which builds the header itself with a plain ASCII name.
+ */
+export function parseContentDispositionFilename(header: unknown): string | null {
+  if (typeof header !== "string") return null;
+  const match = /filename\s*=\s*(?:"([^"]*)"|([^;]+))/i.exec(header);
+  const name = (match?.[1] ?? match?.[2])?.trim();
+  return name ? name : null;
+}
+
+/** A response that skipped the envelope: the body as-is, plus whatever the backend named it. */
+export interface RawApiResult<T> {
+  data: T;
+  /** From `Content-Disposition`, or null when the response carried none. */
+  filename: string | null;
+}
+
 // Every backend response (success or failure) is wrapped in an envelope
 // (`{ success, statusCode, code, message, data? }`) — this interceptor is the
 // single place that unwraps it, so every `api.<verb>()` call below returns
@@ -268,6 +308,10 @@ type ResponseWithApiMessage = AxiosResponse & { [API_MESSAGE_KEY]?: string };
 // arrived on) surfaces as the same `ApiError`.
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
+    // A raw route's body isn't an envelope at all — nothing to unwrap, and nothing to read a
+    // `success` flag off. Hand it back exactly as it arrived (see RAW_RESPONSE_KEY).
+    if (isRawRequest(response.config)) return response;
+
     const envelope = response.data as
       | ApiSuccessResponse<unknown>
       | ApiErrorResponse;
@@ -358,9 +402,51 @@ export const api = {
     return response.data;
   },
 
+  /**
+   * Only one route in the API is a PUT: `PUT .../evaluations/me/scores/:criterionId`, the
+   * per-criterion score upsert a marker's scoring form autosaves through. Deliberately on `api`
+   * rather than `apiWithMessage` — an autosave that toasted "Score saved." on every blur would be
+   * unusable.
+   */
+  put: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
+    const response = await axiosInstance.put<T>(url, data, requestConfig);
+    return response.data;
+  },
+
   delete: async <T>(url: string, requestConfig?: AxiosRequestConfig): Promise<T> => {
     const response = await axiosInstance.delete<T>(url, requestConfig);
     return response.data;
+  },
+
+  /**
+   * A GET whose response is a raw body rather than the JSON envelope — today that means the Learn
+   * CSV export and nothing else. Resolves the body untouched plus the backend's own filename.
+   *
+   * `responseType` is deliberately **not** set. Axios's default `transformResponse` tries
+   * `JSON.parse` and falls back to the raw string, which gets both cases right: a `text/csv` body
+   * stays a string, while a *failure* on this same route (403, 404) still arrives as a parsed JSON
+   * envelope, so the error interceptor recognises it and throws a real `ApiError` with its `code`.
+   * Forcing `responseType: "text"` would leave failures as unparsed strings and flatten every one
+   * of them into a generic `NETWORK_ERROR`.
+   */
+  getRaw: async <T = string>(
+    url: string,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<RawApiResult<T>> => {
+    const response = await axiosInstance.get<T>(url, {
+      ...requestConfig,
+      [RAW_RESPONSE_KEY]: true,
+    } as RawRequestConfig);
+    return {
+      data: response.data,
+      filename: parseContentDispositionFilename(
+        response.headers?.["content-disposition"],
+      ),
+    };
   },
 };
 

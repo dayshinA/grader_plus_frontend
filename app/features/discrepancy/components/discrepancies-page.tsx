@@ -1,5 +1,6 @@
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Gavel } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -23,9 +24,12 @@ import {
   ModulePicker,
   NoModulesCard,
 } from "~/features/academic-modules/components/module-picker";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
 import { useDiscrepancyCases } from "~/features/discrepancy/api/use-discrepancy-cases";
+import { ResolveDiscrepancyDialog } from "~/features/discrepancy/components/resolve-discrepancy-dialog";
 import type { DiscrepancyCaseSummary } from "~/features/discrepancy/types";
+import { hasPermission } from "~/features/permissions/utils";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { is403 } from "~/lib/api-client";
 
@@ -55,9 +59,10 @@ function formatScore(value: number): string {
 /**
  * Every case where the markers on a project came out further apart than the module allows.
  *
- * Read-only. `discrepancies.view` (Department Admin, School Admin, System Administrator, and the
- * module's Coordinator) and `discrepancies.resolve` (that Coordinator alone) are separate
- * permissions — recording an agreed mark is the Coordinator's screen and isn't built yet.
+ * `discrepancies.view` (Department Admin, School Admin, System Administrator, and the module's
+ * Coordinator) gets the list. `discrepancies.resolve` — that Coordinator alone — additionally gets
+ * the Resolve action on every open case. The two are separate permissions and holding one never
+ * implies the other, so the action is gated on its own key rather than on reaching this screen.
  *
  * The high and the low mark are shown; which marker gave which is not, and the backend doesn't
  * send it. Blind isolation survives the flag.
@@ -76,6 +81,17 @@ export function DiscrepanciesPage() {
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [resolving, setResolving] = useState<DiscrepancyCaseSummary | null>(null);
+  // Bumped per open so the dialog remounts with empty state rather than resetting in an effect.
+  const [dialogKey, setDialogKey] = useState(0);
+
+  const { permissions } = useAuth();
+  const canResolve = hasPermission(permissions, "discrepancies.resolve");
+
+  function openResolve(item: DiscrepancyCaseSummary) {
+    setDialogKey((value) => value + 1);
+    setResolving(item);
+  }
 
   const isForbidden = isError && is403(error);
   const cases = useMemo(() => data ?? [], [data]);
@@ -188,6 +204,31 @@ export function DiscrepanciesPage() {
     },
   ];
 
+  // Only on open cases, and only for the module's own Coordinator. A resolved case is
+  // permanently locked server-side, so there is nothing to offer on one.
+  if (canResolve) {
+    columns.push({
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: (item) =>
+        item.status === "open" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-11 cursor-pointer sm:h-8"
+            onClick={() => openResolve(item)}
+          >
+            <Gavel aria-hidden="true" />
+            Resolve
+          </Button>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+      skeletonClassName: "w-20",
+    });
+  }
+
   const renderCard = (item: DiscrepancyCaseSummary) => (
     <div className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -209,6 +250,16 @@ export function DiscrepanciesPage() {
           {item.agreedMark === null ? "Not resolved" : `Agreed ${formatScore(item.agreedMark)}`}
         </span>
       </div>
+      {canResolve && item.status === "open" && (
+        <Button
+          variant="outline"
+          className="mt-3 h-11 w-full cursor-pointer sm:h-9"
+          onClick={() => openResolve(item)}
+        >
+          <Gavel aria-hidden="true" />
+          Resolve
+        </Button>
+      )}
     </div>
   );
 
@@ -335,6 +386,17 @@ export function DiscrepanciesPage() {
             )}
           </div>
         </>
+      )}
+
+      {moduleId && resolving && (
+        <ResolveDiscrepancyDialog
+          key={dialogKey}
+          open
+          onOpenChange={(next) => !next && setResolving(null)}
+          moduleId={moduleId}
+          discrepancyCase={resolving}
+          onSuccess={(message) => toast.success(message)}
+        />
       )}
     </div>
   );

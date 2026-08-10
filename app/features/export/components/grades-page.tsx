@@ -1,10 +1,12 @@
-import { FileSpreadsheet } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Callout } from "~/components/ui/callout";
 import { Card, CardContent } from "~/components/ui/card";
+import { Checkbox } from "~/components/ui/checkbox";
 import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   Empty,
@@ -23,11 +25,14 @@ import {
   ModulePicker,
   NoModulesCard,
 } from "~/features/academic-modules/components/module-picker";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
-import { useGrades } from "~/features/export/api/use-grades";
+import { useExportGradesCsv, useGrades } from "~/features/export/api/use-grades";
 import type { GradeRow, GradeSource } from "~/features/export/types";
+import { hasPermission } from "~/features/permissions/utils";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { is403 } from "~/lib/api-client";
+import { downloadCsv } from "~/utils/download-file";
 
 const nav = findNavItem("/workspace/grades");
 
@@ -55,8 +60,9 @@ function formatScore(value: number): string {
  *
  * Held by School Admin, Department Admin, System Administrator (oversight) and the module's own
  * Coordinator, all via `grades.view`. The Learn-format CSV download is a separate permission
- * (`grades.export`, that Coordinator alone) and isn't built yet — when it is, it belongs in this
- * screen's `PageHeader` actions, gated on that key, not on a second screen.
+ * (`grades.export`, that Coordinator alone), so it lives in this screen's `PageHeader` actions
+ * gated on its own key rather than on a second screen — two surfaces over one `final_grades`
+ * table, not two features.
  */
 export function GradesPage() {
   const { modules, moduleId, selectedModule, noModules, isLoading, onModuleChange } =
@@ -71,6 +77,11 @@ export function GradesPage() {
   } = useGrades(moduleId ?? undefined);
 
   const [search, setSearch] = useState("");
+  const [includeFeedback, setIncludeFeedback] = useState(false);
+
+  const { permissions } = useAuth();
+  const canExport = hasPermission(permissions, "grades.export");
+  const exportCsv = useExportGradesCsv(moduleId ?? "");
 
   const isForbidden = isError && is403(error);
   const grades = useMemo(() => data ?? [], [data]);
@@ -94,6 +105,24 @@ export function GradesPage() {
 
   const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
   const hasFilters = search.trim() !== "";
+
+  function handleExport() {
+    if (!moduleId) return;
+    exportCsv.mutate(
+      { includeFeedback },
+      {
+        onSuccess: ({ data: csv, filename }) => {
+          // The backend names the file itself via Content-Disposition; fall back to the module
+          // code only if that header didn't survive (e.g. a proxy stripping it).
+          downloadCsv(csv, filename ?? `${selectedModule?.code ?? "grades"}-grades.csv`);
+        },
+        onError: (failure) =>
+          toast.error(
+            failure instanceof Error ? failure.message : "Couldn't export the grades.",
+          ),
+      },
+    );
+  }
 
   const columns: DataTableColumn<GradeRow>[] = [
     {
@@ -162,11 +191,31 @@ export function GradesPage() {
         title="Grades"
         description={nav?.description}
         actions={
-          <ModulePicker
-            modules={modules}
-            moduleId={moduleId}
-            onModuleChange={onModuleChange}
-          />
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <ModulePicker
+              modules={modules}
+              moduleId={moduleId}
+              onModuleChange={onModuleChange}
+            />
+            {canExport && !noModules && (
+              <Button
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={handleExport}
+                disabled={exportCsv.isPending || grades.length === 0}
+                aria-busy={exportCsv.isPending}
+              >
+                {exportCsv.isPending ? (
+                  <Loader2
+                    className="animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Download aria-hidden="true" />
+                )}
+                Export for Learn
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -218,6 +267,25 @@ export function GradesPage() {
               Only students who already have a final grade appear here. A project still being
               marked, or one with an unresolved discrepancy, is left out until its grade lands.
             </Callout>
+          )}
+
+          {/* Sits with the export button's own concern rather than in the table's toolbar: it
+              changes nothing on screen, only what the CSV contains. Worth surfacing rather than
+              burying in a menu — this is the only route in the system that exposes marker
+              feedback text at all, and nobody would guess it exists. */}
+          {canExport && !loading && !isForbidden && grades.length > 0 && (
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-muted-foreground">
+              <Checkbox
+                checked={includeFeedback}
+                onCheckedChange={(checked) => setIncludeFeedback(checked === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Include marker feedback in the export. Adds a Feedback column holding every final
+                evaluation&apos;s general feedback, labelled by marker. Per-criterion comments
+                aren&apos;t included.
+              </span>
+            </label>
           )}
 
           <ListToolbar

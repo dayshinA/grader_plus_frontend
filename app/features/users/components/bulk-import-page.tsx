@@ -15,6 +15,7 @@ import { useDepartments } from "~/features/departments/api/use-departments";
 import { useSchools } from "~/features/schools/api/use-schools";
 import { useBulkImportUsers } from "~/features/users/api/use-bulk-import-users";
 import type { BulkImportResult } from "~/features/users/types";
+import { downloadCsv } from "~/utils/download-file";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 
@@ -35,16 +36,6 @@ function resultsToCsv(results: BulkImportResult["results"]): string {
       .join(","),
   );
   return [header, ...lines].join("\n");
-}
-
-function downloadCsv(csv: string, fileName: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 export function BulkImportPage() {

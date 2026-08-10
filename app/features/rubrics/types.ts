@@ -19,3 +19,32 @@ export interface RubricResponse {
   /** Already sorted by `displayOrder` server-side. */
   criteria: RubricCriterionResponse[];
 }
+
+/** `POST .../rubric` — the shell only. Criteria are added afterwards, one call each. */
+export interface CreateRubricRequest {
+  title: string;
+}
+
+/** `PATCH .../rubric`. Title is the only editable field on the shell. */
+export interface UpdateRubricRequest {
+  title?: string;
+}
+
+/**
+ * `POST .../rubric/criteria`.
+ *
+ * `displayOrder` is deliberately never sent by this app — the backend auto-assigns `MAX + 1`,
+ * which is what "add another criterion to the end" means, and hand-managing the ordering client
+ * side would need a reorder UI the requirements don't ask for.
+ */
+export interface CreateRubricCriterionRequest {
+  label: string;
+  description: string;
+  /** 0-100, at most 2 decimal places (backend `numeric(5,2)`). */
+  weighting: number;
+  /** Integer, 1-1000. */
+  maxScore: number;
+}
+
+/** `PATCH .../rubric/criteria/:criterionId`. Partial of the create shape. */
+export type UpdateRubricCriterionRequest = Partial<CreateRubricCriterionRequest>;

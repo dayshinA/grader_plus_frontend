@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { discrepancyService } from "~/features/discrepancy/api/discrepancy.service";
 
@@ -16,5 +16,25 @@ export function useDiscrepancyCases(moduleId: string | undefined) {
     queryKey: discrepancyCasesQueryKey(moduleId ?? ""),
     queryFn: () => discrepancyService.getCases(moduleId as string),
     enabled: Boolean(moduleId),
+  });
+}
+
+/**
+ * Records an agreed mark on one case.
+ *
+ * Invalidates the module's grades alongside its cases: resolving writes a `final_grades` row, so
+ * the Grades screen is stale the instant this succeeds — and a coordinator resolving a case is
+ * very often on their way there next.
+ */
+export function useResolveDiscrepancy(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ caseId, agreedMark }: { caseId: string; agreedMark: number }) =>
+      discrepancyService.resolveCase(moduleId, caseId, agreedMark),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: discrepancyCasesQueryKey(moduleId) });
+      queryClient.invalidateQueries({ queryKey: ["grades", moduleId] });
+    },
   });
 }

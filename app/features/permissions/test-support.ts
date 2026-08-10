@@ -20,7 +20,12 @@ export const HIERARCHY_LEVELS: Record<RoleTemplateKey, number> = {
   school_admin: 1,
   department_admin: 2,
   project_coordinator: 3,
-  marker: 3,
+  // 4, not 3 — the backend moved Marker to a strict child of Project Coordinator in the
+  // 2026-08-03 least-privilege redesign, which is what lets a module-scoped Coordinator satisfy
+  // Rule 2 and grant the Marker template. Corrected 2026-08-10 (it had been carried as 3 and
+  // flagged as a follow-up in two earlier entries); nothing asserted on it yet, but any future
+  // Rule 2 test would have been built on the wrong number.
+  marker: 4,
 };
 
 export function makeAssignment(

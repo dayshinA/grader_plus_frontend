@@ -4,6 +4,7 @@ import {
   ApiError,
   clearSession,
   configureApiClient,
+  parseContentDispositionFilename,
   refreshSession,
   setSession,
 } from "~/lib/api-client";
@@ -296,5 +297,121 @@ describe("api client", () => {
 
       await expect(refreshSession()).resolves.toBe(false);
     });
+  });
+});
+
+describe("parseContentDispositionFilename", () => {
+  it("reads the quoted form the backend produces", () => {
+    expect(
+      parseContentDispositionFilename('attachment; filename="COP511-grades.csv"'),
+    ).toBe("COP511-grades.csv");
+  });
+
+  it("reads the bare, unquoted form too", () => {
+    expect(parseContentDispositionFilename("attachment; filename=grades.csv")).toBe(
+      "grades.csv",
+    );
+  });
+
+  it("is null when the header is missing, so callers use their own fallback name", () => {
+    expect(parseContentDispositionFilename(undefined)).toBeNull();
+    expect(parseContentDispositionFilename(null)).toBeNull();
+  });
+
+  it("is null when the header carries no filename at all", () => {
+    expect(parseContentDispositionFilename("attachment")).toBeNull();
+  });
+
+  it("is null for an empty filename rather than returning an empty string", () => {
+    expect(parseContentDispositionFilename('attachment; filename=""')).toBeNull();
+  });
+});
+
+describe("api.getRaw", () => {
+  beforeEach(() => {
+    configureApiClient(noopHandlers);
+    clearSession();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns a non-envelope body untouched instead of throwing", async () => {
+    // The whole point of the raw path. `GET .../export` returns bare text/csv, which has no
+    // `success` field — through the normal interceptor that reads as a *failed* envelope and a
+    // perfectly good CSV surfaces as an ApiError with an undefined statusCode.
+    const csv = "Learn ID,Final Grade\nL2048,67.5\n";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(csv, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="COP511-grades.csv"',
+          },
+        }),
+      ),
+    );
+
+    const result = await api.getRaw<string>("/academic-modules/m1/export");
+
+    expect(result.data).toBe(csv);
+    expect(result.filename).toBe("COP511-grades.csv");
+  });
+
+  it("falls back to a null filename when the response carries no Content-Disposition", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response("a,b\n", {
+          status: 200,
+          headers: { "Content-Type": "text/csv" },
+        }),
+      ),
+    );
+
+    const result = await api.getRaw<string>("/academic-modules/m1/export");
+
+    expect(result.filename).toBeNull();
+  });
+
+  it("still throws a real ApiError, with its code, when the raw route itself fails", async () => {
+    // A failure on this route arrives as an ordinary JSON envelope, and must keep its code —
+    // this is why `responseType: "text"` is deliberately not set on the request.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse(
+          {
+            success: false,
+            statusCode: 403,
+            code: "FORBIDDEN",
+            message: "You cannot export this module's grades.",
+          },
+          403,
+        ),
+      ),
+    );
+
+    await expect(api.getRaw<string>("/academic-modules/m1/export")).rejects.toMatchObject({
+      statusCode: 403,
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("leaves the normal envelope path alone — api.get still unwraps to data", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse(
+          { success: true, statusCode: 200, code: "OK", message: "ok", data: [{ id: "g1" }] },
+          200,
+        ),
+      ),
+    );
+
+    await expect(api.get("/academic-modules/m1/grades")).resolves.toEqual([{ id: "g1" }]);
   });
 });

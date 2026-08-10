@@ -1,8 +1,5 @@
-import { ListChecks } from "lucide-react";
-
-import { PageHeader } from "~/components/ui/page-header";
-import { PagePlaceholder } from "~/components/ui/page-placeholder";
 import { findNavItem } from "~/features/dashboard/nav";
+import { MarkerAssignmentsPage } from "~/features/marker-assignments/components/marker-assignments-page";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 
 export function meta() {
@@ -11,6 +8,10 @@ export function meta() {
 
 const nav = findNavItem("/workspace/marker-assignments");
 
+/**
+ * `markers.assign` is held only by a module-scoped Project Coordinator — no admin tier holds it at
+ * any scope, so this gate has a single genuine audience, unlike most `/workspace/*` screens.
+ */
 export default function MarkerAssignments() {
   return (
     <PermissionGate
@@ -18,19 +19,7 @@ export default function MarkerAssignments() {
       title="Marker Assignments"
       description={nav?.description}
     >
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Marker Assignments" description={nav?.description} />
-        <PagePlaceholder
-          icon={ListChecks}
-          title="Not built yet"
-          description="Who marks what. A project takes up to five markers, and a moderator is simply one of them."
-          planned={[
-            "Assign and unassign markers per project",
-            "See at a glance which projects are short of markers",
-            "Flag one assignment as the moderator, graded blind like the rest",
-          ]}
-        />
-      </div>
+      <MarkerAssignmentsPage />
     </PermissionGate>
   );
 }
