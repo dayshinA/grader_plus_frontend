@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Alert } from "~/components/ui/alert";
+import { Callout } from "~/components/ui/callout";
 import { Label } from "~/components/ui/label";
 import {
   Select,
@@ -41,7 +41,7 @@ export interface ScopePickerProps {
 }
 
 const SCOPE_TYPE_HINTS: Record<ScopeType, string> = {
-  global: "Applies system-wide. Only a Super Admin can confer this.",
+  global: "Applies system-wide. Only a System Administrator can confer this.",
   school: "Applies to the school and everything inside it.",
   department: "Applies to the department and every module in it.",
   module: "Applies to one module only.",
@@ -101,8 +101,8 @@ export function ScopePicker({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <Label htmlFor={`${prefix}-scope-type`}>Level</Label>
         <Select
           value={scopeType ?? undefined}
@@ -126,7 +126,7 @@ export function ScopePicker({
       </div>
 
       {scopeType && scopeType !== "global" && (
-        <div className="flex flex-col gap-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${prefix}-scope-id`}>{SCOPE_TYPE_LABELS[scopeType]}</Label>
           <Select
             value={value?.scopeId ?? undefined}
@@ -137,7 +137,7 @@ export function ScopePicker({
               <SelectValue
                 placeholder={
                   isLoading
-                    ? "Loading..."
+                    ? "Loading…"
                     : options.length === 0
                       ? `No ${SCOPE_TYPE_LABELS[scopeType].toLowerCase()} available to you`
                       : `Pick a ${SCOPE_TYPE_LABELS[scopeType].toLowerCase()}`
@@ -170,13 +170,9 @@ export function ScopePicker({
       )}
 
       {error && (
-        <Alert
-          variant="inline"
-          status="error"
-          timeout={0}
-          title="Check the level"
-          message={error}
-        />
+        <Callout variant="error" title="Check the level">
+          {error}
+        </Callout>
       )}
     </div>
   );

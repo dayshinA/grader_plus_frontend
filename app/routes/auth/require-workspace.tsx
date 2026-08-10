@@ -1,12 +1,15 @@
 import { ProtectedRoute } from "~/features/auth/components/protected-route";
 
 /**
- * Outer gate for `/coordinator/*` — the assessment workspace.
+ * Outer gate for `/workspace/*` — the assessment workspace.
  *
  * Gated on permission, not role (decision #39). The prefix is a section name,
  * not a claim about who the user is: a School Admin and a Department Admin both
- * work out of these screens for their whole scope, and a Super Admin holds
- * every functional permission so they are legitimately theirs too.
+ * work out of these screens for their whole scope, and System Administrator's
+ * read-only oversight of `modules.view` alone is enough to pass — it no longer
+ * holds every functional permission here since the 2026-08-03 least-privilege
+ * redesign (it lost `rubrics.*` write, `submissions.upload`, `markers.assign`,
+ * `discrepancies.resolve`, `grades.export`, and `dashboard.view`).
  *
  * Deliberately broad and any-of. This answers only "does this person do
  * assessment work at all" — a department-scoped Project Coordinator holding
@@ -21,7 +24,7 @@ export default function RequireWorkspace() {
         "dashboard.view",
         "modules.view",
         "modules.create",
-        "rubrics.manage",
+        "rubrics.view",
         "submissions.upload",
         "markers.assign",
         "discrepancies.view",

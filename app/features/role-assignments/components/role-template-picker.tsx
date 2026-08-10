@@ -1,6 +1,6 @@
 import { useId, useMemo } from "react";
-import { Alert } from "~/components/ui/alert";
-import { Badge } from "~/components/ui/badge";
+
+import { Callout } from "~/components/ui/callout";
 import { Label } from "~/components/ui/label";
 import {
   Select,
@@ -12,14 +12,22 @@ import {
 import { useAuth } from "~/features/auth/api/auth-context";
 import { usePermissionCatalogue } from "~/features/permissions/api/use-permission-catalogue";
 import { useRoleTemplates } from "~/features/permissions/api/use-role-templates";
-import type { RoleTemplateKey, ScopeType } from "~/features/permissions/types";
+import type {
+  PermissionCatalogEntry,
+  PermissionKey,
+  RoleTemplateKey,
+  ScopeType,
+} from "~/features/permissions/types";
 import { useScopeOptions } from "~/features/role-assignments/api/use-scope-options";
 import {
   bestHierarchyLevelAtScope,
   defaultPermissionKeysAt,
   delegatableTemplates,
-  permissionLabel,
+  groupPermissionsByDomain,
+  permissionDescription,
+  permissionTitle,
   resolveScopeChain,
+  roleTemplateDescription,
   SCOPE_TYPE_LABELS,
 } from "~/features/role-assignments/utils";
 
@@ -49,9 +57,11 @@ export interface RoleTemplatePickerProps {
  * at all are filtered out too, which is what prevents a 422
  * `INVALID_SCOPE_FOR_ROLE_TEMPLATE` rather than catching it after submit.
  *
- * A Project Coordinator or Marker (both level 3, the floor of the hierarchy)
- * gets an empty list at every scope. That's permanent and correct, so it
- * renders as an explanation rather than an empty dropdown.
+ * A department-scope Project Coordinator or a Marker (level 4, the floor of the
+ * hierarchy) gets an empty list at every scope — permanent and correct, rendered as
+ * an explanation rather than an empty dropdown. A **module**-scope Project
+ * Coordinator is the one exception: since the 2026-08-03 redesign moved Marker to a
+ * strict child of Coordinator, they can delegate Marker at their own module.
  *
  * ⚠️ Rule 2 governs template *defaults*. Rule 1 — "you can't grant what you
  * don't hold" — applies to the extras layer only and is deliberately **not**
@@ -64,9 +74,16 @@ export interface RoleTemplatePickerProps {
  *
  * Two call sites from day one: `GrantRoleDialog`, and Phase 3's create-user
  * form (CH-11), where `POST /users` bundles an assignment carrying the same
- * `roleTemplateKey`. Reuses `Select`, `Label`, `Badge` and `Alert` rather than
- * re-implementing any of them; the permission preview is `Badge` in its
- * `secondary` variant, the same treatment used for read-only metadata elsewhere.
+ * `roleTemplateKey`. Reuses `Select`, `Label` and `Callout` rather than
+ * re-implementing any of them.
+ *
+ * The permission-defaults preview (2026-08-04) groups by domain (`groupPermissionsByDomain`) the
+ * same way `ExtrasFieldset` groups its extras, and renders each key via the same
+ * `permissionTitle`/`permissionDescription` friendly-copy map that component now also uses — no
+ * more raw keys, a `Badge`-per-permission list, or a permission count. This is deliberately
+ * read-only (no checkboxes): these are the template's unconditional defaults, not something a
+ * System Administrator is meant to be able to toggle off while creating a user — see
+ * `ExtrasFieldset` for the layer that actually is optional.
  */
 export function RoleTemplatePicker({
   value,
@@ -97,40 +114,38 @@ export function RoleTemplatePicker({
   );
 
   const selected = options.find((template) => template.key === value) ?? null;
-  const preview = selected ? defaultPermissionKeysAt(selected, scopeType) : [];
+  const preview = useMemo(
+    () => (selected ? defaultPermissionKeysAt(selected, scopeType) : []),
+    [selected, scopeType],
+  );
   const bestLevel = bestHierarchyLevelAtScope(summary, chain);
   const scopeLabel = SCOPE_TYPE_LABELS[scopeType].toLowerCase();
 
+  const previewByDomain = useMemo(
+    () => groupPermissionsByDomain(preview, (key) => key),
+    [preview],
+  );
+
   if (isError) {
     return (
-      <Alert
-        variant="inline"
-        status="error"
-        timeout={0}
-        title="Couldn't load role templates"
-        message="The list of roles couldn't be fetched. Try again in a moment."
-      />
+      <Callout variant="error" title="Couldn't load role templates">
+        The list of roles couldn't be fetched. Try again in a moment.
+      </Callout>
     );
   }
 
   if (!isLoading && options.length === 0) {
     return (
-      <Alert
-        variant="inline"
-        status="info"
-        timeout={0}
-        title="Nothing to delegate here"
-        message={
-          bestLevel === null
-            ? `You don't hold a role covering this ${scopeLabel}, so you can't assign anyone to it.`
-            : "You can only assign roles junior to your own, and there are none below yours at this level."
-        }
-      />
+      <Callout title="Nothing to delegate here">
+        {bestLevel === null
+          ? `You don't hold a role covering this ${scopeLabel}, so you can't assign anyone to it.`
+          : "You can only assign roles junior to your own, and there are none below yours at this level."}
+      </Callout>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="space-y-2">
       <Label htmlFor={`${prefix}-role-template`}>Role</Label>
       <Select
         value={value ?? undefined}
@@ -138,7 +153,7 @@ export function RoleTemplatePicker({
         disabled={disabled || isLoading}
       >
         <SelectTrigger id={`${prefix}-role-template`}>
-          <SelectValue placeholder={isLoading ? "Loading..." : "Pick a role"} />
+          <SelectValue placeholder={isLoading ? "Loading…" : "Pick a role"} />
         </SelectTrigger>
         <SelectContent container={container}>
           {options.map((template) => (
@@ -150,24 +165,56 @@ export function RoleTemplatePicker({
       </Select>
 
       {selected && (
-        <p className="text-xs text-muted-foreground">{selected.description}</p>
+        <p className="text-xs text-muted-foreground">
+          {roleTemplateDescription(selected.key, selected.description)}
+        </p>
       )}
 
       {showPreview && selected && (
-        <div className="mt-1 flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
-            This grants {preview.length} permission{preview.length === 1 ? "" : "s"} at
-            this {scopeLabel}:
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {preview.map((key) => (
-              <Badge key={key} variant="secondary" title={permissionLabel(key, catalogue)}>
-                {key}
-              </Badge>
-            ))}
-          </div>
+        <div className="mt-1 flex flex-col gap-3">
+          <p className="text-xs font-medium text-muted-foreground">Default permissions</p>
+          {previewByDomain.map((domain) => (
+            <PermissionPreviewGroup
+              key={domain.label}
+              label={domain.label}
+              keys={domain.items}
+              catalogue={catalogue}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface PermissionPreviewGroupProps {
+  label: string;
+  keys: PermissionKey[];
+  catalogue?: readonly PermissionCatalogEntry[];
+}
+
+/**
+ * One category's slice of a role template's default-permission preview — read-only, so unlike
+ * `ExtrasFieldset`'s matching groups this has no checkboxes and doesn't show the raw key: a
+ * friendly title (`permissionTitle`) plus a one-line description (`permissionDescription`) is
+ * everything a viewer needs for something they can't toggle anyway.
+ */
+function PermissionPreviewGroup({ label, keys, catalogue }: PermissionPreviewGroupProps) {
+  if (keys.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="flex flex-col gap-2">
+        {keys.map((key) => (
+          <div key={key} className="flex flex-col">
+            <span className="text-sm font-medium text-foreground">{permissionTitle(key)}</span>
+            <span className="text-xs text-muted-foreground">
+              {permissionDescription(key, catalogue)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

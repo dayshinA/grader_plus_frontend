@@ -1,4 +1,3 @@
-import { Landmark } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { schoolsQueryKey } from "~/features/schools/api/use-schools";
@@ -33,7 +32,7 @@ export async function clientLoader() {
 
 export default function SuperAdminSchools() {
   return (
-    <PermissionGate permissions={["schools.create"]} title="Schools" icon={Landmark}>
+    <PermissionGate permissions={["schools.create"]} title="Schools">
       <SchoolsPage />
     </PermissionGate>
   );

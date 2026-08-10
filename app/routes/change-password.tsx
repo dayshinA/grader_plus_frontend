@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Alert } from "~/components/ui/alert";
-import { Button } from "~/components/ui/button";
-import { Label } from "~/components/ui/label";
-import { PasswordInput } from "~/components/ui/password-input";
+import { toast } from "sonner";
+
+import { FormError } from "~/components/ui/form-error";
+import { FormField } from "~/components/ui/form-field";
+import { SubmitButton } from "~/components/ui/submit-button";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { useChangePassword } from "~/features/auth/api/use-change-password";
-import { ApiError } from "~/lib/api-client";
+import { AuthShell } from "~/features/auth/components/auth-shell";
+import { isApiError } from "~/lib/api-client";
 
 export function meta() {
   return [{ title: "Change password — GraderPlus" }];
@@ -19,6 +21,9 @@ export default function ChangePassword() {
 
   const wasForced = user?.mustChangePassword ?? false;
 
+  const fieldError = (name: string) =>
+    isApiError(changePassword.error) ? changePassword.error.fieldError(name) : undefined;
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     changePassword.mutate(
@@ -30,6 +35,7 @@ export default function ChangePassword() {
         // is possible anywhere afterward, so log out immediately and force
         // a fresh login rather than let the session quietly die later.
         onSuccess: () => {
+          toast.success("Password changed. Sign in again with the new one.");
           logout();
         },
       },
@@ -37,62 +43,45 @@ export default function ChangePassword() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-2 text-center text-xl font-semibold text-foreground">
-          Change your password
-        </h1>
-        {wasForced && (
-          <p className="mb-4 text-center text-sm text-muted-foreground">
-            Your account was set up with a temporary password. Choose a new
-            one before continuing.
-          </p>
-        )}
+    <AuthShell
+      title="Change your password"
+      description={
+        wasForced
+          ? "Your account was set up with a temporary password. Choose a new one before continuing."
+          : "You'll be signed out everywhere once this is saved."
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <FormError error={changePassword.error} />
 
-        {changePassword.isError && (
-          <div className="mb-4">
-            <Alert
-              variant="inline"
-              timeout={0}
-              title="Couldn't change password"
-              message={
-                changePassword.error instanceof ApiError
-                  ? changePassword.error.message
-                  : "Something went wrong. Please try again."
-              }
-            />
-          </div>
-        )}
+        <FormField
+          label="Current password"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
+          error={fieldError("currentPassword")}
+        />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="currentPassword">Current password</Label>
-            <PasswordInput
-              id="currentPassword"
-              autoComplete="current-password"
-              required
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-            />
-          </div>
+        <FormField
+          label="New password"
+          name="newPassword"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          hint="At least 8 characters."
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          error={fieldError("newPassword")}
+        />
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="newPassword">New password</Label>
-            <PasswordInput
-              id="newPassword"
-              autoComplete="new-password"
-              minLength={8}
-              required
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-            />
-          </div>
-
-          <Button type="submit" disabled={changePassword.isPending} className="mt-2">
-            {changePassword.isPending ? "Changing..." : "Change password"}
-          </Button>
-        </form>
-      </div>
-    </main>
+        <SubmitButton isPending={changePassword.isPending} pendingLabel="Changing…">
+          Change password
+        </SubmitButton>
+      </form>
+    </AuthShell>
   );
 }

@@ -16,7 +16,7 @@ export const departmentsService = {
 
   /** `@Roles(SUPER_ADMIN, COORDINATOR)` + `DepartmentAdminGuard` — a Coordinator caller passes
    * only if they administer `departmentId`. Used by the FR40 module-creation-grant picker on
-   * `coordinator/module-settings.tsx`'s Delegate Permissions tab. */
+   * `workspace/module-settings.tsx`'s Delegate Permissions tab. */
   getCoordinators: (departmentId: string): Promise<CoordinatorResponse[]> =>
     api.get<CoordinatorResponse[]>(`/departments/${departmentId}/coordinators`),
 

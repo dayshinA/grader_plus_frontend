@@ -1,4 +1,3 @@
-import { Users } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { usersQueryKey } from "~/features/users/api/use-users";
@@ -38,7 +37,7 @@ export default function SuperAdminUsers() {
   // for that caller — UsersPage handles that as an empty state with a "create your first user"
   // affordance, not an error, same CH-17 convention as ModulesPage. See BUGS.md 2026-08-01.
   return (
-    <PermissionGate permissions={["users.view", "users.create"]} title="Users" icon={Users}>
+    <PermissionGate permissions={["users.view", "users.create"]} title="Users">
       <UsersPage />
     </PermissionGate>
   );

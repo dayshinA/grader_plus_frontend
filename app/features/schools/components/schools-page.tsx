@@ -1,273 +1,266 @@
-import { Landmark, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Landmark, MoreHorizontal, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { toast } from "sonner";
 
-import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Input } from "~/components/ui/input";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { ErrorCard } from "~/components/ui/error-card";
+import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
+import { ListPager } from "~/components/ui/list-pager";
+import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "~/components/ui/pagination";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { usePagination } from "~/hooks/use-pagination";
+import { findNavItem } from "~/features/dashboard/nav";
 import { useSchools } from "~/features/schools/api/use-schools";
 import { DeactivateSchoolDialog } from "~/features/schools/components/deactivate-school-dialog";
 import { SchoolFormDialog } from "~/features/schools/components/school-form-dialog";
 import type { SchoolResponse } from "~/features/schools/types";
-import { ApiError } from "~/lib/api-client";
-
-const PAGE_SIZE = 10;
-const PAGINATION_ITEMS_TO_DISPLAY = 5;
+import { usePagedList } from "~/hooks/use-paged-list";
 
 type FormDialogState = { mode: "create" } | { mode: "edit"; school: SchoolResponse } | null;
+type StatusFilter = "all" | "active" | "inactive";
 
-/** Super Admin CRUD screen for `schools` — direct structural mirror of `DepartmentsPage`, one
+const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "inactive", label: "Inactive" },
+];
+
+const nav = findNavItem("/super-admin/schools");
+
+/** System Administrator CRUD screen for `schools` — direct structural mirror of `DepartmentsPage`, one
  * level up the hierarchy (see SYSTEM_DESIGN.md decision #37). */
 export function SchoolsPage() {
-  const { data: schools, isLoading, isError, error } = useSchools();
+  const { data: schools, isLoading, isError, error, refetch, isFetching } = useSchools();
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [status, setStatus] = useState<StatusFilter>("all");
   const [formDialog, setFormDialog] = useState<FormDialogState>(null);
   // Bumped every time the form dialog opens, and used as SchoolFormDialog's `key` below —
   // forces a fresh mount (fresh form/mutation state) on every open instead of an effect-based reset.
   const [formDialogNonce, setFormDialogNonce] = useState(0);
   const [deactivateTarget, setDeactivateTarget] = useState<SchoolResponse | null>(null);
-  // `id` changes on every call so a repeat of the same title/message still
-  // remounts the toast (Alert's own re-trigger convention — see Alert.md).
-  const [toast, setToast] = useState<{
-    id: number;
-    title: string;
-    message: string;
-  } | null>(null);
 
   function openFormDialog(state: FormDialogState) {
     setFormDialog(state);
     setFormDialogNonce((n) => n + 1);
   }
 
-  function showToast(title: string, message: string) {
-    setToast({ id: Date.now(), title, message });
-  }
-
-  const filteredSchools = useMemo(() => {
-    if (!schools) return [];
+  const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return schools;
-    return schools.filter(
+    return (schools ?? []).filter(
       (school) =>
-        school.name.toLowerCase().includes(query) || school.code.toLowerCase().includes(query),
+        (status === "all" || (status === "active") === school.isActive) &&
+        (query === "" ||
+          school.name.toLowerCase().includes(query) ||
+          school.code.toLowerCase().includes(query)),
     );
-  }, [schools, search]);
+  }, [schools, search, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSchools.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: safePage,
-    totalPages,
-    paginationItemsToDisplay: PAGINATION_ITEMS_TO_DISPLAY,
-  });
-  const pageRows = filteredSchools.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
+  const hasFilters = search.trim() !== "" || status !== "all";
 
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setCurrentPage(1);
+  function rowActions(school: SchoolResponse) {
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer"
+            aria-label={`Actions for ${school.name}`}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => openFormDialog({ mode: "edit", school })}
+          >
+            Edit
+          </DropdownMenuItem>
+          {/* "Manage admins" is gone with CH-06 — delegation is user-centric now, not
+              school-centric. See departments-page.tsx for the same note. */}
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to={`/super-admin/departments?schoolId=${school.id}`}>View departments</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            variant={school.isActive ? "destructive" : "default"}
+            onSelect={() => setDeactivateTarget(school)}
+          >
+            {school.isActive ? "Deactivate" : "Reactivate"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   }
+
+  const columns: DataTableColumn<SchoolResponse>[] = [
+    {
+      id: "code",
+      header: "Code",
+      cell: (school) => <span className="font-medium text-foreground">{school.code}</span>,
+      skeletonClassName: "w-16",
+    },
+    {
+      id: "name",
+      header: "Name",
+      cell: (school) => <span className="text-foreground">{school.name}</span>,
+      skeletonClassName: "w-48",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (school) => (
+        <Badge variant={school.isActive ? "success" : "outline"}>
+          {school.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+      skeletonClassName: "w-16",
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: rowActions,
+      className: "w-12",
+      skeletonClassName: "size-8 rounded-md",
+    },
+  ];
+
+  const renderCard = (school: SchoolResponse) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{school.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{school.code}</p>
+        </div>
+        {rowActions(school)}
+      </div>
+      <div className="mt-3 border-t border-border pt-3">
+        <Badge variant={school.isActive ? "success" : "outline"}>
+          {school.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-6">
       <PageHeader
         title="Schools"
-        icon={Landmark}
+        description={nav?.description}
         actions={
-          <Button onClick={() => openFormDialog({ mode: "create" })}>
-            <Plus className="h-4 w-4" />
+          <Button
+            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+            onClick={() => openFormDialog({ mode: "create" })}
+          >
+            <Plus aria-hidden="true" />
             Add school
           </Button>
         }
-      >
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
-            type="search"
-            placeholder="Search by code or name"
-            className="pl-9"
-            value={search}
-            onChange={(event) => handleSearchChange(event.target.value)}
-            aria-label="Search schools"
-          />
-        </div>
-      </PageHeader>
+      />
 
-      {isError && (
-        <Alert
-          variant="inline"
-          status="error"
-          timeout={0}
+      {isError ? (
+        <ErrorCard
           title="Couldn't load schools"
-          message={
-            error instanceof ApiError ? error.message : "Something went wrong. Please try again."
-          }
+          error={error}
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
         />
-      )}
+      ) : (
+        <>
+          <ListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            placeholder="Search by code or name"
+            searchLabel="Search schools by code or name"
+            filters={
+              <FilterTabs
+                options={STATUS_FILTERS}
+                value={status}
+                onChange={setStatus}
+                label="Filter by status"
+              />
+            }
+          />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  Loading schools...
-                </TableCell>
-              </TableRow>
-            ) : pageRows.length ? (
-              pageRows.map((school) => (
-                <TableRow key={school.id}>
-                  <TableCell className="font-medium">{school.code}</TableCell>
-                  <TableCell>{school.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={school.isActive ? "default" : "outline"}>
-                      {school.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
+          <div className="space-y-4">
+            <DataTable
+              columns={columns}
+              rows={rows}
+              getRowId={(school) => school.id}
+              renderCard={renderCard}
+              isLoading={isLoading}
+              caption="Schools on the platform"
+              empty={
+                <Card>
+                  <CardContent className="py-4">
+                    <Empty className="px-0">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Landmark aria-hidden="true" />
+                        </EmptyMedia>
+                        <EmptyTitle>{hasFilters ? "No matches" : "No schools yet"}</EmptyTitle>
+                        <EmptyDescription>
+                          {hasFilters
+                            ? "Try a different search term, or clear the filters."
+                            : "A school has to exist before any department can be created under it."}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                      {hasFilters ? (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Actions for ${school.name}`}
+                          variant="outline"
+                          className="h-11 cursor-pointer sm:h-9"
+                          onClick={() => {
+                            setSearch("");
+                            setStatus("all");
+                          }}
                         >
-                          <MoreHorizontal className="h-4 w-4" />
+                          Clear filters
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => openFormDialog({ mode: "edit", school })}>
-                          Edit
-                        </DropdownMenuItem>
-                        {/* "Manage admins" is gone with CH-06 — delegation is
-                            user-centric now, not school-centric. See
-                            departments-page.tsx for the same note. */}
-                        <DropdownMenuItem asChild>
-                          <Link to={`/super-admin/departments?schoolId=${school.id}`}>
-                            View departments
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setDeactivateTarget(school)}>
-                          {school.isActive ? "Deactivate" : "Reactivate"}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  {search ? "No schools match your search." : "No schools yet."}
-                </TableCell>
-              </TableRow>
+                      ) : (
+                        <Button
+                          className="h-11 cursor-pointer sm:h-9"
+                          onClick={() => openFormDialog({ mode: "create" })}
+                        >
+                          <Plus aria-hidden="true" />
+                          Add school
+                        </Button>
+                      )}
+                    </Empty>
+                  </CardContent>
+                </Card>
+              }
+            />
+
+            {!isLoading && rows.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {total} {total === 1 ? "school" : "schools"}
+                  {pageCount > 1 && ` · page ${page} of ${pageCount}`}
+                </p>
+                <ListPager page={page} pageCount={pageCount} onPageChange={setPage} />
+              </div>
             )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {filteredSchools.length > 0 && (
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            <span className="text-foreground">
-              {(safePage - 1) * PAGE_SIZE + 1}-
-              {Math.min(safePage * PAGE_SIZE, filteredSchools.length)}
-            </span>{" "}
-            of <span className="text-foreground">{filteredSchools.length}</span>
-          </p>
-
-          <Pagination className="mx-0 w-fit">
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={safePage === 1}
-                  aria-label="Go to previous page"
-                >
-                  ←
-                </Button>
-              </PaginationItem>
-
-              {showLeftEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                </>
-              )}
-
-              {pages.map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink onClick={() => setCurrentPage(page)} isActive={safePage === page}>
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              {showRightEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(totalPages)}>
-                      {totalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                </>
-              )}
-
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={safePage === totalPages}
-                  aria-label="Go to next page"
-                >
-                  →
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+          </div>
+        </>
       )}
 
       <SchoolFormDialog
@@ -277,12 +270,12 @@ export function SchoolsPage() {
         mode={formDialog?.mode ?? "create"}
         school={formDialog?.mode === "edit" ? formDialog.school : undefined}
         onSuccess={(mode, savedSchool, apiMessage) =>
-          showToast(
-            apiMessage,
-            mode === "create"
-              ? `${savedSchool.name} can now be assigned departments and a School Admin.`
-              : `${savedSchool.name}'s details have been saved.`,
-          )
+          toast.success(apiMessage, {
+            description:
+              mode === "create"
+                ? `${savedSchool.name} can now be assigned departments and a School Admin.`
+                : `${savedSchool.name}'s details have been saved.`,
+          })
         }
       />
 
@@ -291,27 +284,14 @@ export function SchoolsPage() {
         open={deactivateTarget !== null}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
         onSuccess={(action, targetSchool, apiMessage) =>
-          showToast(
-            apiMessage,
-            action === "deactivated"
-              ? `${targetSchool.name} is now marked inactive.`
-              : `${targetSchool.name} is active again.`,
-          )
+          toast.success(apiMessage, {
+            description:
+              action === "deactivated"
+                ? `${targetSchool.name} is now marked inactive.`
+                : `${targetSchool.name} is active again.`,
+          })
         }
       />
-
-      {toast && (
-        <Alert
-          key={toast.id}
-          variant="toast"
-          status="success"
-          title={toast.title}
-          reducedMotion
-          timeout={6000}
-          message={toast.message}
-          onDismiss={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

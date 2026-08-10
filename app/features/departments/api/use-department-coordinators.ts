@@ -6,7 +6,7 @@ export const departmentCoordinatorsQueryKey = (departmentId: string) =>
 
 /** `enabled` is gated on a department actually being selected — same convention as
  * `useModuleCreationGrants`/`useDepartmentAdminGrants`. First consumer: the Coordinator/
- * Department-Admin delegation tab on `coordinator/module-settings.tsx`, where the caller may
+ * Department-Admin delegation tab on `workspace/module-settings.tsx`, where the caller may
  * administer more than one department and picks which one to delegate in. */
 export function useDepartmentCoordinators(departmentId: string | undefined) {
   return useQuery({

@@ -1,17 +1,26 @@
-import type { LucideIcon } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
-import { Alert } from "~/components/ui/alert";
+
+import { Card, CardContent } from "~/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
 import { PageHeader } from "~/components/ui/page-header";
 import { useAuth } from "~/features/auth/api/auth-context";
-import { hasAnyPermission } from "~/features/permissions/utils";
 import type { PermissionKey } from "~/features/permissions/types";
+import { hasAnyPermission } from "~/features/permissions/utils";
 
 export interface PermissionGateProps {
   /** **Any-of.** Holding one of these renders `children`. */
   permissions: PermissionKey[];
   /** Title for the fallback's `PageHeader`, so the blocked page still looks like the page asked for. */
   title: string;
-  icon?: LucideIcon;
+  /** One line under the title on the fallback — usually the screen's own `nav.ts` description. */
+  description?: string;
   /** Overrides the default explanatory copy in the fallback. */
   message?: ReactNode;
   children: ReactNode;
@@ -40,7 +49,7 @@ export interface PermissionGateProps {
 export function PermissionGate({
   permissions,
   title,
-  icon,
+  description,
   message,
   children,
 }: PermissionGateProps) {
@@ -51,18 +60,24 @@ export function PermissionGate({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={title} icon={icon} />
-      <Alert
-        variant="inline"
-        status="info"
-        timeout={0}
-        title="Not available for your account"
-        message={
-          message ??
-          "You don't have permission to use this section. If you think you should, ask an administrator to review your roles."
-        }
-      />
+    <div className="flex flex-col gap-6">
+      <PageHeader title={title} description={description} />
+      <Card>
+        <CardContent className="py-4">
+          <Empty className="px-0">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ShieldAlert aria-hidden="true" />
+              </EmptyMedia>
+              <EmptyTitle>Not available for your account</EmptyTitle>
+              <EmptyDescription>
+                {message ??
+                  "You don't have permission to use this section. If you think you should, ask an administrator to review your roles."}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </CardContent>
+      </Card>
     </div>
   );
 }

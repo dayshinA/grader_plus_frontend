@@ -16,7 +16,7 @@ import type {
 
 /** Hierarchy levels as seeded by the backend. Lower is more senior. */
 export const HIERARCHY_LEVELS: Record<RoleTemplateKey, number> = {
-  super_admin: 0,
+  system_administrator: 0,
   school_admin: 1,
   department_admin: 2,
   project_coordinator: 3,

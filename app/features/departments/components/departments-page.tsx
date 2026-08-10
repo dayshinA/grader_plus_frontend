@@ -1,335 +1,349 @@
-import { Building2, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Building2, Landmark, MoreHorizontal, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
+import { toast } from "sonner";
 
-import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Input } from "~/components/ui/input";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { ErrorCard } from "~/components/ui/error-card";
+import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
+import { ListPager } from "~/components/ui/list-pager";
+import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "~/components/ui/pagination";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { usePagination } from "~/hooks/use-pagination";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { findNavItem } from "~/features/dashboard/nav";
 import { useDepartments } from "~/features/departments/api/use-departments";
 import { DeactivateDepartmentDialog } from "~/features/departments/components/deactivate-department-dialog";
 import { DepartmentFormDialog } from "~/features/departments/components/department-form-dialog";
 import type { DepartmentResponse } from "~/features/departments/types";
 import { useSchools } from "~/features/schools/api/use-schools";
-import { ApiError } from "~/lib/api-client";
-
-const PAGE_SIZE = 10;
-const PAGINATION_ITEMS_TO_DISPLAY = 5;
+import { usePagedList } from "~/hooks/use-paged-list";
 
 type FormDialogState =
   | { mode: "create" }
   | { mode: "edit"; department: DepartmentResponse }
   | null;
+type StatusFilter = "all" | "active" | "inactive";
+
+const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "inactive", label: "Inactive" },
+];
+
+const nav = findNavItem("/super-admin/departments");
 
 export function DepartmentsPage() {
-  const { data: departments, isLoading, isError, error } = useDepartments();
+  const { data: departments, isLoading, isError, error, refetch, isFetching } = useDepartments();
   const { data: schools } = useSchools();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Deep-linked from SchoolsPage's "View departments" row action — pre-filters to one school,
-  // clearable via the badge below. Not a URL-persisted picker like decision #32's pattern (that
-  // convention is for a *required* selection with nothing to show until one is picked; here the
-  // unfiltered list is already a meaningful default).
-  const schoolIdFilter = searchParams.get("schoolId");
+  // School-first browsing (2026-08-05, Dayshin's call): pick a school, then see its departments —
+  // same required-selection-before-list pattern as the Role Assignments screen's user picker.
+  // Still deep-linkable from SchoolsPage's "View departments" row action, which sets the same
+  // `?schoolId=` param to pre-select a school rather than land on an empty picker.
+  const schoolId = searchParams.get("schoolId");
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [status, setStatus] = useState<StatusFilter>("all");
   const [formDialog, setFormDialog] = useState<FormDialogState>(null);
   // Bumped every time the form dialog opens, and used as DepartmentFormDialog's `key` below —
   // forces a fresh mount (fresh form/mutation state) on every open instead of an effect-based reset.
   const [formDialogNonce, setFormDialogNonce] = useState(0);
   const [deactivateTarget, setDeactivateTarget] = useState<DepartmentResponse | null>(null);
-  // `id` changes on every call so a repeat of the same title/message still
-  // remounts the toast (Alert's own re-trigger convention — see Alert.md).
-  const [toast, setToast] = useState<{
-    id: number;
-    title: string;
-    message: string;
-  } | null>(null);
 
   function openFormDialog(state: FormDialogState) {
     setFormDialog(state);
     setFormDialogNonce((n) => n + 1);
   }
 
-  function showToast(title: string, message: string) {
-    setToast({ id: Date.now(), title, message });
-  }
-
-  function clearSchoolFilter() {
+  function handleSchoolChange(nextSchoolId: string) {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.delete("schoolId");
+        next.set("schoolId", nextSchoolId);
+        // A different school is a different list — page 3 of the old one means nothing here.
+        next.delete("page");
         return next;
       },
       { replace: true },
     );
   }
 
-  const schoolsById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const school of schools ?? []) map.set(school.id, school.name);
-    return map;
-  }, [schools]);
-
   const schoolOptions = useMemo(
     () => (schools ?? []).map((school) => ({ id: school.id, label: school.name })),
     [schools],
   );
 
-  const filteredSchool = schoolIdFilter ? schoolsById.get(schoolIdFilter) : undefined;
-
-  const filteredDepartments = useMemo(() => {
-    if (!departments) return [];
-    const scoped = schoolIdFilter
-      ? departments.filter((department) => department.schoolId === schoolIdFilter)
-      : departments;
-    const query = search.trim().toLowerCase();
-    if (!query) return scoped;
-    return scoped.filter(
-      (department) =>
-        department.name.toLowerCase().includes(query) ||
-        department.code.toLowerCase().includes(query),
-    );
-  }, [departments, schoolIdFilter, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredDepartments.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: safePage,
-    totalPages,
-    paginationItemsToDisplay: PAGINATION_ITEMS_TO_DISPLAY,
-  });
-  const pageRows = filteredDepartments.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
+  const selectedSchool = useMemo(
+    () => schools?.find((school) => school.id === schoolId),
+    [schools, schoolId],
   );
 
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setCurrentPage(1);
+  const filtered = useMemo(() => {
+    if (!departments || !schoolId) return [];
+    const query = search.trim().toLowerCase();
+    return departments.filter(
+      (department) =>
+        department.schoolId === schoolId &&
+        (status === "all" || (status === "active") === department.isActive) &&
+        (query === "" ||
+          department.name.toLowerCase().includes(query) ||
+          department.code.toLowerCase().includes(query)),
+    );
+  }, [departments, schoolId, search, status]);
+
+  const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
+  const hasFilters = search.trim() !== "" || status !== "all";
+
+  function rowActions(department: DepartmentResponse) {
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer"
+            aria-label={`Actions for ${department.name}`}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => openFormDialog({ mode: "edit", department })}
+          >
+            Edit
+          </DropdownMenuItem>
+          {/* The "Manage admins" and "Manage module-creation grants" actions are gone with
+              CH-07/CH-08: delegation is no longer scope-centric (pick a department, then manage
+              its admins) but user-centric (pick a person, then manage every role they hold).
+              There is no department-filtered view of /super-admin/role-assignments to link to —
+              see decision #42. */}
+          <DropdownMenuItem
+            className="cursor-pointer"
+            variant={department.isActive ? "destructive" : "default"}
+            onSelect={() => setDeactivateTarget(department)}
+          >
+            {department.isActive ? "Deactivate" : "Reactivate"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   }
 
+  const columns: DataTableColumn<DepartmentResponse>[] = [
+    {
+      id: "code",
+      header: "Code",
+      cell: (department) => <span className="font-medium text-foreground">{department.code}</span>,
+      skeletonClassName: "w-16",
+    },
+    {
+      id: "name",
+      header: "Name",
+      cell: (department) => <span className="text-foreground">{department.name}</span>,
+      skeletonClassName: "w-48",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (department) => (
+        <Badge variant={department.isActive ? "success" : "outline"}>
+          {department.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+      skeletonClassName: "w-16",
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: rowActions,
+      className: "w-12",
+      skeletonClassName: "size-8 rounded-md",
+    },
+  ];
+
+  const renderCard = (department: DepartmentResponse) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{department.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{department.code}</p>
+        </div>
+        {rowActions(department)}
+      </div>
+      <div className="mt-3 border-t border-border pt-3">
+        <Badge variant={department.isActive ? "success" : "outline"}>
+          {department.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-6">
       <PageHeader
         title="Departments"
-        icon={Building2}
+        description={nav?.description}
         actions={
-          <Button onClick={() => openFormDialog({ mode: "create" })}>
-            <Plus className="h-4 w-4" />
+          <Button
+            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+            disabled={!schoolId}
+            onClick={() => openFormDialog({ mode: "create" })}
+          >
+            <Plus aria-hidden="true" />
             Add department
           </Button>
         }
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm">
-            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-            <Input
-              type="search"
-              placeholder="Search by code or name"
-              className="pl-9"
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              aria-label="Search departments"
-            />
-          </div>
-          {schoolIdFilter && (
-            <Badge variant="secondary" className="gap-1.5">
-              School: {filteredSchool ?? schoolIdFilter}
-              <button
-                type="button"
-                onClick={clearSchoolFilter}
-                aria-label="Clear school filter"
-                className="ml-0.5"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-        </div>
-      </PageHeader>
+      />
 
-      {isError && (
-        <Alert
-          variant="inline"
-          status="error"
-          timeout={0}
+      {isError ? (
+        <ErrorCard
           title="Couldn't load departments"
-          message={
-            error instanceof ApiError
-              ? error.message
-              : "Something went wrong. Please try again."
-          }
+          error={error}
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
         />
-      )}
+      ) : (
+        <>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="w-full sm:max-w-xs">
+              <Select value={schoolId ?? undefined} onValueChange={handleSchoolChange}>
+                <SelectTrigger aria-label="Select a school">
+                  <SelectValue placeholder="Select a school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schoolOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>School</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  Loading departments...
-                </TableCell>
-              </TableRow>
-            ) : pageRows.length ? (
-              pageRows.map((department) => (
-                <TableRow key={department.id}>
-                  <TableCell className="font-medium">{department.code}</TableCell>
-                  <TableCell>{department.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {schoolsById.get(department.schoolId) ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={department.isActive ? "default" : "outline"}>
-                      {department.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Actions for ${department.name}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => openFormDialog({ mode: "edit", department })}
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        {/* The "Manage admins" and "Manage module-creation grants"
-                            actions are gone with CH-07/CH-08: delegation is no
-                            longer scope-centric (pick a department, then manage
-                            its admins) but user-centric (pick a person, then
-                            manage every role they hold). There is no
-                            department-filtered view of /super-admin/role-assignments
-                            to link to — see decision #42. */}
-                        <DropdownMenuItem onSelect={() => setDeactivateTarget(department)}>
-                          {department.isActive ? "Deactivate" : "Reactivate"}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  {search ? "No departments match your search." : "No departments yet."}
-                </TableCell>
-              </TableRow>
+            {schoolId && (
+              <ListToolbar
+                className="flex-1"
+                search={search}
+                onSearchChange={setSearch}
+                placeholder="Search by code or name"
+                searchLabel="Search departments by code or name"
+                filters={
+                  <FilterTabs
+                    options={STATUS_FILTERS}
+                    value={status}
+                    onChange={setStatus}
+                    label="Filter by status"
+                  />
+                }
+              />
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
 
-      {filteredDepartments.length > 0 && (
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            <span className="text-foreground">
-              {(safePage - 1) * PAGE_SIZE + 1}-
-              {Math.min(safePage * PAGE_SIZE, filteredDepartments.length)}
-            </span>{" "}
-            of <span className="text-foreground">{filteredDepartments.length}</span>
-          </p>
+          {!schoolId ? (
+            <Card>
+              <CardContent className="py-4">
+                <Empty className="px-0">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Landmark aria-hidden="true" />
+                    </EmptyMedia>
+                    <EmptyTitle>Pick a school</EmptyTitle>
+                    <EmptyDescription>
+                      Departments belong to a school. Choose one above to see and manage its
+                      departments.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <DataTable
+                columns={columns}
+                rows={rows}
+                getRowId={(department) => department.id}
+                renderCard={renderCard}
+                isLoading={isLoading}
+                caption={`Departments in ${selectedSchool?.name ?? "the selected school"}`}
+                empty={
+                  <Card>
+                    <CardContent className="py-4">
+                      <Empty className="px-0">
+                        <EmptyHeader>
+                          <EmptyMedia variant="icon">
+                            <Building2 aria-hidden="true" />
+                          </EmptyMedia>
+                          <EmptyTitle>
+                            {hasFilters ? "No matches" : "No departments yet"}
+                          </EmptyTitle>
+                          <EmptyDescription>
+                            {hasFilters
+                              ? "Try a different search term, or clear the filters."
+                              : `${selectedSchool?.name ?? "This school"} has no departments yet. A department has to exist before any module can be created under it.`}
+                          </EmptyDescription>
+                        </EmptyHeader>
+                        {hasFilters ? (
+                          <Button
+                            variant="outline"
+                            className="h-11 cursor-pointer sm:h-9"
+                            onClick={() => {
+                              setSearch("");
+                              setStatus("all");
+                            }}
+                          >
+                            Clear filters
+                          </Button>
+                        ) : (
+                          <Button
+                            className="h-11 cursor-pointer sm:h-9"
+                            onClick={() => openFormDialog({ mode: "create" })}
+                          >
+                            <Plus aria-hidden="true" />
+                            Add department
+                          </Button>
+                        )}
+                      </Empty>
+                    </CardContent>
+                  </Card>
+                }
+              />
 
-          <Pagination className="mx-0 w-fit">
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={safePage === 1}
-                  aria-label="Go to previous page"
-                >
-                  ←
-                </Button>
-              </PaginationItem>
-
-              {showLeftEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                </>
+              {!isLoading && rows.length > 0 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    {total} {total === 1 ? "department" : "departments"}
+                    {pageCount > 1 && ` · page ${page} of ${pageCount}`}
+                  </p>
+                  <ListPager page={page} pageCount={pageCount} onPageChange={setPage} />
+                </div>
               )}
-
-              {pages.map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink onClick={() => setCurrentPage(page)} isActive={safePage === page}>
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              {showRightEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(totalPages)}>
-                      {totalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                </>
-              )}
-
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={safePage === totalPages}
-                  aria-label="Go to next page"
-                >
-                  →
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       <DepartmentFormDialog
@@ -339,13 +353,14 @@ export function DepartmentsPage() {
         mode={formDialog?.mode ?? "create"}
         department={formDialog?.mode === "edit" ? formDialog.department : undefined}
         schoolOptions={schoolOptions}
+        defaultSchoolId={schoolId ?? undefined}
         onSuccess={(mode, savedDepartment, apiMessage) =>
-          showToast(
-            apiMessage,
-            mode === "create"
-              ? `${savedDepartment.name} can now be assigned modules and a Department Admin.`
-              : `${savedDepartment.name}'s details have been saved.`,
-          )
+          toast.success(apiMessage, {
+            description:
+              mode === "create"
+                ? `${savedDepartment.name} can now be assigned modules and a Department Admin.`
+                : `${savedDepartment.name}'s details have been saved.`,
+          })
         }
       />
 
@@ -354,27 +369,14 @@ export function DepartmentsPage() {
         open={deactivateTarget !== null}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
         onSuccess={(action, targetDepartment, apiMessage) =>
-          showToast(
-            apiMessage,
-            action === "deactivated"
-              ? `${targetDepartment.name} is now marked inactive.`
-              : `${targetDepartment.name} is active again.`,
-          )
+          toast.success(apiMessage, {
+            description:
+              action === "deactivated"
+                ? `${targetDepartment.name} is now marked inactive.`
+                : `${targetDepartment.name} is active again.`,
+          })
         }
       />
-
-      {toast && (
-        <Alert
-          key={toast.id}
-          variant="toast"
-          status="success"
-          title={toast.title}
-          reducedMotion
-          timeout={6000}
-          message={toast.message}
-          onDismiss={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

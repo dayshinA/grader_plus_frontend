@@ -1,14 +1,8 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import { Alert } from "~/components/ui/alert";
+import { ShieldOff } from "lucide-react";
+import { toast } from "sonner";
+
+import { ChangeSummary } from "~/components/ui/change-summary";
+import { ConfirmDialog } from "~/components/ui/confirm-dialog";
 import type { UserRoleAssignmentDetail } from "~/features/permissions/types";
 import { useRevokeRoleAssignment } from "~/features/role-assignments/api/use-revoke-role-assignment";
 import type { RoleAssignmentResponse } from "~/features/role-assignments/types";
@@ -35,6 +29,9 @@ interface RevokeRoleAssignmentDialogProps {
  *
  * Re-granting is possible afterwards (the backend upserts the same row back to
  * active), so the copy says that too rather than implying permanence.
+ *
+ * A failure is surfaced as a toast rather than inside the dialog: `ConfirmDialog` stays open
+ * until the caller closes it, so the admin is still looking at what they tried to revoke.
  */
 export function RevokeRoleAssignmentDialog({
   assignment,
@@ -56,6 +53,9 @@ export function RevokeRoleAssignmentDialog({
           onOpenChange(false);
           onSuccess?.(data, message);
         },
+        onError: (error) => {
+          toast.error(roleAssignmentErrorMessage(error));
+        },
       },
     );
   }
@@ -63,48 +63,44 @@ export function RevokeRoleAssignmentDialog({
   const extrasCount = assignment?.extraPermissionKeys.length ?? 0;
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Revoke this role?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {targetUserName} will lose the {assignment?.roleTemplateName} role at{" "}
-            {scopeLabel}
-            {extrasCount > 0
-              ? `, along with ${extrasCount} extra permission${extrasCount === 1 ? "" : "s"} added on top of it.`
-              : "."}{" "}
-            You can assign it again later.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        {revokeAssignment.error && (
-          <Alert
-            variant="inline"
-            status="error"
-            timeout={0}
-            title="Couldn't revoke the role"
-            message={roleAssignmentErrorMessage(revokeAssignment.error)}
-          />
-        )}
-
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={revokeAssignment.isPending}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={(event) => {
-              // Keep the dialog open so a failure is visible in it, rather than
-              // letting AlertDialogAction's default close swallow the error.
-              event.preventDefault();
-              handleConfirm();
-            }}
-            disabled={revokeAssignment.isPending}
-            data-loading={revokeAssignment.isPending}
-          >
-            {revokeAssignment.isPending ? "Revoking..." : "Revoke role"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={ShieldOff}
+      title="Revoke this role?"
+      description={
+        <>
+          {targetUserName} will lose the {assignment?.roleTemplateName} role at {scopeLabel}
+          {extrasCount > 0
+            ? `, along with ${extrasCount} extra permission${extrasCount === 1 ? "" : "s"} added on top of it.`
+            : "."}{" "}
+          You can assign it again later.
+        </>
+      }
+      details={
+        <ChangeSummary
+          items={[
+            { label: "User", to: targetUserName },
+            { label: "Role", from: assignment?.roleTemplateName, to: "None" },
+            { label: "Scope", to: scopeLabel },
+            ...(extrasCount > 0
+              ? [
+                  {
+                    label: "Extra permissions",
+                    from: `${extrasCount} granted`,
+                    to: "All removed",
+                  },
+                ]
+              : []),
+          ]}
+          caption="The row disappears from the list once revoked — only active assignments are returned."
+        />
+      }
+      confirmLabel="Revoke role"
+      pendingLabel="Revoking…"
+      onConfirm={handleConfirm}
+      isPending={revokeAssignment.isPending}
+      destructive
+    />
   );
 }

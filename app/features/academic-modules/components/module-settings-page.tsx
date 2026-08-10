@@ -1,7 +1,7 @@
 import { ModulesPage } from "~/features/academic-modules/components/modules-page";
 
 /**
- * `coordinator/module-settings.tsx`'s screen content.
+ * `workspace/module-settings.tsx`'s screen content.
  *
  * **No longer a `Tabs` page (CH-08, 2026-07-31).** The "Delegate Permissions"
  * tab was the module-creation-grant panel, whose endpoints

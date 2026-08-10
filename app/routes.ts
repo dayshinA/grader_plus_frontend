@@ -14,26 +14,26 @@ export default [
     // anywhere rather than on being one role — see each wrapper's own comment.
     layout("routes/app-layout.tsx", [
       layout("routes/auth/require-workspace.tsx", [
-        route("coordinator/dashboard", "routes/coordinator/dashboard.tsx"),
+        route("workspace/dashboard", "routes/workspace/dashboard.tsx"),
         route(
-          "coordinator/module-settings",
-          "routes/coordinator/module-settings.tsx",
+          "workspace/module-settings",
+          "routes/workspace/module-settings.tsx",
         ),
         route(
-          "coordinator/school-settings",
-          "routes/coordinator/school-settings.tsx",
+          "workspace/school-settings",
+          "routes/workspace/school-settings.tsx",
         ),
-        route("coordinator/submissions", "routes/coordinator/submissions.tsx"),
+        route("workspace/submissions", "routes/workspace/submissions.tsx"),
         route(
-          "coordinator/marker-assignments",
-          "routes/coordinator/marker-assignments.tsx",
+          "workspace/marker-assignments",
+          "routes/workspace/marker-assignments.tsx",
         ),
-        route("coordinator/rubrics", "routes/coordinator/rubrics.tsx"),
+        route("workspace/rubrics", "routes/workspace/rubrics.tsx"),
         route(
-          "coordinator/discrepancies",
-          "routes/coordinator/discrepancies.tsx",
+          "workspace/discrepancies",
+          "routes/workspace/discrepancies.tsx",
         ),
-        route("coordinator/export", "routes/coordinator/export.tsx"),
+        route("workspace/export", "routes/workspace/export.tsx"),
       ]),
       layout("routes/auth/require-marking.tsx", [
         route("marker/projects", "routes/marker/projects.tsx"),
@@ -44,6 +44,15 @@ export default [
       ]),
       layout("routes/auth/require-admin.tsx", [
         route("super-admin/users", "routes/super-admin/users.tsx"),
+        route("super-admin/users/new", "routes/super-admin/users.new.tsx"),
+        route(
+          "super-admin/users/:userId",
+          "routes/super-admin/users.$userId.tsx",
+        ),
+        route(
+          "super-admin/users/:userId/edit",
+          "routes/super-admin/users.$userId.edit.tsx",
+        ),
         route(
           "super-admin/users/bulk-import",
           "routes/super-admin/users.bulk-import.tsx",

@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Alert } from "~/components/ui/alert";
+
 import { Button } from "~/components/ui/button";
+import { Callout } from "~/components/ui/callout";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { SubmitButton } from "~/components/ui/submit-button";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { usePermissionCatalogue } from "~/features/permissions/api/use-permission-catalogue";
+import { useRoleTemplates } from "~/features/permissions/api/use-role-templates";
 import type { PermissionKey, RoleTemplateKey } from "~/features/permissions/types";
 import { useCreateRoleAssignment } from "~/features/role-assignments/api/use-create-role-assignment";
 import { useScopeOptions } from "~/features/role-assignments/api/use-scope-options";
@@ -22,6 +25,7 @@ import {
 } from "~/features/role-assignments/components/scope-picker";
 import type { RoleAssignmentResponse } from "~/features/role-assignments/types";
 import {
+  defaultPermissionKeysAt,
   grantableExtras,
   isScopeFieldError,
   permissionKeysAtScope,
@@ -64,11 +68,18 @@ export function GrantRoleDialog({
 
   const createAssignment = useCreateRoleAssignment();
   const { data: catalogue } = usePermissionCatalogue();
+  const { data: templates } = useRoleTemplates();
   const { sources } = useScopeOptions();
 
   const scopeChosen = Boolean(
     scope && (scope.scopeType === "global" || scope.scopeId),
   );
+
+  // Identifies "which scope" for the remount-on-change keys below — same fix, and same reason,
+  // as UserFormPage's `scopeKey` (2026-08-04 BUGS.md entry): without it, Radix Select's internal
+  // value-tracking can show a stale role/extras selection after switching scope back to one
+  // visited earlier in the same session.
+  const scopeKey = scope ? `${scope.scopeType}:${scope.scopeId ?? ""}` : "none";
 
   const chain = useMemo(
     () =>
@@ -76,10 +87,23 @@ export function GrantRoleDialog({
     [scope, sources],
   );
 
-  // Rule 1: only extras the grantor holds at a scope containing the target.
+  const selectedTemplate = templates?.find((t) => t.key === roleTemplateKey);
+
+  // The picked template's own defaults at this scope — subtracted below so a permission the
+  // template already grants never also shows up as an "extra" (see UserFormPage's identical
+  // comment, added the same session this was found and fixed in both places).
+  const templateDefaults = useMemo(
+    () =>
+      scope && selectedTemplate ? defaultPermissionKeysAt(selectedTemplate, scope.scopeType) : [],
+    [selectedTemplate, scope],
+  );
+
+  // Rule 1: only extras the grantor holds at a scope containing the target, minus the role's
+  // own defaults.
   const availableExtras = useMemo(
-    () => grantableExtras(catalogue, permissionKeysAtScope(summary, chain)),
-    [catalogue, summary, chain],
+    () =>
+      grantableExtras(catalogue, permissionKeysAtScope(summary, chain), templateDefaults),
+    [catalogue, summary, chain, templateDefaults],
   );
 
   function toggleExtra(key: PermissionKey) {
@@ -137,17 +161,13 @@ export function GrantRoleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {error && !scopeError && (
-          <Alert
-            variant="inline"
-            status="error"
-            timeout={0}
-            title="Couldn't assign the role"
-            message={roleAssignmentErrorMessage(error)}
-          />
-        )}
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {error && !scopeError && (
+            <Callout variant="error" title="Couldn't assign the role">
+              {roleAssignmentErrorMessage(error)}
+            </Callout>
+          )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <ScopePicker
             value={scope}
             onChange={handleScopeChange}
@@ -159,6 +179,7 @@ export function GrantRoleDialog({
 
           {scope && scopeChosen && (
             <RoleTemplatePicker
+              key={scopeKey}
               value={roleTemplateKey}
               onChange={setRoleTemplateKey}
               scopeType={scope.scopeType}
@@ -171,10 +192,12 @@ export function GrantRoleDialog({
 
           {roleTemplateKey && (
             <ExtrasFieldset
+              key={`${scopeKey}:${roleTemplateKey}`}
               availableExtras={availableExtras}
               selected={extras}
               onToggle={toggleExtra}
               disabled={createAssignment.isPending}
+              roleName={selectedTemplate?.name}
             />
           )}
 
@@ -182,19 +205,21 @@ export function GrantRoleDialog({
             <Button
               type="button"
               variant="outline"
+              size="lg"
+              className="h-11 cursor-pointer sm:h-9"
               onClick={() => onOpenChange(false)}
+              disabled={createAssignment.isPending}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                createAssignment.isPending || !roleTemplateKey || !scopeChosen
-              }
-              data-loading={createAssignment.isPending}
+            <SubmitButton
+              isPending={createAssignment.isPending}
+              pendingLabel="Assigning…"
+              disabled={!roleTemplateKey || !scopeChosen}
+              className="sm:w-auto"
             >
-              {createAssignment.isPending ? "Assigning..." : "Assign role"}
-            </Button>
+              Assign role
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

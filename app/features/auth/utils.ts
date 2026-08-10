@@ -9,11 +9,6 @@ import type { UserPermissionsSummary } from "~/features/permissions/types";
  * at once — the seed's `deptadmin@` is a Department Admin **and** a
  * module-scoped Project Coordinator — so landing is chosen by seniority rather
  * than by a single role value: the lowest `hierarchyLevel` wins.
- *
- * Coordinator and Marker are both level 3 (siblings under Department Admin,
- * neither outranking the other), so that tie has to be broken explicitly. It
- * breaks toward Coordinator: someone holding both is far more likely to be
- * doing coordination work, and their marking queue is one nav click away.
  */
 export function landingPath(summary: UserPermissionsSummary | null): string {
   // Reachable now, unlike under the old role enum: a user whose every
@@ -22,14 +17,14 @@ export function landingPath(summary: UserPermissionsSummary | null): string {
   // the protected tree and renders a static explanation, so it can't bounce.
   if (bestHierarchyLevel(summary) === null) return "/unauthorized";
 
-  if (hasRole(summary, "super_admin")) return "/super-admin/users";
+  if (hasRole(summary, "system_administrator")) return "/super-admin/users";
 
   // School Admin, Department Admin and Project Coordinator all work out of the
   // assessment screens — the URL prefix is a section name, not a role claim
   // (decision #39).
-  if (hasRole(summary, "school_admin")) return "/coordinator/dashboard";
-  if (hasRole(summary, "department_admin")) return "/coordinator/dashboard";
-  if (hasRole(summary, "project_coordinator")) return "/coordinator/dashboard";
+  if (hasRole(summary, "school_admin")) return "/workspace/dashboard";
+  if (hasRole(summary, "department_admin")) return "/workspace/dashboard";
+  if (hasRole(summary, "project_coordinator")) return "/workspace/dashboard";
 
   if (hasRole(summary, "marker")) return "/marker/projects";
 

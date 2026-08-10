@@ -21,6 +21,18 @@ export default defineConfig(
     },
   },
   {
+    // Shared UI primitives (`components/ui/`) are the design system, not feature code: they
+    // deliberately export a `cva` variants object alongside the component (`buttonVariants`,
+    // `badgeVariants`) and a hook alongside its provider (`useSidebar`), which is the pattern
+    // every call site here consumes. `use-mobile` reads `window.innerWidth` once on mount to
+    // settle its initial value, which is external-system synchronisation, not derived state.
+    files: ["app/components/ui/**/*.{ts,tsx}", "app/hooks/use-mobile.ts"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
     // Route modules (React Router Framework Mode) legitimately export
     // loader/clientLoader/action/clientAction/meta/links/ErrorBoundary
     // alongside the default component per framework convention — not

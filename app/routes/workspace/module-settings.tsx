@@ -1,4 +1,3 @@
-import { Settings } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
@@ -46,7 +45,7 @@ export async function clientLoader() {
 
 export default function CoordinatorModuleSettings() {
   return (
-    <PermissionGate permissions={["modules.view", "modules.create"]} title="Module Settings" icon={Settings}>
+    <PermissionGate permissions={["modules.view", "modules.create"]} title="Module Settings">
       <ModuleSettingsPage />
     </PermissionGate>
   );

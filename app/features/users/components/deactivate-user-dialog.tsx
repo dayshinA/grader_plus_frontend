@@ -1,18 +1,10 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import { buttonVariants } from "~/components/ui/button";
+import { CircleCheck, CircleSlash } from "lucide-react";
+
+import { ChangeSummary } from "~/components/ui/change-summary";
+import { ConfirmDialog } from "~/components/ui/confirm-dialog";
 import { useDeactivateUser } from "~/features/users/api/use-deactivate-user";
 import { useUpdateUser } from "~/features/users/api/use-update-user";
 import type { UserResponse } from "~/features/users/types";
-import { cn } from "~/lib/utils";
 
 interface DeactivateUserDialogProps {
   user: UserResponse | null;
@@ -67,32 +59,36 @@ export function DeactivateUserDialog({
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {isReactivating ? "Reactivate this user?" : "Deactivate this user?"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {isReactivating
-              ? `${user.fullName} will immediately regain the ability to log in.`
-              : `${user.fullName} will be immediately blocked from logging in. Their account is kept, not deleted — you can reactivate it later.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className={cn(!isReactivating && buttonVariants({ variant: "destructive" }))}
-            disabled={isPending}
-            onClick={(event) => {
-              event.preventDefault();
-              handleConfirm();
-            }}
-          >
-            {isPending ? "Working..." : isReactivating ? "Reactivate" : "Deactivate"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={isReactivating ? CircleCheck : CircleSlash}
+      title={isReactivating ? "Reactivate this user?" : "Deactivate this user?"}
+      description={
+        isReactivating
+          ? `${user.fullName} will immediately be able to sign in again.`
+          : `${user.fullName} will be immediately blocked from signing in. Their account is kept, not deleted — you can reactivate it later.`
+      }
+      details={
+        <ChangeSummary
+          items={[
+            {
+              label: "User",
+              to: user.fullName,
+            },
+            {
+              label: "Status",
+              from: isReactivating ? "Inactive" : "Active",
+              to: isReactivating ? "Active" : "Inactive",
+            },
+          ]}
+        />
+      }
+      confirmLabel={isReactivating ? "Reactivate" : "Deactivate"}
+      pendingLabel="Working…"
+      onConfirm={handleConfirm}
+      isPending={isPending}
+      destructive={!isReactivating}
+    />
   );
 }

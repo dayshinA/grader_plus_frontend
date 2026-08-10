@@ -1,5 +1,15 @@
+import { ShieldAlert } from "lucide-react";
 import { Link } from "react-router";
+
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { landingPath } from "~/features/auth/utils";
 import { hasNoAssignments } from "~/features/permissions/utils";
@@ -24,22 +34,31 @@ export default function Unauthorized() {
   const destination = !user || noRoles ? "/login" : landingPath(permissions);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-4 text-center">
-      <h1 className="text-xl font-semibold text-foreground">
-        {noRoles
-          ? "Your account has no roles yet"
-          : "You don't have access to this page"}
-      </h1>
-      <p className="max-w-prose text-sm text-muted-foreground">
-        {noRoles
-          ? "You're signed in, but no roles have been assigned to your account yet, so there's nothing to show you. Ask an administrator to assign one, then sign in again."
-          : "Your account doesn't have permission to view that section."}
-      </p>
-      <Button asChild>
-        <Link to={destination}>
-          {noRoles ? "Back to sign in" : "Back to your dashboard"}
-        </Link>
-      </Button>
+    <main className="flex min-h-dvh flex-col justify-center bg-muted/30 px-4 py-10">
+      <Card className="mx-auto w-full max-w-md">
+        <CardContent className="py-4">
+          <Empty className="px-0">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ShieldAlert aria-hidden="true" />
+              </EmptyMedia>
+              <EmptyTitle>
+                {noRoles ? "Your account has no roles yet" : "You don't have access to this page"}
+              </EmptyTitle>
+              <EmptyDescription>
+                {noRoles
+                  ? "You're signed in, but no roles have been assigned to your account yet, so there's nothing to show you. Ask an administrator to assign one, then sign in again."
+                  : "Your account doesn't have permission to view that section."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <Button asChild className="h-11 cursor-pointer sm:h-9">
+              <Link to={destination}>
+                {noRoles ? "Back to sign in" : "Back to your dashboard"}
+              </Link>
+            </Button>
+          </Empty>
+        </CardContent>
+      </Card>
     </main>
   );
 }

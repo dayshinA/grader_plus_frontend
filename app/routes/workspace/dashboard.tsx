@@ -1,4 +1,3 @@
-import { LayoutDashboard } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
@@ -34,7 +33,7 @@ export async function clientLoader() {
 
 export default function CoordinatorDashboard() {
   return (
-    <PermissionGate permissions={["dashboard.view"]} title="Dashboard" icon={LayoutDashboard}>
+    <PermissionGate permissions={["dashboard.view"]} title="Dashboard">
       <DashboardPage />
     </PermissionGate>
   );

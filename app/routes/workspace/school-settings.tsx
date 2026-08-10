@@ -1,4 +1,3 @@
-import { Landmark } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
@@ -43,7 +42,7 @@ export async function clientLoader() {
 
 export default function CoordinatorSchoolSettings() {
   return (
-    <PermissionGate permissions={["departments.create"]} title="School Settings" icon={Landmark}>
+    <PermissionGate permissions={["departments.create"]} title="School Settings">
       <SchoolSettingsPage />
     </PermissionGate>
   );

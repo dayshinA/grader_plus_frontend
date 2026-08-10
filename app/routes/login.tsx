@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Alert } from "~/components/ui/alert";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { PasswordInput } from "~/components/ui/password-input";
+import { toast } from "sonner";
+
+import { FormError } from "~/components/ui/form-error";
+import { FormField } from "~/components/ui/form-field";
+import { SubmitButton } from "~/components/ui/submit-button";
+import { AuthShell } from "~/features/auth/components/auth-shell";
 import { useLogin } from "~/features/auth/api/use-login";
 import { landingPath } from "~/features/auth/utils";
-import { ApiError } from "~/lib/api-client";
+import { isApiError } from "~/lib/api-client";
 
 export function meta() {
   return [{ title: "Sign in — GraderPlus" }];
@@ -23,6 +24,9 @@ export default function Login() {
   const next = searchParams.get("next");
   const expired = searchParams.get("expired") === "1";
 
+  const fieldError = (name: string) =>
+    isApiError(login.error) ? login.error.fieldError(name) : undefined;
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     login.mutate(
@@ -30,6 +34,7 @@ export default function Login() {
       {
         onSuccess: (data) => {
           if (!data) return;
+          toast.success("Signed in.");
           navigate(next ?? landingPath(data.permissions), { replace: true });
         },
       },
@@ -37,72 +42,45 @@ export default function Login() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-6 text-center text-xl font-semibold text-foreground">
-          GraderPlus
-        </h1>
+    <AuthShell
+      title="Sign in"
+      description={
+        expired && !login.isError
+          ? "Your session expired. Sign in again to pick up where you left off."
+          : "Use your Loughborough staff account."
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <FormError error={login.error} />
 
-        {login.isError && (
-          <div className="mb-4">
-            <Alert
-              variant="inline"
-              timeout={0}
-              title="Sign-in failed"
-              message={
-                login.error instanceof ApiError
-                  ? login.error.message
-                  : "Something went wrong. Please try again."
-              }
-            />
-          </div>
-        )}
+        <FormField
+          label="Email address"
+          name="email"
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          required
+          autoFocus
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={fieldError("email")}
+        />
 
-        {expired && !login.isError && (
-          <div className="mb-4">
-            <Alert
-              variant="inline"
-              timeout={0}
-              title="Session expired"
-              message="Please sign in again to continue."
-            />
-          </div>
-        )}
+        <FormField
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          error={fieldError("password")}
+        />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Password</Label>
-            <PasswordInput
-              id="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={login.isPending}
-            data-loading={login.isPending}
-            className="mt-2"
-          >
-            {login.isPending ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-      </div>
-    </main>
+        <SubmitButton isPending={login.isPending} pendingLabel="Signing in…">
+          Sign in
+        </SubmitButton>
+      </form>
+    </AuthShell>
   );
 }

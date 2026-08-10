@@ -1,4 +1,3 @@
-import { Building2 } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { ensureAuthenticated } from "~/features/auth/utils";
 import { departmentsQueryKey } from "~/features/departments/api/use-departments";
@@ -43,7 +42,7 @@ export async function clientLoader() {
 
 export default function SuperAdminDepartments() {
   return (
-    <PermissionGate permissions={["departments.create"]} title="Departments" icon={Building2}>
+    <PermissionGate permissions={["departments.create"]} title="Departments">
       <DepartmentsPage />
     </PermissionGate>
   );

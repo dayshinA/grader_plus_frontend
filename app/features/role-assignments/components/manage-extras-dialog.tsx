@@ -1,6 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Alert } from "~/components/ui/alert";
+import { Callout } from "~/components/ui/callout";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -146,13 +146,9 @@ export function ManageExtrasDialog({
         </DialogHeader>
 
         {error && (
-          <Alert
-            variant="inline"
-            status="error"
-            timeout={0}
-            title="Couldn't change the extra permissions"
-            message={roleAssignmentErrorMessage(error)}
-          />
+          <Callout variant="error" title="Couldn't change the extra permissions">
+            {roleAssignmentErrorMessage(error)}
+          </Callout>
         )}
 
         <div className="flex flex-col gap-4">

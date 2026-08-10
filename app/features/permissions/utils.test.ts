@@ -21,13 +21,13 @@ describe("permission predicates", () => {
       makeAssignment("project_coordinator", {
         scopeType: "module",
         scopeId: "cs301",
-        permissionKeys: ["modules.view", "rubrics.manage", "grades.export"],
+        permissionKeys: ["modules.view", "rubrics.update", "grades.export"],
       }),
     ],
   });
 
   it("hasPermission is true only for keys in the union", () => {
-    expect(hasPermission(coordinator, "rubrics.manage")).toBe(true);
+    expect(hasPermission(coordinator, "rubrics.update")).toBe(true);
     expect(hasPermission(coordinator, "users.create")).toBe(false);
   });
 
@@ -85,23 +85,23 @@ describe("hasPermissionAtScope", () => {
         makeAssignment("project_coordinator", {
           scopeType: "module",
           scopeId: "cs301",
-          permissionKeys: ["rubrics.manage"],
+          permissionKeys: ["rubrics.update"],
         }),
       ],
     });
 
-    expect(hasPermissionAtScope(summary, "rubrics.manage", "module", "cs301")).toBe(
+    expect(hasPermissionAtScope(summary, "rubrics.update", "module", "cs301")).toBe(
       true,
     );
-    expect(hasPermissionAtScope(summary, "rubrics.manage", "module", "cs101")).toBe(
+    expect(hasPermissionAtScope(summary, "rubrics.update", "module", "cs101")).toBe(
       false,
     );
   });
 
   it("treats a global assignment as containing every scope", () => {
-    const superAdmin = makeSummary(["super_admin"], {
+    const superAdmin = makeSummary(["system_administrator"], {
       assignments: [
-        makeAssignment("super_admin", {
+        makeAssignment("system_administrator", {
           scopeType: "global",
           scopeId: null,
           permissionKeys: ["modules.update"],
@@ -125,14 +125,14 @@ describe("hasPermissionAtScope", () => {
         makeAssignment("project_coordinator", {
           scopeType: "module",
           scopeId: "cs301",
-          permissionKeys: ["rubrics.manage"],
+          permissionKeys: ["rubrics.update"],
         }),
       ],
     });
 
     // Held at the module, asked about the department — the union would say yes.
     expect(
-      hasPermissionAtScope(summary, "rubrics.manage", "department", "cs"),
+      hasPermissionAtScope(summary, "rubrics.update", "department", "cs"),
     ).toBe(false);
   });
 
@@ -164,13 +164,13 @@ describe("role identity", () => {
   it("hasRole reads roleTemplateKeys, not permissions", () => {
     expect(hasRole(deptAdmin, "department_admin")).toBe(true);
     expect(hasRole(deptAdmin, "project_coordinator")).toBe(true);
-    expect(hasRole(deptAdmin, "super_admin")).toBe(false);
+    expect(hasRole(deptAdmin, "system_administrator")).toBe(false);
     expect(hasRole(null, "marker")).toBe(false);
   });
 
   it("hasAnyRole is any-of", () => {
-    expect(hasAnyRole(deptAdmin, ["super_admin", "department_admin"])).toBe(true);
-    expect(hasAnyRole(deptAdmin, ["super_admin", "marker"])).toBe(false);
+    expect(hasAnyRole(deptAdmin, ["system_administrator", "department_admin"])).toBe(true);
+    expect(hasAnyRole(deptAdmin, ["system_administrator", "marker"])).toBe(false);
     expect(hasAnyRole(deptAdmin, [])).toBe(false);
   });
 });
@@ -181,8 +181,8 @@ describe("bestHierarchyLevel", () => {
     expect(bestHierarchyLevel(makeSummary(["department_admin", "project_coordinator"]))).toBe(2);
   });
 
-  it("returns 0 for a Super Admin", () => {
-    expect(bestHierarchyLevel(makeSummary(["super_admin"]))).toBe(0);
+  it("returns 0 for a System Administrator", () => {
+    expect(bestHierarchyLevel(makeSummary(["system_administrator"]))).toBe(0);
   });
 
   it("returns null when there are no assignments at all", () => {

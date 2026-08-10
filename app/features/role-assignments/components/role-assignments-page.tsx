@@ -1,16 +1,26 @@
-import { MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react";
+import { Info, MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
+import { toast } from "sonner";
 
-import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { ErrorCard } from "~/components/ui/error-card";
 import { PageHeader } from "~/components/ui/page-header";
 import {
   Select,
@@ -19,15 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { useAuth } from "~/features/auth/api/auth-context";
+import { findNavItem } from "~/features/dashboard/nav";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import type { UserRoleAssignmentDetail } from "~/features/permissions/types";
 import { bestHierarchyLevel } from "~/features/permissions/utils";
@@ -39,9 +42,11 @@ import { ManageExtrasDialog } from "~/features/role-assignments/components/manag
 import { RevokeRoleAssignmentDialog } from "~/features/role-assignments/components/revoke-role-assignment-dialog";
 import {
   canRevokeAssignment,
-  roleAssignmentErrorMessage,
+  permissionTitle,
   SCOPE_TYPE_LABELS,
 } from "~/features/role-assignments/utils";
+
+const nav = findNavItem("/super-admin/role-assignments");
 
 /** Level 3 (Project Coordinator / Marker) is the floor of the hierarchy. */
 const HIERARCHY_FLOOR = 3;
@@ -72,7 +77,7 @@ export function RoleAssignmentsPage() {
     <PermissionGate
       permissions={["roles.assign", "roles.view"]}
       title="Role Assignments"
-      icon={ShieldCheck}
+      description={nav?.description}
       message="Only accounts that can delegate roles have access to this screen."
     >
       <RoleAssignmentsContent />
@@ -93,19 +98,14 @@ function RoleAssignmentsContent() {
     isLoading: assignmentsLoading,
     isError,
     error,
+    refetch,
+    isFetching,
   } = useUserRoleAssignments(userId ?? undefined);
 
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantNonce, setGrantNonce] = useState(0);
   const [revokeTarget, setRevokeTarget] = useState<UserRoleAssignmentDetail | null>(null);
   const [extrasTarget, setExtrasTarget] = useState<UserRoleAssignmentDetail | null>(null);
-  const [toast, setToast] = useState<{ id: number; title: string; message: string } | null>(
-    null,
-  );
-
-  function showToast(title: string, message: string) {
-    setToast({ id: Date.now(), title, message });
-  }
 
   function handleUserChange(nextUserId: string) {
     setSearchParams(
@@ -160,195 +160,280 @@ function RoleAssignmentsContent() {
 
   if (isAtHierarchyFloor) {
     return (
-      <div className="flex flex-col gap-4">
-        <PageHeader title="Role Assignments" icon={ShieldCheck} />
-        <Alert
-          variant="inline"
-          status="info"
-          timeout={0}
-          title="You can't delegate roles"
-          message="Roles can only be given to someone more junior than yourself, and yours is already the most junior in the system. A School or Department Admin can assign roles within their own area."
-        />
+      <div className="space-y-6">
+        <PageHeader title="Role Assignments" description={nav?.description} />
+        <Card>
+          <CardContent className="py-4">
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ShieldCheck aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>You can't delegate roles</EmptyTitle>
+                <EmptyDescription>
+                  Roles can only be given to someone more junior than yourself, and yours is
+                  already the most junior in the system. A School or Department Admin can assign
+                  roles within their own area.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  function rowActions(assignment: UserRoleAssignmentDetail) {
+    const canRevoke = canRevokeAssignment(summary, assignment, sources);
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer"
+            aria-label={`Actions for ${assignment.roleTemplateName}`}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {/* Rule 2 governs revocation and extras too — a grantor who doesn't outrank this
+              assignment can't touch it, so the actions are hidden rather than shown and
+              rejected. */}
+          {canRevoke ? (
+            <>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => setExtrasTarget(assignment)}
+              >
+                Extra permissions
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                variant="destructive"
+                onSelect={() => setRevokeTarget(assignment)}
+              >
+                Revoke
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem disabled>You don't outrank this role</DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  const columns: DataTableColumn<UserRoleAssignmentDetail>[] = [
+    {
+      id: "role",
+      header: "Role",
+      cell: (assignment) => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{assignment.roleTemplateName}</p>
+          <p className="text-xs text-muted-foreground">
+            {assignment.permissionKeys.length} permission
+            {assignment.permissionKeys.length === 1 ? "" : "s"}
+          </p>
+        </div>
+      ),
+      skeletonClassName: "w-36",
+    },
+    {
+      id: "scope",
+      header: "Applies to",
+      cell: (assignment) => (
+        <div className="min-w-0">
+          <p className="truncate text-foreground">{scopeLabelFor(assignment)}</p>
+          {/* The scope type is only worth a second line when it adds something. For global the
+              name *is* the type ("Everywhere"), so repeating it just reads as a rendering bug. */}
+          {assignment.scopeType !== "global" && (
+            <p className="text-xs text-muted-foreground">
+              {SCOPE_TYPE_LABELS[assignment.scopeType]}
+            </p>
+          )}
+        </div>
+      ),
+      skeletonClassName: "w-32",
+    },
+    {
+      id: "extras",
+      header: "Extra permissions",
+      cell: (assignment) =>
+        assignment.extraPermissionKeys.length === 0 ? (
+          <span className="text-xs text-muted-foreground">None</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {assignment.extraPermissionKeys.map((key) => (
+              <Badge key={key} variant="outline">
+                {permissionTitle(key)}
+              </Badge>
+            ))}
+          </div>
+        ),
+      className: "hidden lg:table-cell",
+      skeletonClassName: "w-28",
+    },
+    {
+      id: "granted",
+      header: "Granted",
+      cell: (assignment) => (
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {formatDate(assignment.grantedAt)}
+        </span>
+      ),
+      className: "hidden md:table-cell",
+      skeletonClassName: "w-20",
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: rowActions,
+      className: "w-12",
+      skeletonClassName: "size-8 rounded-md",
+    },
+  ];
+
+  const renderCard = (assignment: UserRoleAssignmentDetail) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{assignment.roleTemplateName}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {scopeLabelFor(assignment)}
+            {assignment.scopeType !== "global" &&
+              ` · ${SCOPE_TYPE_LABELS[assignment.scopeType]}`}
+          </p>
+        </div>
+        {rowActions(assignment)}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-border pt-3">
+        {assignment.extraPermissionKeys.length === 0 ? (
+          <span className="text-xs text-muted-foreground">No extra permissions</span>
+        ) : (
+          assignment.extraPermissionKeys.map((key) => (
+            <Badge key={key} variant="outline">
+              {permissionTitle(key)}
+            </Badge>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-6">
       <PageHeader
         title="Role Assignments"
-        icon={ShieldCheck}
+        description={nav?.description}
         actions={
           <Button
+            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
             onClick={() => {
               setGrantOpen(true);
               setGrantNonce((n) => n + 1);
             }}
             disabled={!userId}
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus aria-hidden="true" />
             Assign a role
           </Button>
         }
-      >
-        <div className="max-w-sm">
-          <Select value={userId ?? undefined} onValueChange={handleUserChange}>
-            <SelectTrigger aria-label="Select a user">
-              <SelectValue
-                placeholder={candidatesLoading ? "Loading..." : "Select a user"}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {candidates.map((candidate) => (
-                <SelectItem key={candidate.id} value={candidate.id}>
-                  {candidate.fullName}
-                  {candidate.isActive === false ? " (Deactivated)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </PageHeader>
+      />
+
+      <div className="w-full sm:max-w-sm">
+        <Select value={userId ?? undefined} onValueChange={handleUserChange}>
+          <SelectTrigger aria-label="Select a user">
+            <SelectValue placeholder={candidatesLoading ? "Loading…" : "Select a user"} />
+          </SelectTrigger>
+          <SelectContent>
+            {candidates.map((candidate) => (
+              <SelectItem key={candidate.id} value={candidate.id}>
+                {candidate.fullName}
+                {candidate.isActive === false ? " (Deactivated)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {isCoordinatorsOnly && (
-        <Alert
-          variant="inline"
-          status="info"
-          timeout={0}
-          title="Showing existing Coordinators only"
-          message="Your account can list Project Coordinators, not every user. To give a role to someone who isn't a Coordinator yet, create their account with the role attached from the Users screen."
-        />
+        <div
+          role="note"
+          className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
+        >
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>
+            Your account can list Project Coordinators, not every user. To give a role to someone
+            who isn't a Coordinator yet, create their account with the role attached from the
+            Users screen.
+          </span>
+        </div>
       )}
 
-      {isError && (
-        <Alert
-          variant="inline"
-          status="error"
-          timeout={0}
+      {isError ? (
+        <ErrorCard
           title="Couldn't load this user's roles"
-          message={roleAssignmentErrorMessage(error)}
+          error={error}
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
         />
-      )}
-
-      {!userId ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-          Select a user to see and manage the roles they hold.
-        </div>
+      ) : !userId ? (
+        <Card>
+          <CardContent className="py-4">
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <UserPlus aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>Pick a user</EmptyTitle>
+                <EmptyDescription>
+                  Delegation is user-centric: choose someone above to see every role they hold and
+                  manage it from one place.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-background">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Role</TableHead>
-                <TableHead>Applies to</TableHead>
-                <TableHead>Extra permissions</TableHead>
-                <TableHead>Granted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignmentsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Loading roles...
-                  </TableCell>
-                </TableRow>
-              ) : sortedAssignments.length ? (
-                sortedAssignments.map((assignment) => {
-                  const canRevoke = canRevokeAssignment(summary, assignment, sources);
-                  const extras = assignment.extraPermissionKeys;
-
-                  return (
-                    <TableRow key={assignment.id}>
-                      <TableCell className="font-medium">
-                        <div>{assignment.roleTemplateName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {assignment.permissionKeys.length} permission
-                          {assignment.permissionKeys.length === 1 ? "" : "s"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>{scopeLabelFor(assignment)}</div>
-                        {/* The scope type is only worth a second line when it
-                            adds something. For global the name *is* the type
-                            ("Everywhere"), so repeating it just reads as a
-                            rendering bug. */}
-                        {assignment.scopeType !== "global" && (
-                          <div className="text-xs text-muted-foreground">
-                            {SCOPE_TYPE_LABELS[assignment.scopeType]}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {extras.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">None</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {extras.map((key) => (
-                              <Badge
-                                key={key}
-                                variant="outline"
-                                className="font-mono text-[10px]"
-                              >
-                                {key}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDate(assignment.grantedAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Actions for ${assignment.roleTemplateName}`}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {/* Rule 2 governs revocation and extras too — a
-                                grantor who doesn't outrank this assignment
-                                can't touch it, so the actions are hidden
-                                rather than shown and rejected. */}
-                            {canRevoke ? (
-                              <>
-                                <DropdownMenuItem
-                                  onSelect={() => setExtrasTarget(assignment)}
-                                >
-                                  Extra permissions
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={() => setRevokeTarget(assignment)}
-                                >
-                                  Revoke
-                                </DropdownMenuItem>
-                              </>
-                            ) : (
-                              <DropdownMenuItem disabled>
-                                You don't outrank this role
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    {targetName} holds no roles yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={columns}
+          rows={sortedAssignments}
+          getRowId={(assignment) => assignment.id}
+          renderCard={renderCard}
+          isLoading={assignmentsLoading}
+          caption={`Roles held by ${targetName}`}
+          empty={
+            <Card>
+              <CardContent className="py-4">
+                <Empty className="px-0">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <ShieldCheck aria-hidden="true" />
+                    </EmptyMedia>
+                    <EmptyTitle>No roles yet</EmptyTitle>
+                    <EmptyDescription>
+                      {targetName} holds no roles yet. Assign one to give them access to a school,
+                      department or module.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <Button
+                    className="h-11 cursor-pointer sm:h-9"
+                    onClick={() => {
+                      setGrantOpen(true);
+                      setGrantNonce((n) => n + 1);
+                    }}
+                  >
+                    <UserPlus aria-hidden="true" />
+                    Assign a role
+                  </Button>
+                </Empty>
+              </CardContent>
+            </Card>
+          }
+        />
       )}
 
       {userId && (
@@ -359,7 +444,9 @@ function RoleAssignmentsContent() {
           targetUserId={userId}
           targetUserName={targetName}
           onSuccess={(_assignment, apiMessage) =>
-            showToast(apiMessage, `${targetName}'s roles have been updated.`)
+            toast.success(apiMessage, {
+              description: `${targetName}'s roles have been updated.`,
+            })
           }
         />
       )}
@@ -371,7 +458,9 @@ function RoleAssignmentsContent() {
         open={revokeTarget !== null}
         onOpenChange={(open) => !open && setRevokeTarget(null)}
         onSuccess={(_assignment, apiMessage) =>
-          showToast(apiMessage, `${targetName} no longer holds that role.`)
+          toast.success(apiMessage, {
+            description: `${targetName} no longer holds that role.`,
+          })
         }
       />
 
@@ -388,22 +477,11 @@ function RoleAssignmentsContent() {
         open={extrasTarget !== null}
         onOpenChange={(open) => !open && setExtrasTarget(null)}
         onChanged={(apiMessage) =>
-          showToast(apiMessage, `${targetName}'s extra permissions have been updated.`)
+          toast.success(apiMessage, {
+            description: `${targetName}'s extra permissions have been updated.`,
+          })
         }
       />
-
-      {toast && (
-        <Alert
-          key={toast.id}
-          variant="toast"
-          status="success"
-          title={toast.title}
-          reducedMotion
-          timeout={6000}
-          message={toast.message}
-          onDismiss={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

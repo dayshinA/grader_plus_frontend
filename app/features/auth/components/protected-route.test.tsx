@@ -37,7 +37,7 @@ function makeUser(
 const markerSummary = makeSummary(["marker"], {
   assignments: [
     makeAssignment("marker", {
-      permissionKeys: ["evaluations.submit", "annotations.manage"],
+      permissionKeys: ["evaluations.submit", "annotations.update"],
     }),
   ],
 });
@@ -171,7 +171,7 @@ describe("ProtectedRoute", () => {
       render(
         <TestApp
           initialEntries={["/setup"]}
-          requireRoles={["super_admin"]}
+          requireRoles={["system_administrator"]}
           loginResponse={makeUser()}
         />,
       );
@@ -183,7 +183,7 @@ describe("ProtectedRoute", () => {
       render(
         <TestApp
           initialEntries={["/setup"]}
-          requireRoles={["super_admin", "marker"]}
+          requireRoles={["system_administrator", "marker"]}
           loginResponse={makeUser()}
         />,
       );
@@ -221,7 +221,7 @@ describe("ProtectedRoute", () => {
       render(
         <TestApp
           initialEntries={["/setup"]}
-          requirePermissions={["grades.export", "annotations.manage"]}
+          requirePermissions={["grades.export", "annotations.update"]}
           loginResponse={makeUser()}
         />,
       );

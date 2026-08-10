@@ -1,5 +1,6 @@
+import { Building2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Alert } from "~/components/ui/alert";
+
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -9,21 +10,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { FormError } from "~/components/ui/form-error";
+import { FormField } from "~/components/ui/form-field";
+import { SelectField } from "~/components/ui/select-field";
+import { SubmitButton } from "~/components/ui/submit-button";
 import { useCreateModule } from "~/features/academic-modules/api/use-create-module";
 import { useUpdateModule } from "~/features/academic-modules/api/use-update-module";
 import type { AcademicModuleResponse } from "~/features/academic-modules/types";
-import { useAuth } from "~/features/auth/api/auth-context";
-import { hasRole } from "~/features/permissions/utils";
-import { ApiError } from "~/lib/api-client";
+import { isApiError } from "~/lib/api-client";
 
 export interface ModuleFormDialogOption {
   id: string;
@@ -42,8 +43,9 @@ interface ModuleFormDialogProps {
    * already server-filtered to departments they administer or hold a creation grant in.
    */
   departmentOptions: ModuleFormDialogOption[];
-  /** Active coordinators (`GET /departments/:id/coordinators`), shown in both create (Super
-   * Admin only, required) and edit mode (everyone, read-only unless Super Admin — CH-15). */
+  /** Active coordinators (`GET /departments/:id/coordinators`), shown read-only on edit only —
+   * nobody can reassign a module's coordinator through this form (see the read-only-fields
+   * comment in the component body). */
   coordinatorOptions?: ModuleFormDialogOption[];
   /** Called after a successful create/update, once the dialog has closed —
    * `apiMessage` is the backend's own confirmation message (see decision #31). */
@@ -83,8 +85,6 @@ export function ModuleFormDialog({
   coordinatorOptions,
   onSuccess,
 }: ModuleFormDialogProps) {
-  const { permissions: summary } = useAuth();
-  const isSuperAdmin = hasRole(summary, "super_admin");
   const [form, setForm] = useState(() =>
     mode === "edit" && module
       ? {
@@ -108,20 +108,23 @@ export function ModuleFormDialog({
   // a document.body-portaled Select popover).
   const [dialogNode, setDialogNode] = useState<HTMLDivElement | null>(null);
 
-  // CH-15: the department/coordinator fields are always shown now (not hidden for a
-  // non-Super-Admin on edit) because the backend silently ignores a change to either field from
-  // anyone but a Super Admin — showing them, disabled, is what stops that from reading as a
-  // save that quietly did nothing. Create mode keeps the coordinator picker Super-Admin-only:
-  // the backend forces a non-Super-Admin's coordinatorId to their own id, so there's nothing to
-  // pick.
+  // Reassigning a module's department or coordinator through this form is dead capability
+  // as of the backend's 2026-08-03 least-privilege redesign: `resolveCoordinatorId`'s
+  // explicit-coordinatorId branch only ever ran for a System Administrator caller, and System
+  // Administrator no longer holds modules.create/modules.update at all — so nobody can reach
+  // it any more. The department/coordinator fields are shown on edit purely as read-only
+  // context (never editable, by anyone), and the coordinator field never appears on create
+  // either — the backend always force-assigns the creator as coordinator.
   const showDepartmentField = true;
-  const showCoordinatorField = isSuperAdmin || mode === "edit";
-  const departmentFieldDisabled = mode === "edit" && !isSuperAdmin;
-  const coordinatorFieldDisabled = !isSuperAdmin;
+  const showCoordinatorField = mode === "edit";
+  const departmentFieldDisabled = mode === "edit";
+  const coordinatorFieldDisabled = true;
   const hasDepartmentOptions = departmentOptions.length > 0;
-  // A Coordinator with no admin/creation grant in any department has nowhere to create a
-  // module yet — see SYSTEM_DESIGN.md decision #33.
-  const blockedByNoDepartments = mode === "create" && !isSuperAdmin && !hasDepartmentOptions;
+  // A Department Admin/Coordinator with no admin/creation grant in any department has
+  // nowhere to create a module yet — see SYSTEM_DESIGN.md decision #33. This dialog is only
+  // ever opened in create mode by a viewer ModulesPage has already confirmed holds
+  // modules.create, so there's no System-Administrator case to special-case here any more.
+  const blockedByNoDepartments = mode === "create" && !hasDepartmentOptions;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -139,7 +142,8 @@ export function ModuleFormDialog({
         {
           ...base,
           departmentId: form.departmentId,
-          ...(isSuperAdmin ? { coordinatorId: form.coordinatorId } : {}),
+          // coordinatorId is never sent — the backend always force-assigns the creator as
+          // coordinator, for every caller who can reach create at all.
         },
         {
           onSuccess: ({ data: created, message }) => {
@@ -155,15 +159,9 @@ export function ModuleFormDialog({
     updateModule.mutate(
       {
         id: module.id,
-        request: {
-          ...base,
-          // Read-only for anyone but Super Admin (see showDepartmentField/showCoordinatorField
-          // above) — omitted here too, though the disabled fields already stop the value from
-          // having changed.
-          ...(isSuperAdmin
-            ? { departmentId: form.departmentId, coordinatorId: form.coordinatorId }
-            : {}),
-        },
+        // departmentId/coordinatorId are never sent on update — nobody can reassign either
+        // through this form any more (see the read-only-fields comment above).
+        request: { ...base },
       },
       {
         onSuccess: ({ data: updated, message }) => {
@@ -176,6 +174,7 @@ export function ModuleFormDialog({
 
   const error = mutation.error;
   const isPending = mutation.isPending;
+  const fieldError = (name: string) => (isApiError(error) ? error.fieldError(name) : undefined);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,171 +188,161 @@ export function ModuleFormDialog({
 
         {blockedByNoDepartments ? (
           <>
-            <Alert
-              variant="inline"
-              status="info"
-              timeout={0}
-              title="No department access yet"
-              message="You don't have creation rights in any department yet. Ask a Department Admin or Super Admin to grant you access to a department, then come back here."
-            />
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Building2 aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>No department access yet</EmptyTitle>
+                <EmptyDescription>
+                  You don't have creation rights in any department yet. Ask a Department Admin,
+                  School Admin, or System Administrator to grant you access to a department, then
+                  come back here.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => onOpenChange(false)}
+              >
                 Close
               </Button>
             </DialogFooter>
           </>
         ) : (
-          <>
-            {error && (
-              <Alert
-                variant="inline"
-                status="error"
-                timeout={0}
-                title={mode === "create" ? "Couldn't create module" : "Couldn't update module"}
-                message={
-                  error instanceof ApiError
-                    ? error.message
-                    : "Something went wrong. Please try again."
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <FormError error={error} />
+
+            <FormField
+              label="Code"
+              id="module-code"
+              name="code"
+              required
+              autoFocus
+              hint="As it appears in Learn, e.g. COP511."
+              value={form.code}
+              onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
+              error={fieldError("code")}
+            />
+
+            <FormField
+              label="Name"
+              id="module-name"
+              name="name"
+              required
+              value={form.name}
+              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              error={fieldError("name")}
+            />
+
+            <FormField
+              label="Learn ID"
+              id="module-learn-id"
+              name="learnId"
+              hint="Optional. Used to match this module up with Learn on export."
+              value={form.learnId}
+              onChange={(event) => setForm((prev) => ({ ...prev, learnId: event.target.value }))}
+              error={fieldError("learnId")}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="Discrepancy threshold"
+                id="module-discrepancy-threshold"
+                name="discrepancyThreshold"
+                type="number"
+                min={1}
+                max={100}
+                required
+                hint="Marks apart before a project is flagged."
+                value={form.discrepancyThreshold}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, discrepancyThreshold: event.target.value }))
                 }
+                error={fieldError("discrepancyThreshold")}
+              />
+
+              <FormField
+                label="Marking deadline"
+                id="module-marking-deadline"
+                name="markingDeadline"
+                type="date"
+                required
+                value={form.markingDeadline}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, markingDeadline: event.target.value }))
+                }
+                error={fieldError("markingDeadline")}
+              />
+            </div>
+
+            {showDepartmentField && (
+              <SelectField
+                label="Department"
+                id="module-department"
+                value={form.departmentId}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, departmentId: value }))}
+                options={departmentOptions.map((option) => ({
+                  value: option.id,
+                  label: option.label,
+                }))}
+                placeholder="Select a department"
+                disabled={departmentFieldDisabled}
+                container={dialogNode}
+                hint={
+                  departmentFieldDisabled
+                    ? "A module's department can't be changed after it's created."
+                    : undefined
+                }
+                error={fieldError("departmentId")}
               />
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="module-code">Code</Label>
-                <Input
-                  id="module-code"
-                  required
-                  value={form.code}
-                  onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
-                />
-              </div>
+            {showCoordinatorField && (
+              <SelectField
+                label="Coordinator"
+                id="module-coordinator"
+                value={form.coordinatorId}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, coordinatorId: value }))}
+                options={(coordinatorOptions ?? []).map((option) => ({
+                  value: option.id,
+                  label: option.label,
+                }))}
+                placeholder="Select a coordinator"
+                disabled={coordinatorFieldDisabled}
+                container={dialogNode}
+                hint="A module's coordinator can't be reassigned here."
+              />
+            )}
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="module-name">Name</Label>
-                <Input
-                  id="module-name"
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="module-learn-id">Learn ID (optional)</Label>
-                <Input
-                  id="module-learn-id"
-                  value={form.learnId}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, learnId: event.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="module-discrepancy-threshold">Discrepancy threshold</Label>
-                  <Input
-                    id="module-discrepancy-threshold"
-                    type="number"
-                    min={1}
-                    max={100}
-                    required
-                    value={form.discrepancyThreshold}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, discrepancyThreshold: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="module-marking-deadline">Marking deadline</Label>
-                  <Input
-                    id="module-marking-deadline"
-                    type="date"
-                    required
-                    value={form.markingDeadline}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, markingDeadline: event.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-
-              {showDepartmentField && (
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="module-department">Department</Label>
-                  <Select
-                    value={form.departmentId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, departmentId: value }))}
-                    disabled={departmentFieldDisabled}
-                  >
-                    <SelectTrigger id="module-department">
-                      <SelectValue placeholder="Select a department" />
-                    </SelectTrigger>
-                    <SelectContent container={dialogNode}>
-                      {departmentOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {departmentFieldDisabled && (
-                    <p className="text-xs text-muted-foreground">
-                      Only a Super Admin can move a module to a different department.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {showCoordinatorField && (
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="module-coordinator">Coordinator</Label>
-                  <Select
-                    value={form.coordinatorId}
-                    onValueChange={(value) =>
-                      setForm((prev) => ({ ...prev, coordinatorId: value }))
-                    }
-                    disabled={coordinatorFieldDisabled}
-                  >
-                    <SelectTrigger id="module-coordinator">
-                      <SelectValue placeholder="Select a coordinator" />
-                    </SelectTrigger>
-                    <SelectContent container={dialogNode}>
-                      {(coordinatorOptions ?? []).map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {coordinatorFieldDisabled && (
-                    <p className="text-xs text-muted-foreground">
-                      Only a Super Admin can reassign a module's coordinator.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    isPending ||
-                    (showDepartmentField && !form.departmentId) ||
-                    (showCoordinatorField && !form.coordinatorId)
-                  }
-                  data-loading={isPending}
-                >
-                  {isPending ? "Saving..." : mode === "create" ? "Create" : "Save changes"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <SubmitButton
+                isPending={isPending}
+                pendingLabel="Saving…"
+                disabled={
+                  (showDepartmentField && !form.departmentId) ||
+                  (showCoordinatorField && !form.coordinatorId)
+                }
+                className="sm:w-auto"
+              >
+                {mode === "create" ? "Create module" : "Save changes"}
+              </SubmitButton>
+            </DialogFooter>
+          </form>
         )}
       </DialogContent>
     </Dialog>

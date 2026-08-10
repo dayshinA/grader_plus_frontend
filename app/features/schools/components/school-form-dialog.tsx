@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Alert } from "~/components/ui/alert";
+
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -9,12 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import { FormError } from "~/components/ui/form-error";
+import { FormField } from "~/components/ui/form-field";
+import { SubmitButton } from "~/components/ui/submit-button";
 import { useCreateSchool } from "~/features/schools/api/use-create-school";
 import { useUpdateSchool } from "~/features/schools/api/use-update-school";
 import type { SchoolResponse } from "~/features/schools/types";
-import { ApiError } from "~/lib/api-client";
+import { isApiError } from "~/lib/api-client";
 
 interface SchoolFormDialogProps {
   open: boolean;
@@ -78,6 +79,7 @@ export function SchoolFormDialog({
 
   const error = mutation.error;
   const isPending = mutation.isPending;
+  const fieldError = (name: string) => (isApiError(error) ? error.fieldError(name) : undefined);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,46 +93,49 @@ export function SchoolFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <Alert
-            variant="inline"
-            status="error"
-            timeout={0}
-            title={mode === "create" ? "Couldn't create school" : "Couldn't update school"}
-            message={
-              error instanceof ApiError ? error.message : "Something went wrong. Please try again."
-            }
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <FormError error={error} />
+
+          <FormField
+            label="Code"
+            id="school-code"
+            name="code"
+            required
+            autoFocus
+            hint="Short identifier, e.g. SCI."
+            value={form.code}
+            onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
+            error={fieldError("code")}
           />
-        )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="school-code">Code</Label>
-            <Input
-              id="school-code"
-              required
-              value={form.code}
-              onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="school-name">Name</Label>
-            <Input
-              id="school-name"
-              required
-              value={form.name}
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-            />
-          </div>
+          <FormField
+            label="Name"
+            id="school-name"
+            name="name"
+            required
+            value={form.name}
+            onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+            error={fieldError("name")}
+          />
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-11 cursor-pointer sm:h-9"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} data-loading={isPending}>
-              {isPending ? "Saving..." : mode === "create" ? "Create" : "Save changes"}
-            </Button>
+            <SubmitButton
+              isPending={isPending}
+              pendingLabel="Saving…"
+              className="sm:w-auto"
+            >
+              {mode === "create" ? "Create school" : "Save changes"}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

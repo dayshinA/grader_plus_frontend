@@ -13,7 +13,7 @@
 
 /** The five role templates. Lower `hierarchyLevel` means more senior. */
 export type RoleTemplateKey =
-  | "super_admin"
+  | "system_administrator"
   | "school_admin"
   | "department_admin"
   | "project_coordinator"
@@ -40,8 +40,14 @@ export type PermissionCategory = "functional" | "administrative";
  * here in the same session.
  */
 export type PermissionKey =
-  | "annotations.manage"
+  | "annotations.create"
+  | "annotations.delete"
+  | "annotations.update"
+  | "annotations.view"
+  | "audit_logs.view"
+  | "calendar.manage"
   | "dashboard.view"
+  | "dashboard.view_own"
   | "departments.create"
   | "departments.deactivate"
   | "departments.update"
@@ -50,20 +56,26 @@ export type PermissionKey =
   | "discrepancies.resolve"
   | "discrepancies.view"
   | "evaluations.submit"
+  | "evaluations.view"
   | "grades.export"
+  | "grades.view"
   | "markers.assign"
   | "marking_status.view"
   | "modules.create"
   | "modules.deactivate"
   | "modules.update"
   | "modules.view"
+  | "notifications.send"
   | "permissions.assign"
   | "permissions.revoke"
   | "roles.assign"
   | "roles.revoke"
   | "roles.view"
   | "roles.view_candidates"
-  | "rubrics.manage"
+  | "rubrics.create"
+  | "rubrics.delete"
+  | "rubrics.update"
+  | "rubrics.view"
   | "schools.create"
   | "schools.deactivate"
   | "schools.update"
@@ -71,6 +83,8 @@ export type PermissionKey =
   | "schools.view_detail"
   | "submissions.download"
   | "submissions.upload"
+  | "submissions.view"
+  | "system.settings.manage"
   | "users.bulk_import"
   | "users.create"
   | "users.deactivate"
@@ -83,7 +97,7 @@ export interface UserRoleAssignmentDetail {
   userId: string;
   roleTemplateKey: RoleTemplateKey;
   roleTemplateName: string;
-  /** Lower is more senior: super_admin 0, school_admin 1, department_admin 2, coordinator/marker 3. */
+  /** Lower is more senior: system_administrator 0, school_admin 1, department_admin 2, project_coordinator 3, marker 4. */
   hierarchyLevel: number;
   scopeType: ScopeType;
   /** Null when `scopeType` is "global". */

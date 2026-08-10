@@ -16,7 +16,7 @@ export const schoolsService = {
 
   /** `@Roles(SUPER_ADMIN, COORDINATOR)` + `SchoolAdminGuard` — a Coordinator caller passes only
    * if they administer `schoolId`. Used by the FR43 department-admin-grant delegation picker on
-   * `coordinator/school-settings.tsx`. Reuses `CoordinatorResponse` from
+   * `workspace/school-settings.tsx`. Reuses `CoordinatorResponse` from
    * `~/features/departments/types` — identical shape, same endpoint convention one level up. */
   getCoordinators: (schoolId: string): Promise<CoordinatorResponse[]> =>
     api.get<CoordinatorResponse[]>(`/schools/${schoolId}/coordinators`),

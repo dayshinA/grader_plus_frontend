@@ -1,5 +1,6 @@
+import { Landmark } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Alert } from "~/components/ui/alert";
+
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -9,19 +10,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { FormError } from "~/components/ui/form-error";
+import { FormField } from "~/components/ui/form-field";
+import { SelectField } from "~/components/ui/select-field";
+import { SubmitButton } from "~/components/ui/submit-button";
 import { useCreateDepartment } from "~/features/departments/api/use-create-department";
 import { useUpdateDepartment } from "~/features/departments/api/use-update-department";
 import type { DepartmentResponse } from "~/features/departments/types";
-import { ApiError } from "~/lib/api-client";
+import { isApiError } from "~/lib/api-client";
 
 export interface DepartmentFormDialogSchoolOption {
   id: string;
@@ -38,10 +41,16 @@ interface DepartmentFormDialogProps {
    * School picker options — added 2026-07-29 (FR41/43), mirrors `ModuleFormDialog`'s
    * `departmentOptions` prop one level up. Sourced from `GET /schools` by the caller: the Super
    * Admin `DepartmentsPage` passes every school; the Coordinator/School-Admin
-   * `SchoolAdminDepartmentsPanel` (`coordinator/school-settings.tsx`) restricts this to only the
+   * `SchoolAdminDepartmentsPanel` (`workspace/school-settings.tsx`) restricts this to only the
    * schools the caller administers.
    */
   schoolOptions: DepartmentFormDialogSchoolOption[];
+  /**
+   * Pre-selects the school field on create — the school already picked on `DepartmentsPage`'s
+   * own school-first picker (2026-08-05). Falls back to the first option when unset, same as
+   * before. Ignored in edit mode.
+   */
+  defaultSchoolId?: string;
   /** Called after a successful create/update, once the dialog has closed —
    * `apiMessage` is the backend's own confirmation message (see decision #31). */
   onSuccess?: (
@@ -65,12 +74,13 @@ export function DepartmentFormDialog({
   mode,
   department,
   schoolOptions,
+  defaultSchoolId,
   onSuccess,
 }: DepartmentFormDialogProps) {
   const [form, setForm] = useState(() =>
     mode === "edit" && department
       ? { code: department.code, name: department.name, schoolId: department.schoolId }
-      : { ...EMPTY_FORM, schoolId: schoolOptions[0]?.id ?? "" },
+      : { ...EMPTY_FORM, schoolId: defaultSchoolId ?? schoolOptions[0]?.id ?? "" },
   );
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
@@ -119,6 +129,7 @@ export function DepartmentFormDialog({
 
   const error = mutation.error;
   const isPending = mutation.isPending;
+  const fieldError = (name: string) => (isApiError(error) ? error.fieldError(name) : undefined);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -134,91 +145,88 @@ export function DepartmentFormDialog({
 
         {blockedByNoSchools ? (
           <>
-            <Alert
-              variant="inline"
-              status="info"
-              timeout={0}
-              title="No school access yet"
-              message="You don't administer any school yet. Ask a Super Admin to grant you School Admin access, then come back here."
-            />
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Landmark aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>No school access yet</EmptyTitle>
+                <EmptyDescription>
+                  You don't administer any school yet. Ask a System Administrator to grant you
+                  School Admin access, then come back here.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => onOpenChange(false)}
+              >
                 Close
               </Button>
             </DialogFooter>
           </>
         ) : (
-          <>
-            {error && (
-              <Alert
-                variant="inline"
-                status="error"
-                timeout={0}
-                title={
-                  mode === "create" ? "Couldn't create department" : "Couldn't update department"
-                }
-                message={
-                  error instanceof ApiError
-                    ? error.message
-                    : "Something went wrong. Please try again."
-                }
-              />
-            )}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <FormError error={error} />
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="department-code">Code</Label>
-                <Input
-                  id="department-code"
-                  required
-                  value={form.code}
-                  onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
-                />
-              </div>
+            <FormField
+              label="Code"
+              id="department-code"
+              name="code"
+              required
+              autoFocus
+              hint="Short identifier, e.g. CO."
+              value={form.code}
+              onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
+              error={fieldError("code")}
+            />
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="department-name">Name</Label>
-                <Input
-                  id="department-name"
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                />
-              </div>
+            <FormField
+              label="Name"
+              id="department-name"
+              name="name"
+              required
+              value={form.name}
+              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              error={fieldError("name")}
+            />
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="department-school">School</Label>
-                <Select
-                  value={form.schoolId}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, schoolId: value }))}
-                >
-                  <SelectTrigger id="department-school">
-                    <SelectValue placeholder="Select a school" />
-                  </SelectTrigger>
-                  <SelectContent container={dialogNode}>
-                    {schoolOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <SelectField
+              label="School"
+              id="department-school"
+              value={form.schoolId}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, schoolId: value }))}
+              options={schoolOptions.map((option) => ({ value: option.id, label: option.label }))}
+              placeholder="Select a school"
+              container={dialogNode}
+              error={fieldError("schoolId")}
+            />
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isPending || !form.schoolId}
-                  data-loading={isPending}
-                >
-                  {isPending ? "Saving..." : mode === "create" ? "Create" : "Save changes"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <SubmitButton
+                isPending={isPending}
+                pendingLabel="Saving…"
+                disabled={!form.schoolId}
+                className="sm:w-auto"
+              >
+                {mode === "create" ? "Create department" : "Save changes"}
+              </SubmitButton>
+            </DialogFooter>
+          </form>
         )}
       </DialogContent>
     </Dialog>

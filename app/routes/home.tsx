@@ -1,5 +1,5 @@
 import { Navigate } from "react-router";
-import { LoaderOne } from "~/components/ui/loader-one";
+import { Wave } from "~/components/ui/wave";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { landingPath } from "~/features/auth/utils";
 
@@ -15,8 +15,13 @@ export default function Home() {
   // and /login doesn't re-check auth state, so the user gets stuck there.
   if (isBootstrapping) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <LoaderOne label="Restoring your session" />
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-background"
+      >
+        <Wave className="size-8 text-primary" />
+        <p className="text-sm text-muted-foreground">Restoring your session…</p>
       </div>
     );
   }

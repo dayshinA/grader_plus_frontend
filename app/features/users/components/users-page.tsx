@@ -1,361 +1,331 @@
-import { MoreHorizontal, Plus, Search, Upload, Users } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { MoreHorizontal, Plus, Upload, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 
-import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Input } from "~/components/ui/input";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { ErrorCard } from "~/components/ui/error-card";
+import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
+import { ListPager } from "~/components/ui/list-pager";
+import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "~/components/ui/pagination";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { usePagination } from "~/hooks/use-pagination";
+import { findNavItem } from "~/features/dashboard/nav";
 import { useUsers } from "~/features/users/api/use-users";
 import { DeactivateUserDialog } from "~/features/users/components/deactivate-user-dialog";
-import { UserFormDialog } from "~/features/users/components/user-form-dialog";
 import type { UserResponse } from "~/features/users/types";
-import { ApiError, is403 } from "~/lib/api-client";
+import { backTo } from "~/hooks/use-back-link";
+import { usePagedList } from "~/hooks/use-paged-list";
+import { is403 } from "~/lib/api-client";
 
-const PAGE_SIZE = 10;
-const PAGINATION_ITEMS_TO_DISPLAY = 5;
+type StatusFilter = "all" | "active" | "inactive";
 
-type FormDialogState =
-  { mode: "create" } | { mode: "edit"; user: UserResponse } | null;
+const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "inactive", label: "Inactive" },
+];
+
+const nav = findNavItem("/super-admin/users");
+
+/** The toast a create/edit page hands back through router state on its redirect. */
+interface HandoffToast {
+  title: string;
+  message: string;
+}
 
 export function UsersPage() {
-  const { data: users, isLoading, isError, error } = useUsers();
+  const { data: users, isLoading, isError, error, refetch, isFetching } = useUsers();
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [formDialog, setFormDialog] = useState<FormDialogState>(null);
-  // Bumped every time the form dialog opens, and used as UserFormDialog's `key` below — forces a
-  // fresh mount (fresh form/mutation state) on every open instead of an effect-based reset.
-  const [formDialogNonce, setFormDialogNonce] = useState(0);
-  const [deactivateTarget, setDeactivateTarget] = useState<UserResponse | null>(
-    null,
-  );
-  // `id` changes on every call so a repeat of the same title/message still
-  // remounts the toast (Alert's own re-trigger convention — see Alert.md).
-  const [toast, setToast] = useState<{
-    id: number;
-    title: string;
-    message: string;
-  } | null>(null);
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [deactivateTarget, setDeactivateTarget] = useState<UserResponse | null>(null);
 
-  function openFormDialog(state: FormDialogState) {
-    setFormDialog(state);
-    setFormDialogNonce((n) => n + 1);
-  }
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  function showToast(title: string, message: string) {
-    setToast({ id: Date.now(), title, message });
-  }
+  // Create/edit are full pages (2026-08-04, converted from UserFormDialog) — there's no shared
+  // parent left to lift an onSuccess callback into, so the confirmation rides across the redirect
+  // in router `state`. Fired once on mount and the history entry's state cleared straight after,
+  // so a later back/forward landing on this exact entry doesn't resurface the same toast.
+  useEffect(() => {
+    const handoff = (location.state as { toast?: HandoffToast } | null)?.toast;
+    if (handoff) toast.success(handoff.title, { description: handoff.message });
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
+  const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return users;
-    return users.filter(
+    return (users ?? []).filter(
       (user) =>
-        user.fullName.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query),
+        (status === "all" || (status === "active") === user.isActive) &&
+        (query === "" ||
+          user.fullName.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query)),
     );
-  }, [users, search]);
+  }, [users, search, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: safePage,
-    totalPages,
-    paginationItemsToDisplay: PAGINATION_ITEMS_TO_DISPLAY,
+  const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
+  const hasFilters = search.trim() !== "" || status !== "all";
+
+  // Where a user row hands the detail screen its back link, so coming back lands on the page of
+  // the list the admin was actually on.
+  const backHere = backTo({
+    to: page > 1 ? `/super-admin/users?page=${page}` : "/super-admin/users",
+    label: "Users",
   });
-  const pageRows = filteredUsers.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setCurrentPage(1);
-  }
 
   // CH-17: GET /users (users.view) 403s for a School/Department Admin who only holds
   // users.create (SYSTEM_DESIGN.md decision #42) — that renders as this screen's own empty
-  // state, with a "create your first user" affordance, not an error banner.
+  // state, with a "create your first user" affordance, not an error card.
   const isForbidden = isError && is403(error);
 
+  function rowActions(user: UserResponse) {
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer"
+            aria-label={`Actions for ${user.fullName}`}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to={`/super-admin/users/${user.id}`} state={backHere}>
+              View
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to={`/super-admin/users/${user.id}/edit`} state={backHere}>
+              Edit
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            variant={user.isActive ? "destructive" : "default"}
+            onSelect={() => setDeactivateTarget(user)}
+          >
+            {user.isActive ? "Deactivate" : "Reactivate"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  const columns: DataTableColumn<UserResponse>[] = [
+    {
+      id: "name",
+      header: "Name",
+      cell: (user) => (
+        <Link
+          to={`/super-admin/users/${user.id}`}
+          state={backHere}
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          {user.fullName}
+        </Link>
+      ),
+      skeletonClassName: "w-36",
+    },
+    {
+      id: "email",
+      header: "Email",
+      cell: (user) => <span className="text-muted-foreground">{user.email}</span>,
+      className: "hidden md:table-cell",
+      skeletonClassName: "w-48",
+    },
+    {
+      id: "learnId",
+      header: "Learn ID",
+      cell: (user) => <span className="text-muted-foreground">{user.learnId ?? "—"}</span>,
+      className: "hidden lg:table-cell",
+      skeletonClassName: "w-20",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (user) => (
+        <Badge variant={user.isActive ? "success" : "outline"}>
+          {user.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+      skeletonClassName: "w-16",
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: rowActions,
+      className: "w-12",
+      skeletonClassName: "size-8 rounded-md",
+    },
+  ];
+
+  const renderCard = (user: UserResponse) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            to={`/super-admin/users/${user.id}`}
+            state={backHere}
+            className="block truncate font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {user.fullName}
+          </Link>
+          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+        </div>
+        {rowActions(user)}
+      </div>
+      <div className="mt-3 border-t border-border pt-3">
+        <Badge variant={user.isActive ? "success" : "outline"}>
+          {user.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-6">
       <PageHeader
         title="Users"
-        icon={Users}
+        description={nav?.description}
         actions={
           <>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="h-11 cursor-pointer sm:h-9">
               <Link to="/super-admin/users/bulk-import">
-                <Upload className="h-4 w-4" />
+                <Upload aria-hidden="true" />
                 Bulk import
               </Link>
             </Button>
-            <Button onClick={() => openFormDialog({ mode: "create" })}>
-              <Plus className="h-4 w-4" />
-              Add user
+            <Button asChild className="h-11 cursor-pointer sm:h-9">
+              <Link to="/super-admin/users/new">
+                <Plus aria-hidden="true" />
+                Add user
+              </Link>
             </Button>
           </>
         }
-      >
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
-            type="search"
-            placeholder="Search by name or email"
-            className="pl-9"
-            value={search}
-            onChange={(event) => handleSearchChange(event.target.value)}
-            aria-label="Search users"
-          />
-        </div>
-      </PageHeader>
-
-      {isError && !isForbidden && (
-        <Alert
-          variant="inline"
-          status="error"
-          timeout={0}
-          title="Couldn't load users"
-          message={
-            error instanceof ApiError
-              ? error.message
-              : "Something went wrong. Please try again."
-          }
-        />
-      )}
-
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Learn ID</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading users...
-                </TableCell>
-              </TableRow>
-            ) : pageRows.length ? (
-              pageRows.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.fullName}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.learnId ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.isActive ? "default" : "outline"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Actions for ${user.fullName}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() =>
-                            openFormDialog({ mode: "edit", user })
-                          }
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => setDeactivateTarget(user)}
-                        >
-                          {user.isActive ? "Deactivate" : "Reactivate"}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  {search ? (
-                    <div className="flex h-24 items-center justify-center">
-                      No users match your search.
-                    </div>
-                  ) : isForbidden ? (
-                    <div className="flex h-24 flex-col items-center justify-center gap-2">
-                      <span>You don't have any users to see yet.</span>
-                      <Button size="sm" onClick={() => openFormDialog({ mode: "create" })}>
-                        <Plus className="h-4 w-4" />
-                        Create your first user
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex h-24 items-center justify-center">No users yet.</div>
-                  )}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {filteredUsers.length > 0 && (
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            <span className="text-foreground">
-              {(safePage - 1) * PAGE_SIZE + 1}-
-              {Math.min(safePage * PAGE_SIZE, filteredUsers.length)}
-            </span>{" "}
-            of <span className="text-foreground">{filteredUsers.length}</span>
-          </p>
-
-          <Pagination className="mx-0 w-fit">
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={safePage === 1}
-                  aria-label="Go to previous page"
-                >
-                  ←
-                </Button>
-              </PaginationItem>
-
-              {showLeftEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(1)}>
-                      1
-                    </PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                </>
-              )}
-
-              {pages.map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => setCurrentPage(page)}
-                    isActive={safePage === page}
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              {showRightEllipsis && (
-                <>
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink onClick={() => setCurrentPage(totalPages)}>
-                      {totalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                </>
-              )}
-
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
-                  disabled={safePage === totalPages}
-                  aria-label="Go to next page"
-                >
-                  →
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
-
-      <UserFormDialog
-        key={formDialogNonce}
-        open={formDialog !== null}
-        onOpenChange={(open) => !open && setFormDialog(null)}
-        mode={formDialog?.mode ?? "create"}
-        user={formDialog?.mode === "edit" ? formDialog.user : undefined}
-        onSuccess={(mode, savedUser, apiMessage) =>
-          showToast(
-            apiMessage,
-            mode === "create"
-              ? `${savedUser.fullName} can now sign in with their temporary password.`
-              : `${savedUser.fullName}'s details have been saved.`,
-          )
-        }
       />
+
+      {isError && !isForbidden ? (
+        <ErrorCard
+          title="Couldn't load users"
+          error={error}
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
+        />
+      ) : (
+        <>
+          <ListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            placeholder="Search by name or email"
+            searchLabel="Search users by name or email"
+            filters={
+              <FilterTabs
+                options={STATUS_FILTERS}
+                value={status}
+                onChange={setStatus}
+                label="Filter by status"
+              />
+            }
+          />
+
+          <div className="space-y-4">
+            <DataTable
+              columns={columns}
+              rows={rows}
+              getRowId={(user) => user.id}
+              renderCard={renderCard}
+              isLoading={isLoading}
+              caption="Staff accounts on the platform"
+              empty={
+                <Card>
+                  <CardContent className="py-4">
+                    <Empty className="px-0">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Users aria-hidden="true" />
+                        </EmptyMedia>
+                        <EmptyTitle>{hasFilters ? "No matches" : "No users to show"}</EmptyTitle>
+                        <EmptyDescription>
+                          {hasFilters
+                            ? "Try a different search term, or clear the filters."
+                            : isForbidden
+                              ? "You can create accounts, but you don't have permission to browse the full user list."
+                              : "Add staff one at a time, or bring a whole cohort in with a bulk import."}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                      {hasFilters ? (
+                        <Button
+                          variant="outline"
+                          className="h-11 cursor-pointer sm:h-9"
+                          onClick={() => {
+                            setSearch("");
+                            setStatus("all");
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      ) : (
+                        <Button asChild className="h-11 cursor-pointer sm:h-9">
+                          <Link to="/super-admin/users/new">
+                            <Plus aria-hidden="true" />
+                            Add user
+                          </Link>
+                        </Button>
+                      )}
+                    </Empty>
+                  </CardContent>
+                </Card>
+              }
+            />
+
+            {!isLoading && rows.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {total} {total === 1 ? "user" : "users"}
+                  {pageCount > 1 && ` · page ${page} of ${pageCount}`}
+                </p>
+                <ListPager page={page} pageCount={pageCount} onPageChange={setPage} />
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <DeactivateUserDialog
         user={deactivateTarget}
         open={deactivateTarget !== null}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
         onSuccess={(action, targetUser, apiMessage) =>
-          showToast(
-            apiMessage,
-            action === "deactivated"
-              ? `${targetUser.fullName} can no longer sign in.`
-              : `${targetUser.fullName} can sign in again.`,
-          )
+          toast.success(apiMessage, {
+            description:
+              action === "deactivated"
+                ? `${targetUser.fullName} can no longer sign in.`
+                : `${targetUser.fullName} can sign in again.`,
+          })
         }
       />
-
-      {toast && (
-        <Alert
-          key={toast.id}
-          variant="toast"
-          status="success"
-          title={toast.title}
-          reducedMotion
-          timeout={6000}
-          message={toast.message}
-          onDismiss={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

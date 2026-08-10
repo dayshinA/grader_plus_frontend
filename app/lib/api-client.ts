@@ -37,6 +37,29 @@ export class ApiError extends Error {
     this.code = response.code;
     this.errors = response.errors;
   }
+
+  /**
+   * The backend's `errors: [{ field, message }]` array as a field → messages map, which is the
+   * shape the shared form components (`FormField`, `FormError`) read. Derived rather than stored
+   * so `errors` stays the single source of truth.
+   */
+  get fieldErrors(): Record<string, string[]> {
+    const map: Record<string, string[]> = {};
+    for (const entry of this.errors ?? []) {
+      (map[entry.field] ??= []).push(entry.message);
+    }
+    return map;
+  }
+
+  /** First message for a field, for wiring straight into a form field's `error` slot. */
+  fieldError(field: string): string | undefined {
+    return this.errors?.find((entry) => entry.field === field)?.message;
+  }
+}
+
+/** Narrows an unknown rejection to the one error type every caller in this app has to handle. */
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
 }
 
 /**

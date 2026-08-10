@@ -1,10 +1,15 @@
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans:
-    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration, 40s) linear infinite;
+  --animate-wiggle: wiggle 2s ease-in-out infinite;
+  --animate-wave: wave var(--duration, 1s) ease-in-out infinite;
 
   /* Primary — Loughborough Eminence purple. Pinned exact at 700; ramp built
      around it toward Jagger (950, exact) at the dark end. Use 600/700 for
@@ -23,23 +28,21 @@
   --color-primary-950: #2d0e52; /* Jagger, brand-exact */
 
   /* Secondary — Loughborough Malibu blue. Pinned exact at 300 (its native
-     lightness). Use 700+ for text on light backgrounds (600 and lighter are
-     for large text, icons, borders, and fills only — they don't clear 4.5:1). */
-  --color-secondary-50: #f0f9ff;
-  --color-secondary-100: #e0f2fe;
-  --color-secondary-200: #c7e9fc;
-  --color-secondary-300: #94d0f9; /* Malibu, brand-exact */
-  --color-secondary-400: #6bb8ed;
-  --color-secondary-500: #4a9ddb;
-  --color-secondary-600: #357fbd;
-  --color-secondary-700: #2a6396;
-  --color-secondary-800: #234e78;
-  --color-secondary-900: #1d3f60;
-  --color-secondary-950: #142a40;
+     lightness). Use 700+ for text on light backgrounds. */
+  --color-brand-blue-50: #f0f9ff;
+  --color-brand-blue-100: #e0f2fe;
+  --color-brand-blue-200: #c7e9fc;
+  --color-brand-blue-300: #94d0f9; /* Malibu, brand-exact */
+  --color-brand-blue-400: #6bb8ed;
+  --color-brand-blue-500: #4a9ddb;
+  --color-brand-blue-600: #357fbd;
+  --color-brand-blue-700: #2a6396;
+  --color-brand-blue-800: #234e78;
+  --color-brand-blue-900: #1d3f60;
+  --color-brand-blue-950: #142a40;
 
-  /* Semantic status colors — success stays calm/desaturated; error and
-     warning are saturated, unambiguous red/yellow. Info reuses the
-     secondary scale rather than a fifth ramp. */
+  /* Semantic status ramps — success stays calm/desaturated; warning and error
+     are saturated and unambiguous. */
   --color-success-50: #f2f8f4;
   --color-success-100: #e1f0e6;
   --color-success-200: #c2e0cb;
@@ -75,90 +78,177 @@
   --color-error-800: #991b1b;
   --color-error-900: #7f1d1d;
   --color-error-950: #450a0a;
-
-  /* Semantic mapping layer — lets shadcn-sourced components (bg-primary,
-     text-primary-foreground, bg-destructive, border-input, outline-ring/70,
-     etc.) drop in against this app's brand scales with zero class rewriting.
-     Every value below aliases an already-approved, contrast-checked step
-     from the scales above (see decision #5) or Tailwind's built-in gray-*
-     — this introduces no new colors, only names existing ones semantically.
-     See decision #6 in SYSTEM_DESIGN.md. */
-  --color-background: #ffffff;
-  --color-foreground: var(--color-gray-900);
-
-  --color-primary: var(
-    --color-primary-700
-  ); /* Eminence exact; 8.81:1 vs white */
-  --color-primary-foreground: #ffffff;
-
-  --color-secondary: var(
-    --color-secondary-300
-  ); /* Malibu exact; needs dark text, not white (1.66:1 vs white fails) */
-  --color-secondary-foreground: var(
-    --color-gray-900
-  ); /* 10.69:1 vs secondary-300 */
-
-  --color-destructive: var(--color-error-600); /* ≈4.8:1 vs white */
-  --color-destructive-foreground: #ffffff;
-
-  --color-accent: var(--color-gray-100);
-  --color-accent-foreground: var(--color-gray-900);
-
-  --color-popover: var(
-    --color-background
-  ); /* decision #10: elevated surfaces (dropdown/popover content) match page background — no distinct surface color requested yet */
-  --color-popover-foreground: var(--color-foreground);
-
-  --color-muted: var(--color-gray-100);
-  --color-muted-foreground: var(
-    --color-gray-500
-  ); /* placeholder/helper text; 4.6:1 vs white at full opacity */
-
-  /* decision #36: soft status-chip tokens (light fill + dark text) for Badge's
-     success/warning variants — first consumer, dashboard's per-student/per-marker
-     status badges. Not a solid fill like primary/destructive, so flips with the
-     other neutral tokens below rather than staying pinned. */
-  --color-success: var(--color-success-100);
-  --color-success-foreground: var(--color-success-800);
-  --color-warning: var(--color-warning-100);
-  --color-warning-foreground: var(--color-warning-800);
-
-  --color-border: var(--color-gray-300);
-  --color-input: var(--color-gray-300);
-  --color-ring: var(--color-primary-600);
 }
 
-/* Dark-mode overrides for the neutral semantic tokens only — brand fills
-   (primary/secondary/destructive + their foregrounds) are already
-   contrast-safe as isolated colored elements and don't need to flip.
-   --color-background is pinned to true black (#000000) here so it matches
-   the html/body dark:bg-black override below — previously this used
-   gray-950, which would have produced two different "blacks" on the page. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #000000;
-    --color-foreground: var(--color-gray-100);
-    --color-accent: var(--color-gray-800);
-    --color-accent-foreground: var(--color-gray-100);
-    --color-muted: var(--color-gray-800);
-    --color-muted-foreground: var(
-      --color-gray-400
-    ); /* 8.1:1 vs gray-950 at full opacity — still valid against true black too */
-    --color-success: var(--color-success-900);
-    --color-success-foreground: var(--color-success-300);
-    --color-warning: var(--color-warning-900);
-    --color-warning-foreground: var(--color-warning-300);
-    --color-border: var(--color-gray-700);
-    --color-input: var(--color-gray-700);
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.6);
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
   }
 }
 
 html,
 body {
-  @apply bg-white dark:bg-black;
-  color-scheme: light;
+  @apply bg-white dark:bg-gray-950;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Neutral surface scale is shadcn's, so every copied component reads the way it
+   was designed to; the brand enters through --primary (Eminence purple) and the
+   accents derived from it, rather than through a second, competing palette. */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #6c3082; /* Eminence, brand-exact — 8.81:1 vs white */
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: #f8f4fb; /* primary-50 — hover/selected tint, brand-tinted neutral */
+  --accent-foreground: #562669; /* primary-800 */
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: #77408f; /* primary-600 */
+  --chart-1: #6c3082;
+  --chart-2: #ab79c4;
+  --chart-3: #94d0f9;
+  --chart-4: #357fbd;
+  --chart-5: #4f9468;
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #6c3082;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f8f4fb;
+  --sidebar-accent-foreground: #562669;
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: #77408f;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #c8a3da; /* primary-300 — legible fill on a dark surface */
+  --primary-foreground: #2d0e52; /* Jagger */
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: #3f1c4d; /* primary-900 */
+  --accent-foreground: #efe6f5; /* primary-100 */
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #ab79c4;
+  --chart-1: #c8a3da;
+  --chart-2: #ab79c4;
+  --chart-3: #94d0f9;
+  --chart-4: #6bb8ed;
+  --chart-5: #71b186;
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #c8a3da;
+  --sidebar-primary-foreground: #2d0e52;
+  --sidebar-accent: #3f1c4d;
+  --sidebar-accent-foreground: #efe6f5;
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #ab79c4;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }

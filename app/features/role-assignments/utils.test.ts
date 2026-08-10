@@ -15,10 +15,12 @@ import {
   defaultPermissionKeysAt,
   delegatableTemplates,
   grantableExtras,
+  groupPermissionsByDomain,
   isScopeFieldError,
   permissionKeysAtScope,
   resolveScopeChain,
   roleAssignmentErrorMessage,
+  roleTemplateDescription,
   scopeTypesForTemplate,
 } from "~/features/role-assignments/utils";
 import { ApiError } from "~/lib/api-client";
@@ -41,8 +43,8 @@ const SOURCES = {
 const TEMPLATES: RoleTemplateCatalogEntry[] = [
   {
     id: "t0",
-    key: "super_admin",
-    name: "Super Admin",
+    key: "system_administrator",
+    name: "System Administrator",
     description: "",
     hierarchyLevel: 0,
     scopes: [{ scopeType: "global", defaultPermissionKeys: ["users.view"] }],
@@ -71,7 +73,7 @@ const TEMPLATES: RoleTemplateCatalogEntry[] = [
     hierarchyLevel: 3,
     scopes: [
       { scopeType: "department", defaultPermissionKeys: ["modules.create"] },
-      { scopeType: "module", defaultPermissionKeys: ["rubrics.manage"] },
+      { scopeType: "module", defaultPermissionKeys: ["rubrics.update"] },
     ],
   },
   {
@@ -124,9 +126,9 @@ const departmentAdmin = makeSummary(["department_admin", "project_coordinator"],
   ],
 });
 
-const superAdmin = makeSummary(["super_admin"], {
+const superAdmin = makeSummary(["system_administrator"], {
   assignments: [
-    makeAssignment("super_admin", {
+    makeAssignment("system_administrator", {
       scopeType: "global",
       scopeId: null,
       permissionKeys: ["roles.assign", "users.create", "grades.export"],
@@ -171,7 +173,7 @@ describe("assignmentContainsScope", () => {
   it("a global assignment contains everything", () => {
     expect(
       assignmentContainsScope(
-        makeAssignment("super_admin", { scopeType: "global", scopeId: null }),
+        makeAssignment("system_administrator", { scopeType: "global", scopeId: null }),
         chain,
       ),
     ).toBe(true);
@@ -265,10 +267,10 @@ describe("delegatableTemplates — Rule 2", () => {
     );
 
     // Marker is valid at school scope; School Admin (a peer, level 1) is not
-    // offered, and neither is Super Admin (senior).
+    // offered, and neither is System Administrator (senior).
     expect(keys).toContain("marker");
     expect(keys).not.toContain("school_admin");
-    expect(keys).not.toContain("super_admin");
+    expect(keys).not.toContain("system_administrator");
   });
 
   it("lets a School Admin confer Department Admin inside their own school", () => {
@@ -293,7 +295,7 @@ describe("delegatableTemplates — Rule 2", () => {
     );
 
     expect(keys).not.toContain("school_admin");
-    expect(keys).not.toContain("super_admin");
+    expect(keys).not.toContain("system_administrator");
   });
 
   it("offers nothing at a scope the grantor holds no containing role at", () => {
@@ -335,7 +337,7 @@ describe("Rule 1 is not applied to template defaults", () => {
   it("a School Admin can grant Marker even though its defaults include a permission they must never hold", () => {
     // This is the bug the backend shipped and reverted on 2026-07-30. If Rule 1
     // were applied to defaults, no admin could ever create a Marker, leaving
-    // Super Admin as the only account able to staff a module.
+    // System Administrator as the only account able to staff a module.
     const chain = resolveScopeChain("school", "school-sci", SOURCES);
     const marker = delegatableTemplates(
       TEMPLATES,
@@ -400,13 +402,13 @@ describe("canRevokeAssignment — Rule 2 applies to revocation too", () => {
     expect(canRevokeAssignment(schoolAdmin, target, SOURCES)).toBe(false);
   });
 
-  it("nobody can revoke a global Super Admin except a Super Admin", () => {
-    const target = makeAssignment("super_admin", {
+  it("nobody can revoke a global System Administrator except a System Administrator", () => {
+    const target = makeAssignment("system_administrator", {
       scopeType: "global",
       scopeId: null,
     });
     expect(canRevokeAssignment(schoolAdmin, target, SOURCES)).toBe(false);
-    // Not even another Super Admin: level 0 can't be strictly below itself.
+    // Not even another System Administrator: level 0 can't be strictly below itself.
     expect(canRevokeAssignment(superAdmin, target, SOURCES)).toBe(false);
   });
 });
@@ -419,7 +421,7 @@ describe("scopeTypesForTemplate / defaultPermissionKeysAt", () => {
 
   it("returns the defaults for the asked-for scope, not the first one", () => {
     const coordinator = TEMPLATES.find((t) => t.key === "project_coordinator")!;
-    expect(defaultPermissionKeysAt(coordinator, "module")).toEqual(["rubrics.manage"]);
+    expect(defaultPermissionKeysAt(coordinator, "module")).toEqual(["rubrics.update"]);
   });
 
   it("returns nothing for a scope the template isn't valid at", () => {
@@ -461,5 +463,88 @@ describe("error copy", () => {
     expect(isScopeFieldError(apiError("INVALID_SCOPE_FOR_ROLE_TEMPLATE"))).toBe(true);
     expect(isScopeFieldError(apiError("ROLE_ASSIGNMENT_HIERARCHY_VIOLATION"))).toBe(false);
     expect(isScopeFieldError(new Error("boom"))).toBe(false);
+  });
+});
+
+describe("groupPermissionsByDomain", () => {
+  it("reproduces School Admin's exact 22-default breakdown (backend_verified_RBAC.txt §8.2)", () => {
+    // The seeded School Admin default set, verbatim — see permission-catalog.definition.ts:434-458.
+    const schoolAdminDefaults = [
+      "schools.view",
+      "schools.view_detail",
+      "departments.create",
+      "departments.view",
+      "departments.view_detail",
+      "modules.view",
+      "marking_status.view",
+      "dashboard.view",
+      "discrepancies.view",
+      "grades.view",
+      "submissions.view",
+      "audit_logs.view",
+      "roles.assign",
+      "roles.revoke",
+      "permissions.assign",
+      "permissions.revoke",
+      "roles.view_candidates",
+      "roles.view",
+      "users.create",
+      "users.view",
+      "users.update",
+      "users.deactivate",
+    ] as const;
+
+    const groups = groupPermissionsByDomain(schoolAdminDefaults, (key) => key);
+
+    expect(groups.map((g) => ({ label: g.label, count: g.items.length }))).toEqual([
+      { label: "Schools", count: 2 },
+      { label: "Departments", count: 3 },
+      { label: "Users", count: 4 },
+      { label: "Role Management", count: 6 },
+      { label: "Audit", count: 1 },
+      { label: "Academic Oversight", count: 6 },
+    ]);
+    // Every key is accounted for exactly once, none dropped or duplicated.
+    expect(groups.flatMap((g) => g.items).sort()).toEqual([...schoolAdminDefaults].sort());
+  });
+
+  it("drops empty domains entirely rather than rendering an empty group", () => {
+    const groups = groupPermissionsByDomain(["schools.view"] as const, (key) => key);
+    expect(groups).toEqual([{ label: "Schools", items: ["schools.view"] }]);
+  });
+
+  it("returns nothing for an empty input", () => {
+    expect(groupPermissionsByDomain([], (key: never) => key)).toEqual([]);
+  });
+
+  it("works over a richer item shape via the key selector, not just bare keys", () => {
+    const entries = [
+      { key: "users.create", label: "Create users" },
+      { key: "schools.view", label: "View schools" },
+    ] as const;
+
+    const groups = groupPermissionsByDomain(entries, (entry) => entry.key);
+
+    expect(groups).toEqual([
+      { label: "Schools", items: [{ key: "schools.view", label: "View schools" }] },
+      { label: "Users", items: [{ key: "users.create", label: "Create users" }] },
+    ]);
+  });
+});
+
+describe("roleTemplateDescription", () => {
+  it("returns the friendly override for a known template", () => {
+    expect(roleTemplateDescription("school_admin")).toContain("Responsible for managing an entire school");
+  });
+
+  it("falls back to the catalogue's own description for an unmapped key", () => {
+    // Cast bypasses the closed RoleTemplateKey union to exercise the fallback path itself —
+    // the map is meant to cover all five real keys, so this simulates "backend adds a sixth".
+    expect(
+      roleTemplateDescription(
+        "unknown_role" as Parameters<typeof roleTemplateDescription>[0],
+        "raw catalogue description",
+      ),
+    ).toBe("raw catalogue description");
   });
 });

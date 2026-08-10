@@ -1,18 +1,10 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import { buttonVariants } from "~/components/ui/button";
+import { CircleCheck, CircleSlash } from "lucide-react";
+
+import { ChangeSummary } from "~/components/ui/change-summary";
+import { ConfirmDialog } from "~/components/ui/confirm-dialog";
 import { useDeactivateModule } from "~/features/academic-modules/api/use-deactivate-module";
 import { useUpdateModule } from "~/features/academic-modules/api/use-update-module";
 import type { AcademicModuleResponse } from "~/features/academic-modules/types";
-import { cn } from "~/lib/utils";
 
 interface DeactivateModuleDialogProps {
   module: AcademicModuleResponse | null;
@@ -67,32 +59,36 @@ export function DeactivateModuleDialog({
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {isReactivating ? "Reactivate this module?" : "Deactivate this module?"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {isReactivating
-              ? `${module.name} will be active again.`
-              : `${module.name} will be marked inactive. It is kept, not deleted — you can reactivate it later.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className={cn(!isReactivating && buttonVariants({ variant: "destructive" }))}
-            disabled={isPending}
-            onClick={(event) => {
-              event.preventDefault();
-              handleConfirm();
-            }}
-          >
-            {isPending ? "Working..." : isReactivating ? "Reactivate" : "Deactivate"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={isReactivating ? CircleCheck : CircleSlash}
+      title={isReactivating ? "Reactivate this module?" : "Deactivate this module?"}
+      description={
+        isReactivating
+          ? `${module.name} will be active again.`
+          : `${module.name} will be marked inactive. It is kept, not deleted — you can reactivate it later.`
+      }
+      details={
+        <ChangeSummary
+          items={[
+            {
+              label: "Module",
+              to: module.name,
+            },
+            {
+              label: "Status",
+              from: isReactivating ? "Inactive" : "Active",
+              to: isReactivating ? "Active" : "Inactive",
+            },
+          ]}
+        />
+      }
+      confirmLabel={isReactivating ? "Reactivate" : "Deactivate"}
+      pendingLabel="Working…"
+      onConfirm={handleConfirm}
+      isPending={isPending}
+      destructive={!isReactivating}
+    />
   );
 }

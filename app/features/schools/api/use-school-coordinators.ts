@@ -6,7 +6,7 @@ export const schoolCoordinatorsQueryKey = (schoolId: string) =>
 
 /** `enabled` is gated on a school actually being selected — same convention as
  * `useDepartmentCoordinators`. First consumer: the "Delegate Department Admin" tab on
- * `coordinator/school-settings.tsx`. */
+ * `workspace/school-settings.tsx`. */
 export function useSchoolCoordinators(schoolId: string | undefined) {
   return useQuery({
     queryKey: schoolCoordinatorsQueryKey(schoolId ?? ""),

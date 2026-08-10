@@ -1,83 +1,84 @@
-import type { ComponentType } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useState } from "react";
 
-import { cn } from "~/lib/utils";
+import { componentRegistry } from "~/components/demo/registry";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "~/components/ui/breadcrumb";
+import { Card, CardContent } from "~/components/ui/card";
+import { DashboardSidebar, type NavGroupData } from "~/components/ui/dashboard-sidebar";
+import { Separator } from "~/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar";
+import type { Route } from "./+types/preview";
 
-import AlertDialogPreview from "./alert-dialog-preview";
-import AlertPreview from "./alert-preview";
-import ButtonPreview from "./button-preview";
-import DialogPreview from "./dialog-preview";
-import DropdownMenuPreview from "./dropdown-menu-preview";
-import FileInputPreview from "./file-input-preview";
-import InputPreview from "./input-preview";
-import LoaderOnePreview from "./loader-one-preview";
-import PasswordInputPreview from "./password-input-preview";
-import SelectPreview from "./select-preview";
-import SidebarPreview from "./sidebar-preview";
-import TablePreview from "./table-preview";
-import TabsPreview from "./tabs-preview";
-import ToolbarPreview from "./toolbar-preview";
-
-interface PreviewEntry {
-  id: string;
-  label: string;
-  Component: ComponentType;
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: "Component Preview — GraderPlus" },
+    {
+      name: "description",
+      content: "Live preview of every UI component built for GraderPlus.",
+    },
+  ];
 }
 
-// Add a new preview by adding one entry here — no routes.ts change needed.
-const previews: PreviewEntry[] = [
-  { id: "button", label: "Button", Component: ButtonPreview },
-  { id: "input", label: "Input", Component: InputPreview },
-  { id: "password-input", label: "Password Input", Component: PasswordInputPreview },
-  { id: "file-input", label: "File Input", Component: FileInputPreview },
-  { id: "loader-one", label: "Loader One", Component: LoaderOnePreview },
-  { id: "dropdown-menu", label: "Dropdown Menu", Component: DropdownMenuPreview },
-  { id: "sidebar", label: "Sidebar", Component: SidebarPreview },
-  { id: "table", label: "Table", Component: TablePreview },
-  { id: "toolbar", label: "Toolbar", Component: ToolbarPreview },
-  { id: "alert-dialog", label: "Alert Dialog", Component: AlertDialogPreview },
-  { id: "alert", label: "Alert", Component: AlertPreview },
-  { id: "dialog", label: "Dialog", Component: DialogPreview },
-  { id: "select", label: "Select", Component: SelectPreview },
-  { id: "tabs", label: "Tabs", Component: TabsPreview },
-];
+const navGroups: NavGroupData[] = (() => {
+  const byCategory = new Map<string, NavGroupData["items"]>();
+  for (const entry of componentRegistry) {
+    const items = byCategory.get(entry.category) ?? [];
+    items.push({ id: entry.id, title: entry.name, icon: entry.icon });
+    byCategory.set(entry.category, items);
+  }
+  return Array.from(byCategory.entries()).map(([heading, items]) => ({ heading, items }));
+})();
 
-export default function ComponentPreviewHub() {
-  const [searchParams] = useSearchParams();
-  const active = previews.find((preview) => preview.id === searchParams.get("component")) ?? previews[0];
-  const ActiveComponent = active.Component;
+export default function ComponentPreview() {
+  const [activeId, setActiveId] = useState(componentRegistry[0].id);
+  const selected =
+    componentRegistry.find((entry) => entry.id === activeId) ?? componentRegistry[0];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground md:flex-row">
-      <nav
-        aria-label="Component previews"
-        className="flex shrink-0 gap-1 overflow-x-auto border-b border-border p-2 md:w-56 md:flex-col md:overflow-x-visible md:border-b-0 md:border-r md:p-3"
-      >
-        {previews.map((preview) => {
-          const isActive = preview.id === active.id;
-          return (
-            <Link
-              key={preview.id}
-              to={`?component=${preview.id}`}
-              replace
-              preventScrollReset
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground md:w-full",
-                isActive && "bg-accent text-primary",
-              )}
-            >
-              {preview.label}
-            </Link>
-          );
-        })}
-      </nav>
+    <SidebarProvider>
+      <DashboardSidebar
+        navGroups={navGroups}
+        bottomItems={[]}
+        workspaces={["GraderPlus"]}
+        activeId={activeId}
+        onSelect={setActiveId}
+      />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/50 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-muted-foreground">
+                  {selected.category}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{selected.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
 
-      {/* `contain: layout` scopes any `position: fixed` inside a preview (e.g. Sidebar) to this
-          box instead of the viewport, so it can't overlap the nav above. */}
-      <div className="min-w-0 flex-1" style={{ contain: "layout" }}>
-        <ActiveComponent />
-      </div>
-    </div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-6">
+              <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{selected.name}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{selected.description}</p>
+            </div>
+            <Card>
+              <CardContent>{selected.render()}</CardContent>
+            </Card>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

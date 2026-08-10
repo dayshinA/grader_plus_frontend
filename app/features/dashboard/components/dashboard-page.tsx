@@ -1,19 +1,23 @@
-import { LayoutDashboard, Search } from "lucide-react";
+import { CalendarClock, GraduationCap, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
-import { Alert } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { PageHeader } from "~/components/ui/page-header";
+import { Card, CardContent } from "~/components/ui/card";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "~/components/ui/pagination";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { ErrorCard } from "~/components/ui/error-card";
+import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
+import { ListPager } from "~/components/ui/list-pager";
+import { ListToolbar } from "~/components/ui/list-toolbar";
+import { PageHeader } from "~/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -21,23 +25,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { usePagination } from "~/hooks/use-pagination";
+import { StatCard } from "~/components/ui/stat-card";
 import { useAcademicModules } from "~/features/academic-modules/api/use-academic-modules";
 import { useDashboard } from "~/features/dashboard/api/use-dashboard";
 import { StudentMarkersDialog } from "~/features/dashboard/components/student-markers-dialog";
+import { findNavItem } from "~/features/dashboard/nav";
 import type { DashboardStudentEntry, OverallStatus } from "~/features/dashboard/types";
-import { ApiError } from "~/lib/api-client";
+import { usePagedList } from "~/hooks/use-paged-list";
 
-const PAGE_SIZE = 10;
-const PAGINATION_ITEMS_TO_DISPLAY = 5;
+type StatusFilter = "all" | OverallStatus;
+
+const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
+  { id: "all", label: "All" },
+  { id: "not_started", label: "Not started" },
+  { id: "in_progress", label: "In progress" },
+  { id: "complete", label: "Complete" },
+];
+
+const nav = findNavItem("/workspace/dashboard");
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -69,10 +74,12 @@ export function DashboardPage() {
     isLoading: dashboardLoading,
     isError,
     error,
+    refetch,
+    isFetching,
   } = useDashboard(moduleId ?? undefined);
 
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [status, setStatus] = useState<StatusFilter>("all");
   const [selectedStudent, setSelectedStudent] = useState<DashboardStudentEntry | null>(null);
 
   // Landing screen — default to the caller's first accessible module rather than showing an
@@ -94,17 +101,14 @@ export function DashboardPage() {
       (prev) => {
         const next = new URLSearchParams(prev);
         next.set("moduleId", id);
+        // A different module is a different cohort — page 3 of the old one means nothing here.
+        next.delete("page");
         return next;
       },
       { replace: true },
     );
     setSearch("");
-    setCurrentPage(1);
-  }
-
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setCurrentPage(1);
+    setStatus("all");
   }
 
   const selectedModule = useMemo(
@@ -112,228 +116,292 @@ export function DashboardPage() {
     [modules, moduleId],
   );
 
-  const filteredStudents = useMemo(() => {
-    const students = dashboard?.students ?? [];
+  const students = useMemo(() => dashboard?.students ?? [], [dashboard]);
+
+  const counts = useMemo(
+    () => ({
+      total: students.length,
+      complete: students.filter((student) => student.overallStatus === "complete").length,
+      inProgress: students.filter((student) => student.overallStatus === "in_progress").length,
+      notStarted: students.filter((student) => student.overallStatus === "not_started").length,
+    }),
+    [students],
+  );
+
+  const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return students;
     return students.filter(
       (student) =>
-        student.fullName.toLowerCase().includes(query) ||
-        student.studentCode.toLowerCase().includes(query) ||
-        student.projectTitle.toLowerCase().includes(query),
+        (status === "all" || student.overallStatus === status) &&
+        (query === "" ||
+          student.fullName.toLowerCase().includes(query) ||
+          student.studentCode.toLowerCase().includes(query) ||
+          student.projectTitle.toLowerCase().includes(query)),
     );
-  }, [dashboard, search]);
+  }, [students, search, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: safePage,
-    totalPages,
-    paginationItemsToDisplay: PAGINATION_ITEMS_TO_DISPLAY,
-  });
-  const pageRows = filteredStudents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
+  const hasFilters = search.trim() !== "" || status !== "all";
 
   const noModulesYet = !modulesLoading && (modules ?? []).length === 0;
   const isLoading = modulesLoading || (Boolean(moduleId) && dashboardLoading);
 
+  const columns: DataTableColumn<DashboardStudentEntry>[] = [
+    {
+      id: "student",
+      header: "Student",
+      cell: (student) => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{student.fullName}</p>
+          <p className="truncate text-xs text-muted-foreground">{student.studentCode}</p>
+        </div>
+      ),
+      skeletonClassName: "w-36",
+    },
+    {
+      id: "project",
+      header: "Project",
+      cell: (student) => (
+        <span className="text-muted-foreground">{student.projectTitle}</span>
+      ),
+      className: "hidden md:table-cell",
+      skeletonClassName: "w-48",
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (student) => (
+        <Badge variant={overallStatusBadgeVariant(student.overallStatus)}>
+          {overallStatusLabel(student.overallStatus)}
+        </Badge>
+      ),
+      skeletonClassName: "w-20",
+    },
+    {
+      id: "progress",
+      header: "Marked",
+      align: "end",
+      cell: (student) => (
+        <span className="tabular-nums text-muted-foreground">
+          {student.completedCount}/{student.totalMarkers}
+        </span>
+      ),
+      skeletonClassName: "w-10",
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "end",
+      cell: (student) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="cursor-pointer"
+          disabled={student.totalMarkers === 0}
+          onClick={() => setSelectedStudent(student)}
+        >
+          View markers
+        </Button>
+      ),
+      className: "w-32",
+      skeletonClassName: "h-8 w-24 rounded-md",
+    },
+  ];
+
+  const renderCard = (student: DashboardStudentEntry) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{student.fullName}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {student.studentCode} · {student.projectTitle}
+          </p>
+        </div>
+        <Badge variant={overallStatusBadgeVariant(student.overallStatus)}>
+          {overallStatusLabel(student.overallStatus)}
+        </Badge>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+        <span className="text-sm tabular-nums text-muted-foreground">
+          {student.completedCount}/{student.totalMarkers} marked
+        </span>
+        <Button
+          variant="outline"
+          className="h-9 cursor-pointer"
+          disabled={student.totalMarkers === 0}
+          onClick={() => setSelectedStudent(student)}
+        >
+          View markers
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Coordinator Dashboard" icon={LayoutDashboard}>
-        {!noModulesYet && (
-          <div className="max-w-sm">
-            <Select value={moduleId ?? undefined} onValueChange={handleModuleChange}>
-              <SelectTrigger aria-label="Select a module">
-                <SelectValue placeholder="Select a module" />
-              </SelectTrigger>
-              <SelectContent>
-                {(modules ?? []).map((module) => (
-                  <SelectItem key={module.id} value={module.id}>
-                    {module.code} — {module.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </PageHeader>
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description={nav?.description}
+        actions={
+          !noModulesYet ? (
+            <div className="w-full sm:w-72">
+              <Select value={moduleId ?? undefined} onValueChange={handleModuleChange}>
+                <SelectTrigger aria-label="Select a module">
+                  <SelectValue placeholder="Select a module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(modules ?? []).map((module) => (
+                    <SelectItem key={module.id} value={module.id}>
+                      {module.code} — {module.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : undefined
+        }
+      />
 
       {noModulesYet ? (
-        <Alert
-          variant="inline"
-          status="info"
-          timeout={0}
-          title="No modules yet"
-          message="You don't own or administer any modules yet. Ask a Super Admin to create one, or grant you Department Admin access."
+        <Card>
+          <CardContent className="py-4">
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <GraduationCap aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>No modules yet</EmptyTitle>
+                <EmptyDescription>
+                  You don't coordinate or administer any modules yet. Ask a System Administrator to
+                  create one, or to grant you Department Admin access.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
+      ) : isError ? (
+        <ErrorCard
+          title="Couldn't load the dashboard"
+          error={error}
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
         />
       ) : (
         <>
-          {isError && (
-            <Alert
-              variant="inline"
-              status="error"
-              timeout={0}
-              title="Couldn't load the dashboard"
-              message={
-                error instanceof ApiError
-                  ? error.message
-                  : "Something went wrong. Please try again."
-              }
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              loading={isLoading}
+              stat={{
+                title: "Students",
+                value: counts.total,
+                caption: selectedModule ? `In ${selectedModule.code}` : "In this module",
+              }}
             />
-          )}
+            <StatCard
+              loading={isLoading}
+              stat={{
+                title: "Fully marked",
+                value: counts.complete,
+                caption: "Every assigned marker has submitted",
+              }}
+            />
+            <StatCard
+              loading={isLoading}
+              stat={{
+                title: "In progress",
+                value: counts.inProgress,
+                caption: "Some but not all markers done",
+              }}
+            />
+            <StatCard
+              loading={isLoading}
+              stat={{
+                title: "Not started",
+                value: counts.notStarted,
+                caption: "No marker has submitted yet",
+              }}
+            />
+          </div>
 
           {dashboard?.deadlineApproaching && (
-            <Alert
-              variant="inline"
-              status="warning"
-              timeout={0}
-              title="Marking deadline approaching"
-              message={`${selectedModule?.code ?? "This module"}'s marking deadline is ${formatDate(dashboard.markingDeadline)}. Incomplete marking should be chased up now.`}
-            />
-          )}
-
-          <div className="relative max-w-sm">
-            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-            <Input
-              type="search"
-              placeholder="Search by student, code, or project"
-              className="pl-9"
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              aria-label="Search students"
-            />
-          </div>
-
-          <div className="overflow-hidden rounded-lg border border-border bg-background">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Student</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      Loading dashboard...
-                    </TableCell>
-                  </TableRow>
-                ) : pageRows.length ? (
-                  pageRows.map((student) => (
-                    <TableRow key={student.studentId}>
-                      <TableCell>
-                        <div className="font-medium">{student.fullName}</div>
-                        <div className="text-xs text-muted-foreground">{student.studentCode}</div>
-                      </TableCell>
-                      <TableCell>{student.projectTitle}</TableCell>
-                      <TableCell>
-                        <Badge variant={overallStatusBadgeVariant(student.overallStatus)}>
-                          {overallStatusLabel(student.overallStatus)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {student.completedCount}/{student.totalMarkers}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={student.totalMarkers === 0}
-                          onClick={() => setSelectedStudent(student)}
-                        >
-                          View markers
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      {search ? "No students match your search." : "No students yet."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredStudents.length > 0 && (
-            <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                <span className="text-foreground">
-                  {(safePage - 1) * PAGE_SIZE + 1}-
-                  {Math.min(safePage * PAGE_SIZE, filteredStudents.length)}
-                </span>{" "}
-                of <span className="text-foreground">{filteredStudents.length}</span>
-              </p>
-
-              <Pagination className="mx-0 w-fit">
-                <PaginationContent>
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                      disabled={safePage === 1}
-                      aria-label="Go to previous page"
-                    >
-                      ←
-                    </Button>
-                  </PaginationItem>
-
-                  {showLeftEllipsis && (
-                    <>
-                      <PaginationItem>
-                        <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    </>
-                  )}
-
-                  {pages.map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={safePage === page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-
-                  {showRightEllipsis && (
-                    <>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationLink onClick={() => setCurrentPage(totalPages)}>
-                          {totalPages}
-                        </PaginationLink>
-                      </PaginationItem>
-                    </>
-                  )}
-
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                      disabled={safePage === totalPages}
-                      aria-label="Go to next page"
-                    >
-                      →
-                    </Button>
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400"
+            >
+              <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>
+                {selectedModule?.code ?? "This module"}'s marking deadline is{" "}
+                {formatDate(dashboard.markingDeadline)}. Incomplete marking should be chased up now.
+              </span>
             </div>
           )}
+
+          <ListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            placeholder="Search by student, code, or project"
+            searchLabel="Search students by name, code or project title"
+            filters={
+              <FilterTabs
+                options={STATUS_FILTERS}
+                value={status}
+                onChange={setStatus}
+                label="Filter by marking status"
+              />
+            }
+          />
+
+          <div className="space-y-4">
+            <DataTable
+              columns={columns}
+              rows={rows}
+              getRowId={(student) => student.studentId}
+              renderCard={renderCard}
+              isLoading={isLoading}
+              caption="Marking progress per student"
+              empty={
+                <Card>
+                  <CardContent className="py-4">
+                    <Empty className="px-0">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Users aria-hidden="true" />
+                        </EmptyMedia>
+                        <EmptyTitle>{hasFilters ? "No matches" : "No students yet"}</EmptyTitle>
+                        <EmptyDescription>
+                          {hasFilters
+                            ? "Try a different search term, or clear the filters."
+                            : "Nothing has been imported for this module yet. Submissions appear here once they come in from Learn."}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                      {hasFilters && (
+                        <Button
+                          variant="outline"
+                          className="h-11 cursor-pointer sm:h-9"
+                          onClick={() => {
+                            setSearch("");
+                            setStatus("all");
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      )}
+                    </Empty>
+                  </CardContent>
+                </Card>
+              }
+            />
+
+            {!isLoading && rows.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {total} {total === 1 ? "student" : "students"}
+                  {pageCount > 1 && ` · page ${page} of ${pageCount}`}
+                </p>
+                <ListPager page={page} pageCount={pageCount} onPageChange={setPage} />
+              </div>
+            )}
+          </div>
         </>
       )}
 

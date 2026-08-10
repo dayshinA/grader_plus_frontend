@@ -1,4 +1,7 @@
+import { Users } from "lucide-react";
+
 import { Badge } from "~/components/ui/badge";
+import { DataTable, type DataTableColumn } from "~/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -7,14 +10,15 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
 import type { DashboardStudentEntry, MarkingStatus } from "~/features/dashboard/types";
+
+type MarkerRow = DashboardStudentEntry["markers"][number];
 
 interface StudentMarkersDialogProps {
   student: DashboardStudentEntry | null;
@@ -44,6 +48,61 @@ function statusLabel(status: MarkingStatus): string {
 }
 
 export function StudentMarkersDialog({ student, open, onOpenChange }: StudentMarkersDialogProps) {
+  const columns: DataTableColumn<MarkerRow>[] = [
+    {
+      id: "marker",
+      header: "Marker",
+      cell: (marker) => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{marker.markerFullName}</p>
+          <p className="truncate text-xs text-muted-foreground">{marker.markerEmail}</p>
+        </div>
+      ),
+    },
+    {
+      id: "role",
+      header: "Role",
+      cell: (marker) => (
+        <span className="capitalize text-muted-foreground">{marker.assignmentRole}</span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (marker) => (
+        <Badge variant={statusBadgeVariant(marker.status)}>{statusLabel(marker.status)}</Badge>
+      ),
+    },
+    {
+      id: "submitted",
+      header: "Submitted",
+      align: "end",
+      cell: (marker) => (
+        <span className="tabular-nums text-muted-foreground">
+          {formatDateTime(marker.submittedAt)}
+        </span>
+      ),
+      className: "hidden sm:table-cell",
+    },
+  ];
+
+  const renderCard = (marker: MarkerRow) => (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{marker.markerFullName}</p>
+          <p className="truncate text-xs capitalize text-muted-foreground">
+            {marker.assignmentRole}
+          </p>
+        </div>
+        <Badge variant={statusBadgeVariant(marker.status)}>{statusLabel(marker.status)}</Badge>
+      </div>
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+        Submitted {formatDateTime(marker.submittedAt)}
+      </p>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -56,41 +115,26 @@ export function StudentMarkersDialog({ student, open, onOpenChange }: StudentMar
           )}
         </DialogHeader>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Marker</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {student && student.markers.length > 0 ? (
-              student.markers.map((marker) => (
-                <TableRow key={marker.markerId}>
-                  <TableCell>
-                    <div className="font-medium">{marker.markerFullName}</div>
-                    <div className="text-xs text-muted-foreground">{marker.markerEmail}</div>
-                  </TableCell>
-                  <TableCell className="capitalize">{marker.assignmentRole}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(marker.status)}>
-                      {statusLabel(marker.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDateTime(marker.submittedAt)}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-16 text-center text-muted-foreground">
-                  No markers assigned yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          rows={student?.markers ?? []}
+          getRowId={(marker) => marker.markerId}
+          renderCard={renderCard}
+          caption="Markers assigned to this project and how far each has got"
+          empty={
+            <Empty className="px-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Users aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>No markers assigned</EmptyTitle>
+                <EmptyDescription>
+                  Nobody has been assigned to mark this project yet.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          }
+        />
       </DialogContent>
     </Dialog>
   );

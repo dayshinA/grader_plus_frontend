@@ -1,4 +1,3 @@
-import { GraduationCap } from "lucide-react";
 import { PermissionGate } from "~/features/permissions/components/permission-gate";
 import { academicModulesQueryKey } from "~/features/academic-modules/api/use-academic-modules";
 import { academicModulesService } from "~/features/academic-modules/api/academic-modules.service";
@@ -44,7 +43,7 @@ export async function clientLoader() {
 
 export default function SuperAdminModules() {
   return (
-    <PermissionGate permissions={["modules.create"]} title="Modules" icon={GraduationCap}>
+    <PermissionGate permissions={["modules.view"]} title="Modules">
       <ModulesPage />
     </PermissionGate>
   );

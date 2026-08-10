@@ -7,8 +7,10 @@ import {
 } from "~/features/permissions/test-support";
 
 describe("landingPath", () => {
-  it("sends a Super Admin to the admin console", () => {
-    expect(landingPath(makeSummary(["super_admin"]))).toBe("/super-admin/users");
+  it("sends a System Administrator to the admin console", () => {
+    expect(landingPath(makeSummary(["system_administrator"]))).toBe(
+      "/super-admin/users",
+    );
   });
 
   it.each([
@@ -18,7 +20,7 @@ describe("landingPath", () => {
   ] as const)(
     "sends a %s to the assessment workspace",
     (role) => {
-      expect(landingPath(makeSummary([role]))).toBe("/coordinator/dashboard");
+      expect(landingPath(makeSummary([role]))).toBe("/workspace/dashboard");
     },
   );
 
@@ -31,15 +33,15 @@ describe("landingPath", () => {
     // Project Coordinator (level 3) at the same time. Precisely the case the
     // old single-`role` model could not represent.
     const deptAdmin = makeSummary(["department_admin", "project_coordinator"]);
-    expect(landingPath(deptAdmin)).toBe("/coordinator/dashboard");
+    expect(landingPath(deptAdmin)).toBe("/workspace/dashboard");
 
-    // Super Admin outranks everything, whatever order the keys arrive in.
-    expect(landingPath(makeSummary(["marker", "super_admin"]))).toBe(
+    // System Administrator outranks everything, whatever order the keys arrive in.
+    expect(landingPath(makeSummary(["marker", "system_administrator"]))).toBe(
       "/super-admin/users",
     );
-    expect(landingPath(makeSummary(["school_admin", "super_admin"]))).toBe(
-      "/super-admin/users",
-    );
+    expect(
+      landingPath(makeSummary(["school_admin", "system_administrator"])),
+    ).toBe("/super-admin/users");
   });
 
   it("breaks the level-3 Coordinator/Marker tie toward the workspace", () => {
@@ -48,7 +50,7 @@ describe("landingPath", () => {
     // far more likely to be coordinating; their marking queue is a nav click
     // away either way.
     const both = makeSummary(["marker", "project_coordinator"]);
-    expect(landingPath(both)).toBe("/coordinator/dashboard");
+    expect(landingPath(both)).toBe("/workspace/dashboard");
   });
 
   it("sends a user with no assignments somewhere terminal, not into a loop", () => {
