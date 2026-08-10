@@ -1,6 +1,6 @@
 import { Info, MoreHorizontal, ShieldCheck, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
@@ -38,13 +38,14 @@ import { useDelegationCandidates } from "~/features/role-assignments/api/use-del
 import { useScopeOptions } from "~/features/role-assignments/api/use-scope-options";
 import { useUserRoleAssignments } from "~/features/role-assignments/api/use-user-role-assignments";
 import { GrantRoleDialog } from "~/features/role-assignments/components/grant-role-dialog";
-import { ManageExtrasDialog } from "~/features/role-assignments/components/manage-extras-dialog";
 import { RevokeRoleAssignmentDialog } from "~/features/role-assignments/components/revoke-role-assignment-dialog";
 import {
   canRevokeAssignment,
   permissionTitle,
+  scopeLabelFor,
   SCOPE_TYPE_LABELS,
 } from "~/features/role-assignments/utils";
+import { backTo } from "~/hooks/use-back-link";
 
 const nav = findNavItem("/super-admin/role-assignments");
 
@@ -90,8 +91,12 @@ function RoleAssignmentsContent() {
   const userId = searchParams.get("userId");
 
   const { permissions: summary } = useAuth();
-  const { candidates, isCoordinatorsOnly, isLoading: candidatesLoading } =
-    useDelegationCandidates();
+  const {
+    candidates,
+    isCoordinatorsOnly,
+    isScopeFiltered,
+    isLoading: candidatesLoading,
+  } = useDelegationCandidates();
   const { optionsByScopeType, sources } = useScopeOptions();
   const {
     data: assignments,
@@ -105,7 +110,6 @@ function RoleAssignmentsContent() {
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantNonce, setGrantNonce] = useState(0);
   const [revokeTarget, setRevokeTarget] = useState<UserRoleAssignmentDetail | null>(null);
-  const [extrasTarget, setExtrasTarget] = useState<UserRoleAssignmentDetail | null>(null);
 
   function handleUserChange(nextUserId: string) {
     setSearchParams(
@@ -129,19 +133,17 @@ function RoleAssignmentsContent() {
   // can't show a name.
   const targetName = selectedUser?.fullName ?? (userId ? "This user" : "");
 
-  const scopeLabels = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const [scopeType, options] of Object.entries(optionsByScopeType)) {
-      for (const option of options) map.set(`${scopeType}:${option.id}`, option.label);
-    }
-    return map;
-  }, [optionsByScopeType]);
+  const scopeLabelOf = (assignment: UserRoleAssignmentDetail) =>
+    scopeLabelFor(assignment, optionsByScopeType);
 
-  function scopeLabelFor(assignment: UserRoleAssignmentDetail): string {
-    if (assignment.scopeType === "global") return "Everywhere";
-    const named = scopeLabels.get(`${assignment.scopeType}:${assignment.scopeId}`);
-    return named ?? SCOPE_TYPE_LABELS[assignment.scopeType];
-  }
+  // Where the extras page's back link points, so returning lands on this screen with the same
+  // user still selected rather than on an empty picker.
+  const backHere = backTo({
+    to: userId
+      ? `/super-admin/role-assignments?userId=${encodeURIComponent(userId)}`
+      : "/super-admin/role-assignments",
+    label: "Role assignments",
+  });
 
   // Level 3 can delegate nothing, anywhere — the hierarchy has no rung below
   // it. That's a permanent state, not a loading one, so it replaces the screen
@@ -203,11 +205,13 @@ function RoleAssignmentsContent() {
               rejected. */}
           {canRevoke ? (
             <>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onSelect={() => setExtrasTarget(assignment)}
-              >
-                Extra permissions
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link
+                  to={`/super-admin/role-assignments/${assignment.id}/extras?userId=${encodeURIComponent(userId ?? "")}`}
+                  state={backHere}
+                >
+                  Extra permissions
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
@@ -245,7 +249,7 @@ function RoleAssignmentsContent() {
       header: "Applies to",
       cell: (assignment) => (
         <div className="min-w-0">
-          <p className="truncate text-foreground">{scopeLabelFor(assignment)}</p>
+          <p className="truncate text-foreground">{scopeLabelOf(assignment)}</p>
           {/* The scope type is only worth a second line when it adds something. For global the
               name *is* the type ("Everywhere"), so repeating it just reads as a rendering bug. */}
           {assignment.scopeType !== "global" && (
@@ -302,7 +306,7 @@ function RoleAssignmentsContent() {
         <div className="min-w-0">
           <p className="truncate font-medium text-foreground">{assignment.roleTemplateName}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {scopeLabelFor(assignment)}
+            {scopeLabelOf(assignment)}
             {assignment.scopeType !== "global" &&
               ` · ${SCOPE_TYPE_LABELS[assignment.scopeType]}`}
           </p>
@@ -359,16 +363,20 @@ function RoleAssignmentsContent() {
         </Select>
       </div>
 
-      {isCoordinatorsOnly && (
+      {/* Two different narrowings of the same picker, one note each — never both, since the
+          two flags come from opposite branches of `useDelegationCandidates`. Stated rather than
+          hidden: in either case the list looks complete and isn't, and the way out (create the
+          account with its role attached) is the same. */}
+      {(isCoordinatorsOnly || isScopeFiltered) && (
         <div
           role="note"
           className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
         >
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Your account can list Project Coordinators, not every user. To give a role to someone
-            who isn't a Coordinator yet, create their account with the role attached from the
-            Users screen.
+            {isCoordinatorsOnly
+              ? "Your account can list Project Coordinators, not every user. To give a role to someone who isn't a Coordinator yet, create their account with the role attached from the Users screen."
+              : "This list covers people whose roles sit inside the schools and departments you administer. Someone who holds no role yet won't appear anywhere in it — create their account with the role attached from the Users screen."}
           </span>
         </div>
       )}
@@ -453,32 +461,13 @@ function RoleAssignmentsContent() {
 
       <RevokeRoleAssignmentDialog
         assignment={revokeTarget}
-        scopeLabel={revokeTarget ? scopeLabelFor(revokeTarget) : ""}
+        scopeLabel={revokeTarget ? scopeLabelOf(revokeTarget) : ""}
         targetUserName={targetName}
         open={revokeTarget !== null}
         onOpenChange={(open) => !open && setRevokeTarget(null)}
         onSuccess={(_assignment, apiMessage) =>
           toast.success(apiMessage, {
             description: `${targetName} no longer holds that role.`,
-          })
-        }
-      />
-
-      <ManageExtrasDialog
-        assignment={
-          // Kept in sync with the refreshed list so the dialog reflects a
-          // just-added extra without being reopened.
-          extrasTarget
-            ? (sortedAssignments.find((a) => a.id === extrasTarget.id) ?? extrasTarget)
-            : null
-        }
-        scopeLabel={extrasTarget ? scopeLabelFor(extrasTarget) : ""}
-        targetUserName={targetName}
-        open={extrasTarget !== null}
-        onOpenChange={(open) => !open && setExtrasTarget(null)}
-        onChanged={(apiMessage) =>
-          toast.success(apiMessage, {
-            description: `${targetName}'s extra permissions have been updated.`,
           })
         }
       />

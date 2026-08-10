@@ -13,7 +13,9 @@ import { ErrorCard } from "~/components/ui/error-card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { PermissionKey, UserRoleAssignmentDetail } from "~/features/permissions/types";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { usePermissionCatalogue } from "~/features/permissions/api/use-permission-catalogue";
+import { hasPermission } from "~/features/permissions/utils";
 import { useScopeOptions } from "~/features/role-assignments/api/use-scope-options";
 import { useUserRoleAssignments } from "~/features/role-assignments/api/use-user-role-assignments";
 import { DeactivateUserDialog } from "~/features/users/components/deactivate-user-dialog";
@@ -64,6 +66,13 @@ export function UserDetailPage({ user }: UserDetailPageProps) {
     refetch: refetchAssignments,
     isFetching: assignmentsFetching,
   } = useUserRoleAssignments(user.id);
+  // Same capability gating as `UsersPage`'s row actions — a Department Admin holds
+  // `users.update` but not `users.deactivate`, so the two header buttons can't be assumed
+  // to travel together just because the caller reached this screen.
+  const { permissions: summary } = useAuth();
+  const canUpdate = hasPermission(summary, "users.update");
+  const canDeactivate = hasPermission(summary, "users.deactivate");
+
   const { data: catalogue } = usePermissionCatalogue();
   const { optionsByScopeType } = useScopeOptions();
 
@@ -123,29 +132,33 @@ export function UserDetailPage({ user }: UserDetailPageProps) {
         description={user.email}
         actions={
           <>
-            <Button
-              variant="outline"
-              className="h-11 cursor-pointer sm:h-9"
-              onClick={() => setDeactivateTarget(user)}
-            >
-              {user.isActive ? (
-                <>
-                  <Ban aria-hidden="true" />
-                  Deactivate
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 aria-hidden="true" />
-                  Reactivate
-                </>
-              )}
-            </Button>
-            <Button asChild className="h-11 cursor-pointer sm:h-9">
-              <Link to={`/super-admin/users/${user.id}/edit`}>
-                <Pencil aria-hidden="true" />
-                Edit
-              </Link>
-            </Button>
+            {canDeactivate && (
+              <Button
+                variant="outline"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => setDeactivateTarget(user)}
+              >
+                {user.isActive ? (
+                  <>
+                    <Ban aria-hidden="true" />
+                    Deactivate
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 aria-hidden="true" />
+                    Reactivate
+                  </>
+                )}
+              </Button>
+            )}
+            {canUpdate && (
+              <Button asChild className="h-11 cursor-pointer sm:h-9">
+                <Link to={`/super-admin/users/${user.id}/edit`}>
+                  <Pencil aria-hidden="true" />
+                  Edit
+                </Link>
+              </Button>
+            )}
           </>
         }
       />

@@ -43,9 +43,18 @@ export async function clientLoader() {
   return null;
 }
 
+// Gated on the three module *write* permissions, matching this entry's nav rule (nav.ts's
+// `excludes` pair, 2026-08-10). Was `["modules.view", "modules.create"]`, which let a read-only
+// viewer — System Administrator, and School Admin since the 2026-08-03 backend redesign — reach
+// the management URL and get the oversight screen under the wrong title. They have
+// `/super-admin/modules` for that. `modules.create` alone stays sufficient here: it's all a
+// department-scoped Coordinator holds (CH-17).
 export default function CoordinatorModuleSettings() {
   return (
-    <PermissionGate permissions={["modules.view", "modules.create"]} title="Module Settings">
+    <PermissionGate
+      permissions={["modules.create", "modules.update", "modules.deactivate"]}
+      title="Module Settings"
+    >
       <ModuleSettingsPage />
     </PermissionGate>
   );

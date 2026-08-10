@@ -25,7 +25,9 @@ import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
 import { ListPager } from "~/components/ui/list-pager";
 import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
+import { hasPermission } from "~/features/permissions/utils";
 import { useSchools } from "~/features/schools/api/use-schools";
 import { DeactivateSchoolDialog } from "~/features/schools/components/deactivate-school-dialog";
 import { SchoolFormDialog } from "~/features/schools/components/school-form-dialog";
@@ -46,6 +48,16 @@ const nav = findNavItem("/super-admin/schools");
 /** System Administrator CRUD screen for `schools` — direct structural mirror of `DepartmentsPage`, one
  * level up the hierarchy (see SYSTEM_DESIGN.md decision #37). */
 export function SchoolsPage() {
+  // Capability, not identity. The nav entry for this screen is `superAdminOnly`, but the route
+  // itself only sits behind `require-admin`'s any-of gate — a School Admin holding `roles.assign`
+  // can reach this URL directly, and `GET /schools` self-filters to their own school rather than
+  // 403ing, so the table populates. They hold `schools.view`/`schools.view_detail` and none of
+  // the writes, so every write control is gated on the permission its request needs.
+  const { permissions: summary } = useAuth();
+  const canCreate = hasPermission(summary, "schools.create");
+  const canUpdate = hasPermission(summary, "schools.update");
+  const canDeactivate = hasPermission(summary, "schools.deactivate");
+
   const { data: schools, isLoading, isError, error, refetch, isFetching } = useSchools();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -88,24 +100,28 @@ export function SchoolsPage() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={() => openFormDialog({ mode: "edit", school })}
-          >
-            Edit
-          </DropdownMenuItem>
+          {canUpdate && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => openFormDialog({ mode: "edit", school })}
+            >
+              Edit
+            </DropdownMenuItem>
+          )}
           {/* "Manage admins" is gone with CH-06 — delegation is user-centric now, not
               school-centric. See departments-page.tsx for the same note. */}
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link to={`/super-admin/departments?schoolId=${school.id}`}>View departments</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            variant={school.isActive ? "destructive" : "default"}
-            onSelect={() => setDeactivateTarget(school)}
-          >
-            {school.isActive ? "Deactivate" : "Reactivate"}
-          </DropdownMenuItem>
+          {canDeactivate && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              variant={school.isActive ? "destructive" : "default"}
+              onSelect={() => setDeactivateTarget(school)}
+            >
+              {school.isActive ? "Deactivate" : "Reactivate"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -167,13 +183,15 @@ export function SchoolsPage() {
         title="Schools"
         description={nav?.description}
         actions={
-          <Button
-            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
-            onClick={() => openFormDialog({ mode: "create" })}
-          >
-            <Plus aria-hidden="true" />
-            Add school
-          </Button>
+          canCreate && (
+            <Button
+              className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+              onClick={() => openFormDialog({ mode: "create" })}
+            >
+              <Plus aria-hidden="true" />
+              Add school
+            </Button>
+          )
         }
       />
 
@@ -236,13 +254,15 @@ export function SchoolsPage() {
                           Clear filters
                         </Button>
                       ) : (
-                        <Button
-                          className="h-11 cursor-pointer sm:h-9"
-                          onClick={() => openFormDialog({ mode: "create" })}
-                        >
-                          <Plus aria-hidden="true" />
-                          Add school
-                        </Button>
+                        canCreate && (
+                          <Button
+                            className="h-11 cursor-pointer sm:h-9"
+                            onClick={() => openFormDialog({ mode: "create" })}
+                          >
+                            <Plus aria-hidden="true" />
+                            Add school
+                          </Button>
+                        )
                       )}
                     </Empty>
                   </CardContent>

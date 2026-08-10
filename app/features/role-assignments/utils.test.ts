@@ -21,6 +21,7 @@ import {
   resolveScopeChain,
   roleAssignmentErrorMessage,
   roleTemplateDescription,
+  scopeLabelFor,
   scopeTypesForTemplate,
 } from "~/features/role-assignments/utils";
 import { ApiError } from "~/lib/api-client";
@@ -546,5 +547,35 @@ describe("roleTemplateDescription", () => {
         "raw catalogue description",
       ),
     ).toBe("raw catalogue description");
+  });
+});
+
+describe("scopeLabelFor", () => {
+  const OPTIONS = {
+    school: [{ id: "school-sci", label: "School of Science" }],
+    department: [{ id: "dept-cs", label: "Computer Science" }],
+    module: [{ id: "mod-cs301", label: "CS301" }],
+  };
+
+  it("names the scope from the matching option", () => {
+    expect(
+      scopeLabelFor({ scopeType: "department", scopeId: "dept-cs" }, OPTIONS),
+    ).toBe("Computer Science");
+  });
+
+  it("calls a global assignment Everywhere without consulting the options", () => {
+    expect(scopeLabelFor({ scopeType: "global", scopeId: null }, OPTIONS)).toBe("Everywhere");
+  });
+
+  it("falls back to the scope type when the id isn't in the options", () => {
+    // The real case: a Department Admin can't read GET /departments at all, so their own
+    // department has no name to resolve. "Department" beats printing a UUID.
+    expect(
+      scopeLabelFor({ scopeType: "department", scopeId: "dept-unknown" }, OPTIONS),
+    ).toBe("Department");
+  });
+
+  it("falls back when the scope type has no options loaded at all", () => {
+    expect(scopeLabelFor({ scopeType: "module", scopeId: "mod-cs301" }, {})).toBe("Module");
   });
 });

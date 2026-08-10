@@ -43,7 +43,7 @@ import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
 import { useDepartmentCoordinators } from "~/features/departments/api/use-department-coordinators";
 import { useDepartments } from "~/features/departments/api/use-departments";
-import { hasPermission, hasRole } from "~/features/permissions/utils";
+import { hasPermission } from "~/features/permissions/utils";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { is403 } from "~/lib/api-client";
 
@@ -70,11 +70,9 @@ function formatDate(iso: string): string {
 
 // CH-15 (Phase 4): no more `viewer` prop threaded down from the route — both
 // `/workspace/module-settings` and `/super-admin/modules` render this same component and it
-// derives its own Super-Admin-ness from the RBAC summary (role *identity*, not a capability —
-// see `hasRole`'s own doc comment).
+// works out for itself which of the two it is.
 export function ModulesPage() {
   const { permissions: summary } = useAuth();
-  const isSuperAdmin = hasRole(summary, "system_administrator");
   // Real capability checks, not identity — System Administrator now holds only
   // modules.view (read-only oversight, 2026-08-03), so unlike before this redesign it
   // can no longer be assumed that reaching this page at all implies full CRUD.
@@ -82,6 +80,13 @@ export function ModulesPage() {
   const canUpdate = hasPermission(summary, "modules.update");
   const canDeactivate = hasPermission(summary, "modules.deactivate");
   const canWriteAny = canUpdate || canDeactivate;
+  // Which of the two screens this render *is*. Was `hasRole(summary, "system_administrator")`
+  // until 2026-08-10; that was right while System Administrator was the only read-only viewer,
+  // and wrong once the School Admin audit showed a second one — School Admin also holds
+  // `modules.view` and none of the writes, and was landing on the management screen's title,
+  // copy and flat list. Deriving it from capability keeps the two viewers in step with the nav
+  // rule that routes them here (`nav.ts`'s `excludes`), and needs no new branch per role.
+  const isOversight = !canCreate && !canWriteAny;
   const {
     data: modules,
     isLoading,
@@ -106,12 +111,12 @@ export function ModulesPage() {
   const { data: coordinators } = useDepartmentCoordinators(departments?.[0]?.id);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  // Department-first browsing for the System Administrator oversight viewer (2026-08-05, mirrors
-  // DepartmentsPage's school-first picker) — nothing to show until one is picked. Every other
-  // viewer (Coordinator/School/Department Admin) keeps the flat, unfiltered list: their own
+  // Department-first browsing for the oversight viewer (2026-08-05, mirrors DepartmentsPage's
+  // school-first picker) — nothing to show until one is picked. A viewer who can write modules
+  // (Coordinator, Department Admin) keeps the flat, unfiltered list: their own
   // GET /academic-modules is already scoped narrowly enough not to need this, and this is the
   // same `/workspace/module-settings` screen (decision #33) they create/manage modules from.
-  const departmentIdFilter = isSuperAdmin ? searchParams.get("departmentId") : null;
+  const departmentIdFilter = isOversight ? searchParams.get("departmentId") : null;
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -187,9 +192,9 @@ export function ModulesPage() {
 
   const filtered = useMemo(() => {
     if (!modules) return [];
-    // System Administrator browses department-first — nothing to show until one is picked.
+    // The oversight viewer browses department-first — nothing to show until one is picked.
     // Every other viewer keeps the flat, unfiltered list.
-    const scoped = isSuperAdmin
+    const scoped = isOversight
       ? departmentIdFilter
         ? modules.filter((module) => module.departmentId === departmentIdFilter)
         : []
@@ -202,18 +207,18 @@ export function ModulesPage() {
           module.name.toLowerCase().includes(query) ||
           module.code.toLowerCase().includes(query)),
     );
-  }, [modules, isSuperAdmin, departmentIdFilter, search, status]);
+  }, [modules, isOversight, departmentIdFilter, search, status]);
 
   const { rows, page, pageCount, setPage, total } = usePagedList(filtered);
   const hasFilters = search.trim() !== "" || status !== "all";
 
-  // Department is dropped for the System Administrator viewer once scoped to one via the picker
-  // below (every row would share it) but kept for every other viewer, who still sees a flat,
-  // unscoped list. Coordinator is added only for the System Administrator viewer (a UI scope
-  // choice, not an endpoint restriction), and Actions only for a viewer who can actually update
-  // or deactivate a module — a read-only oversight viewer (System Administrator, since
-  // 2026-08-03) gets neither.
-  const showDepartmentColumn = !isSuperAdmin;
+  // Department is dropped for the oversight viewer once scoped to one via the picker below
+  // (every row would share it) but kept for every other viewer, who still sees a flat, unscoped
+  // list. Coordinator is added only for the oversight viewer (a UI scope choice, not an endpoint
+  // restriction), and Actions only for a viewer who can actually update or deactivate a module —
+  // a read-only oversight viewer (System Administrator and School Admin, since 2026-08-03) gets
+  // neither.
+  const showDepartmentColumn = !isOversight;
   const isForbidden = isError && is403(error);
   const selectedDepartment = departmentIdFilter
     ? departmentsById.get(departmentIdFilter)
@@ -283,7 +288,7 @@ export function ModulesPage() {
           },
         ]
       : []),
-    ...(isSuperAdmin
+    ...(isOversight
       ? [
           {
             id: "coordinator",
@@ -356,8 +361,8 @@ export function ModulesPage() {
     </div>
   );
 
-  const title = isSuperAdmin ? "Modules" : "Module Settings";
-  const description = isSuperAdmin
+  const title = isOversight ? "Modules" : "Module Settings";
+  const description = isOversight
     ? findNavItem("/super-admin/modules")?.description
     : findNavItem("/workspace/module-settings")?.description;
 
@@ -392,7 +397,7 @@ export function ModulesPage() {
       ) : (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {isSuperAdmin && (
+            {isOversight && (
               <div className="w-full sm:max-w-xs">
                 <Select
                   value={departmentIdFilter ?? undefined}
@@ -412,7 +417,7 @@ export function ModulesPage() {
               </div>
             )}
 
-            {(!isSuperAdmin || departmentIdFilter) && (
+            {(!isOversight || departmentIdFilter) && (
               <ListToolbar
                 className="flex-1"
                 search={search}
@@ -431,7 +436,7 @@ export function ModulesPage() {
             )}
           </div>
 
-          {isSuperAdmin && !departmentIdFilter ? (
+          {isOversight && !departmentIdFilter ? (
             <Card>
               <CardContent className="py-4">
                 <Empty className="px-0">
@@ -472,7 +477,7 @@ export function ModulesPage() {
                               ? "Try a different search term, or clear the filters."
                               : isForbidden
                                 ? "You don't have any modules to see yet."
-                                : isSuperAdmin
+                                : isOversight
                                   ? `${selectedDepartment ?? "This department"} has no modules yet.`
                                   : "Create a module to set up its rubric, markers and deadline."}
                           </EmptyDescription>

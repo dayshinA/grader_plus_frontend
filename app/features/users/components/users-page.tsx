@@ -25,7 +25,9 @@ import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
 import { ListPager } from "~/components/ui/list-pager";
 import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
+import { hasPermission } from "~/features/permissions/utils";
 import { useUsers } from "~/features/users/api/use-users";
 import { DeactivateUserDialog } from "~/features/users/components/deactivate-user-dialog";
 import type { UserResponse } from "~/features/users/types";
@@ -50,6 +52,18 @@ interface HandoffToast {
 }
 
 export function UsersPage() {
+  // Capability, not identity. This screen is reachable on `users.view` OR `users.create`
+  // (nav.ts, require-admin.tsx), so a School Admin, a Department Admin and a module-scoped
+  // Coordinator all land here holding different subsets of the Users permissions — none of
+  // them hold `users.bulk_import`, which is System-Administrator-only, and Department Admin
+  // holds `users.update` but not `users.deactivate`. Every control below is gated on the
+  // permission its request actually needs, so nobody is offered a button that always 403s.
+  const { permissions: summary } = useAuth();
+  const canCreate = hasPermission(summary, "users.create");
+  const canBulkImport = hasPermission(summary, "users.bulk_import");
+  const canUpdate = hasPermission(summary, "users.update");
+  const canDeactivate = hasPermission(summary, "users.deactivate");
+
   const { data: users, isLoading, isError, error, refetch, isFetching } = useUsers();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -114,18 +128,22 @@ export function UsersPage() {
               View
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to={`/super-admin/users/${user.id}/edit`} state={backHere}>
-              Edit
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            variant={user.isActive ? "destructive" : "default"}
-            onSelect={() => setDeactivateTarget(user)}
-          >
-            {user.isActive ? "Deactivate" : "Reactivate"}
-          </DropdownMenuItem>
+          {canUpdate && (
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link to={`/super-admin/users/${user.id}/edit`} state={backHere}>
+                Edit
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {canDeactivate && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              variant={user.isActive ? "destructive" : "default"}
+              onSelect={() => setDeactivateTarget(user)}
+            >
+              {user.isActive ? "Deactivate" : "Reactivate"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -210,18 +228,22 @@ export function UsersPage() {
         description={nav?.description}
         actions={
           <>
-            <Button variant="outline" asChild className="h-11 cursor-pointer sm:h-9">
-              <Link to="/super-admin/users/bulk-import">
-                <Upload aria-hidden="true" />
-                Bulk import
-              </Link>
-            </Button>
-            <Button asChild className="h-11 cursor-pointer sm:h-9">
-              <Link to="/super-admin/users/new">
-                <Plus aria-hidden="true" />
-                Add user
-              </Link>
-            </Button>
+            {canBulkImport && (
+              <Button variant="outline" asChild className="h-11 cursor-pointer sm:h-9">
+                <Link to="/super-admin/users/bulk-import">
+                  <Upload aria-hidden="true" />
+                  Bulk import
+                </Link>
+              </Button>
+            )}
+            {canCreate && (
+              <Button asChild className="h-11 cursor-pointer sm:h-9">
+                <Link to="/super-admin/users/new">
+                  <Plus aria-hidden="true" />
+                  Add user
+                </Link>
+              </Button>
+            )}
           </>
         }
       />
@@ -272,7 +294,9 @@ export function UsersPage() {
                             ? "Try a different search term, or clear the filters."
                             : isForbidden
                               ? "You can create accounts, but you don't have permission to browse the full user list."
-                              : "Add staff one at a time, or bring a whole cohort in with a bulk import."}
+                              : canBulkImport
+                                ? "Add staff one at a time, or bring a whole cohort in with a bulk import."
+                                : "Add staff one at a time."}
                         </EmptyDescription>
                       </EmptyHeader>
                       {hasFilters ? (
@@ -287,12 +311,14 @@ export function UsersPage() {
                           Clear filters
                         </Button>
                       ) : (
-                        <Button asChild className="h-11 cursor-pointer sm:h-9">
-                          <Link to="/super-admin/users/new">
-                            <Plus aria-hidden="true" />
-                            Add user
-                          </Link>
-                        </Button>
+                        canCreate && (
+                          <Button asChild className="h-11 cursor-pointer sm:h-9">
+                            <Link to="/super-admin/users/new">
+                              <Plus aria-hidden="true" />
+                              Add user
+                            </Link>
+                          </Button>
+                        )
                       )}
                     </Empty>
                   </CardContent>

@@ -41,6 +41,16 @@ export interface AppNavItem {
    */
   requires?: PermissionKey | PermissionKey[];
   /**
+   * Hidden from anyone holding any of these — the inverse of `requires`, for a pair of screens
+   * that render the same data at different altitudes. `Modules` (read-only oversight) and
+   * `Module Settings` (manage your own) are one such pair: whether a viewer gets the oversight
+   * entry or the management entry is decided by whether they can *write* modules, so the
+   * oversight entry excludes the three module write permissions and the management entry
+   * requires them. Nobody ever sees both (2026-08-10, generalising decision #47, which solved
+   * the same duplication for System Administrator alone with `exceptSuperAdmin`).
+   */
+  excludes?: PermissionKey | PermissionKey[];
+  /**
    * Additionally restricted to System Administrator. Used only by the Organisation group, whose
    * screens are the dedicated Super-Admin oversight views — every other role reaches the same
    * data through its own scoped screen and would otherwise see two entries for one thing.
@@ -122,9 +132,13 @@ export const appNavGroups: AppNavGroup[] = [
         title: "Modules",
         href: "/super-admin/modules",
         icon: GraduationCap,
-        description: "Read-only oversight of every academic module and its coordinator.",
+        description: "Read-only oversight of academic modules and their coordinators.",
+        // Anyone who can only *look* at modules: System Administrator (platform-wide) and
+        // School Admin (their school). Both lost the module lifecycle in the backend's
+        // 2026-08-03 least-privilege redesign — it belongs to Department Admin and
+        // Coordinator now — so neither belongs on the management screen below.
         requires: "modules.view",
-        superAdminOnly: true,
+        excludes: ["modules.create", "modules.update", "modules.deactivate"],
       },
     ],
   },
@@ -137,8 +151,12 @@ export const appNavGroups: AppNavGroup[] = [
         href: "/workspace/module-settings",
         icon: Settings,
         description: "The modules you coordinate — create one, or change its details.",
-        requires: ["modules.view", "modules.create"],
-        exceptSuperAdmin: true,
+        // The write half of the pair above. `modules.create` alone is what a department-scoped
+        // Coordinator holds (no `modules.view` — CH-17), `modules.update`/`deactivate` what a
+        // module-scoped one and a Department Admin hold. A read-only viewer gets `Modules`
+        // instead, so `exceptSuperAdmin` is no longer needed here: System Administrator is
+        // excluded by the same rule that excludes School Admin, on capability rather than name.
+        requires: ["modules.create", "modules.update", "modules.deactivate"],
       },
       {
         id: "school-settings",
@@ -155,7 +173,12 @@ export const appNavGroups: AppNavGroup[] = [
         href: "/workspace/rubrics",
         icon: ScrollText,
         description: "The criteria markers score against, and the weight carried by each.",
-        requires: "rubrics.create",
+        // Any-of, corrected 2026-08-10: `rubrics.create` alone hid the screen from every
+        // read-only holder. Department Admin and System Administrator hold `rubrics.view` and
+        // nothing else here (authoring is the module Coordinator's alone since the 2026-08-03
+        // least-privilege redesign), so gating on the write key locked them out of a screen the
+        // backend serves them. School Admin holds neither, by design, and still sees nothing.
+        requires: ["rubrics.view", "rubrics.create"],
       },
     ],
   },
@@ -192,12 +215,17 @@ export const appNavGroups: AppNavGroup[] = [
     heading: "Reporting",
     items: [
       {
-        id: "export",
-        title: "Export",
-        href: "/workspace/export",
+        id: "grades",
+        title: "Grades",
+        href: "/workspace/grades",
         icon: FileSpreadsheet,
-        description: "Final grades, in the format Learn accepts on the way back in.",
-        requires: "grades.export",
+        description: "Confirmed final grades, and how each one was arrived at.",
+        // Replaced the `export` entry on 2026-08-10. Any-of over the two keys that read the same
+        // `final_grades` data: `grades.view` (School/Department Admin, System Administrator, and
+        // the module's Coordinator) and `grades.export` (that Coordinator alone, for the
+        // Learn-format CSV). One screen, download gated inside it — so unlike the Modules pair
+        // below, no `excludes` is wanted here: the Coordinator holds both and needs the entry.
+        requires: ["grades.view", "grades.export"],
       },
     ],
   },
@@ -226,6 +254,10 @@ function itemIsVisible(
   const isSuperAdmin = hasRole(summary, "system_administrator");
   if (item.superAdminOnly && !isSuperAdmin) return false;
   if (item.exceptSuperAdmin && isSuperAdmin) return false;
+  if (item.excludes) {
+    const excluded = Array.isArray(item.excludes) ? item.excludes : [item.excludes];
+    if (excluded.some((key) => hasPermission(summary, key))) return false;
+  }
   if (!item.requires) return true;
   const keys = Array.isArray(item.requires) ? item.requires : [item.requires];
   return keys.some((key) => hasPermission(summary, key));

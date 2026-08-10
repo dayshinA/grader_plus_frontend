@@ -301,6 +301,31 @@ export const SCOPE_TYPE_LABELS: Record<ScopeType, string> = {
 };
 
 /**
+ * What one assignment's scope is *called* — "Science", "Everywhere" — resolved against the named
+ * options `useScopeOptions` already builds.
+ *
+ * Falls back to the bare scope type when the name can't be resolved, which is a real case rather
+ * than a defensive one: a Department Admin can't read `GET /departments` at all, so their own
+ * department has no name to show (see `useScopeOptions`'s unnamed-scope note). Printing "Department"
+ * is better than printing a UUID.
+ *
+ * The options argument is typed structurally rather than as `useScopeOptions`'s own `ScopeOption[]`
+ * so this file stays free of imports from the api layer — that hook already imports from here.
+ */
+export function scopeLabelFor(
+  assignment: Pick<UserRoleAssignmentDetail, "scopeType" | "scopeId">,
+  optionsByScopeType: Partial<
+    Record<ScopeType, readonly { id: string; label: string }[]>
+  >,
+): string {
+  if (assignment.scopeType === "global") return SCOPE_TYPE_LABELS.global;
+  const named = optionsByScopeType[assignment.scopeType]?.find(
+    (option) => option.id === assignment.scopeId,
+  )?.label;
+  return named ?? SCOPE_TYPE_LABELS[assignment.scopeType];
+}
+
+/**
  * Friendly display copy for a permission key — a short "Can ___" title plus a plain-English
  * one-liner, for the role-template defaults preview (`RoleTemplatePicker`). Neither the raw key
  * (`schools.view`) nor the catalogue's own developer-facing description (e.g. "List/view schools

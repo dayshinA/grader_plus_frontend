@@ -28,6 +28,10 @@ export default function RequireWorkspace() {
         "submissions.upload",
         "markers.assign",
         "discrepancies.view",
+        // Both grade keys, added 2026-08-10 with the Grades screen: the read half is what
+        // Department/School Admin and System Administrator hold, and gating the outer group on
+        // the export key alone would have been the same mistake the Rubrics nav entry made.
+        "grades.view",
         "grades.export",
       ]}
     />

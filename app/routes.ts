@@ -33,7 +33,12 @@ export default [
           "workspace/discrepancies",
           "routes/workspace/discrepancies.tsx",
         ),
-        route("workspace/export", "routes/workspace/export.tsx"),
+        // Replaced `workspace/export` on 2026-08-10. `grades.view` and `grades.export` are two
+        // surfaces over the same `final_grades` data (in-app table vs Learn-format CSV), so
+        // they're one screen with the download gated inside it — the same one-screen-two-
+        // altitudes call as Modules/Module Settings, minus the need for a nav `excludes` pair,
+        // since a Coordinator holds both keys and should see the one entry.
+        route("workspace/grades", "routes/workspace/grades.tsx"),
       ]),
       layout("routes/auth/require-marking.tsx", [
         route("marker/projects", "routes/marker/projects.tsx"),
@@ -73,6 +78,14 @@ export default [
         route(
           "super-admin/role-assignments",
           "routes/super-admin/role-assignments.tsx",
+        ),
+        // The extras layer of one assignment, as a page rather than the modal it
+        // was until 2026-08-10 (same conversion UserFormDialog got on 2026-08-04).
+        // Needs `?userId=` — there is no GET /role-assignments/:id, so the
+        // assignment is found by id in that user's list.
+        route(
+          "super-admin/role-assignments/:assignmentId/extras",
+          "routes/super-admin/role-assignments.$assignmentId.extras.tsx",
         ),
       ]),
     ]),

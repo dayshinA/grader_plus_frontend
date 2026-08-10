@@ -26,13 +26,17 @@ export interface ScopeOption {
  *
  * Two constraints the naive version gets wrong.
  *
- * **1. Not every grantor can read every list.** Reading
- * `ROLE_TEMPLATE_PERMISSION_DEFAULTS` on 2026-07-31: the Department Admin
- * template holds `schools.view` and `modules.view` but **not** `departments.view`
- * — so `GET /departments` 403s for them, and a picker built on it alone would
- * be empty for exactly the person most likely to be delegating. Each query is
- * therefore treated as optional: an error leaves that list undefined and the
- * options fall back to the grantor's own assignment scopes, which
+ * **1. Not every grantor can read every list.** **Corrected 2026-08-10:** this
+ * used to say the Department Admin template lacks `departments.view` — true on
+ * 2026-07-31, wrong since the backend's 2026-08-03 least-privilege redesign,
+ * which gave both School Admin and Department Admin
+ * `departments.view`/`departments.view_detail`. The optional-query handling
+ * below still earns its place: a module-scoped Project Coordinator holds
+ * `schools.view`/`departments.view` but a department-scoped one holds no
+ * `modules.view`, so `GET /academic-modules` 403s for them, and a picker built
+ * on a hard requirement would be empty for exactly the person delegating. Each
+ * query is therefore treated as optional: an error leaves that list undefined
+ * and the options fall back to the grantor's own assignment scopes, which
  * `/role-assignments/me` always provides.
  *
  * **2. A list is not a permission.** `GET /schools` and `GET /academic-modules`
@@ -42,12 +46,13 @@ export interface ScopeOption {
  *
  * ## The unnamed-scope fallback
  *
- * A Department Admin can't resolve their own department's *name* through any
- * endpoint they can call — `GET /departments` and `GET /departments/:id` both
- * need permissions their template lacks. Rather than print a raw UUID, such an
- * option is labelled from its scope type ("Your department") and flagged
- * `isUnnamed` so the picker can note why. Logged as a known gap rather than
- * papered over.
+ * A grantor may hold a role at a scope whose *name* no endpoint they can call
+ * will resolve — as of the 2026-08-03 redesign this no longer bites a
+ * Department Admin (they now hold `departments.view`), but it still bites a
+ * module-scoped Coordinator delegating at module scope without `modules.view`.
+ * Rather than print a raw UUID, such an option is labelled from its scope type
+ * ("Your department") and flagged `isUnnamed` so the picker can note why.
+ * Logged as a known gap rather than papered over.
  */
 export function useScopeOptions() {
   const { permissions: summary } = useAuth();

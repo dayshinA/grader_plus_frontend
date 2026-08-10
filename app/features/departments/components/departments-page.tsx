@@ -32,7 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { findNavItem } from "~/features/dashboard/nav";
+import { hasPermission } from "~/features/permissions/utils";
 import { useDepartments } from "~/features/departments/api/use-departments";
 import { DeactivateDepartmentDialog } from "~/features/departments/components/deactivate-department-dialog";
 import { DepartmentFormDialog } from "~/features/departments/components/department-form-dialog";
@@ -55,6 +57,16 @@ const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
 const nav = findNavItem("/super-admin/departments");
 
 export function DepartmentsPage() {
+  // Capability, not identity — same reasoning as `SchoolsPage`. The nav entry is
+  // `superAdminOnly`, but a School Admin holding `roles.assign` can reach this URL directly and
+  // `GET /departments` answers them (they hold `departments.view`). They hold
+  // `departments.create` but neither `departments.update` nor `departments.deactivate`, so the
+  // row actions and the create button can't be assumed to travel together.
+  const { permissions: summary } = useAuth();
+  const canCreate = hasPermission(summary, "departments.create");
+  const canUpdate = hasPermission(summary, "departments.update");
+  const canDeactivate = hasPermission(summary, "departments.deactivate");
+
   const { data: departments, isLoading, isError, error, refetch, isFetching } = useDepartments();
   const { data: schools } = useSchools();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -116,6 +128,10 @@ export function DepartmentsPage() {
   const hasFilters = search.trim() !== "" || status !== "all";
 
   function rowActions(department: DepartmentResponse) {
+    // Every item in this menu is a write. A caller holding neither write permission (a School
+    // Admin, who can create departments but not edit or deactivate them) would otherwise get an
+    // empty popover behind a live trigger.
+    if (!canUpdate && !canDeactivate) return null;
     return (
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
@@ -129,24 +145,28 @@ export function DepartmentsPage() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={() => openFormDialog({ mode: "edit", department })}
-          >
-            Edit
-          </DropdownMenuItem>
+          {canUpdate && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => openFormDialog({ mode: "edit", department })}
+            >
+              Edit
+            </DropdownMenuItem>
+          )}
           {/* The "Manage admins" and "Manage module-creation grants" actions are gone with
               CH-07/CH-08: delegation is no longer scope-centric (pick a department, then manage
               its admins) but user-centric (pick a person, then manage every role they hold).
               There is no department-filtered view of /super-admin/role-assignments to link to —
               see decision #42. */}
-          <DropdownMenuItem
-            className="cursor-pointer"
-            variant={department.isActive ? "destructive" : "default"}
-            onSelect={() => setDeactivateTarget(department)}
-          >
-            {department.isActive ? "Deactivate" : "Reactivate"}
-          </DropdownMenuItem>
+          {canDeactivate && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              variant={department.isActive ? "destructive" : "default"}
+              onSelect={() => setDeactivateTarget(department)}
+            >
+              {department.isActive ? "Deactivate" : "Reactivate"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -208,14 +228,16 @@ export function DepartmentsPage() {
         title="Departments"
         description={nav?.description}
         actions={
-          <Button
-            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
-            disabled={!schoolId}
-            onClick={() => openFormDialog({ mode: "create" })}
-          >
-            <Plus aria-hidden="true" />
-            Add department
-          </Button>
+          canCreate && (
+            <Button
+              className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+              disabled={!schoolId}
+              onClick={() => openFormDialog({ mode: "create" })}
+            >
+              <Plus aria-hidden="true" />
+              Add department
+            </Button>
+          )
         }
       />
 
@@ -318,13 +340,15 @@ export function DepartmentsPage() {
                             Clear filters
                           </Button>
                         ) : (
-                          <Button
-                            className="h-11 cursor-pointer sm:h-9"
-                            onClick={() => openFormDialog({ mode: "create" })}
-                          >
-                            <Plus aria-hidden="true" />
-                            Add department
-                          </Button>
+                          canCreate && (
+                            <Button
+                              className="h-11 cursor-pointer sm:h-9"
+                              onClick={() => openFormDialog({ mode: "create" })}
+                            >
+                              <Plus aria-hidden="true" />
+                              Add department
+                            </Button>
+                          )
                         )}
                       </Empty>
                     </CardContent>

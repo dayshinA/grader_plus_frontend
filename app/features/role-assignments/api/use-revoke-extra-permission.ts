@@ -8,6 +8,9 @@ import { userRoleAssignmentsQueryKey } from "~/features/role-assignments/api/use
  * ⚠️ `permissionId` is the permission's **UUID**, not its key — the route takes
  * a `ParseUUIDPipe`. Callers resolve it through the permission catalogue
  * (`usePermissionCatalogue`), since the assignment detail carries keys only.
+ *
+ * The invalidation promise is **returned** for the same reason as
+ * `useGrantExtraPermission`'s — see its comment.
  */
 export function useRevokeExtraPermission() {
   const queryClient = useQueryClient();
@@ -21,10 +24,9 @@ export function useRevokeExtraPermission() {
       permissionId: string;
       userId: string;
     }) => roleAssignmentsService.revokeExtraPermission(assignmentId, permissionId),
-    onSuccess: (_result, variables) => {
+    onSuccess: (_result, variables) =>
       queryClient.invalidateQueries({
         queryKey: userRoleAssignmentsQueryKey(variables.userId),
-      });
-    },
+      }),
   });
 }

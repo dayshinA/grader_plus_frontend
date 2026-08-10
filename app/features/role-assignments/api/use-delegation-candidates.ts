@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { useDepartmentCoordinators } from "~/features/departments/api/use-department-coordinators";
-import { hasPermission } from "~/features/permissions/utils";
+import { hasPermission, hasRole } from "~/features/permissions/utils";
 import { useSchoolCoordinators } from "~/features/schools/api/use-school-coordinators";
 import { useUsers } from "~/features/users/api/use-users";
 
@@ -19,22 +19,38 @@ export interface DelegationCandidate {
  *
  * ## Why there are two sources
  *
- * `GET /users` needs `users.view`. Reading the backend's
- * `ROLE_TEMPLATE_PERMISSION_DEFAULTS` on 2026-07-31, **only Super Admin holds
- * it** — the School Admin and Department Admin templates hold `roles.view`,
- * `roles.view_candidates` and `users.create`, but not `users.view`. So a School
- * Admin cannot enumerate accounts at all; the only candidate list they can read
- * is `GET /schools/:id/coordinators` / `GET /departments/:id/coordinators`.
+ * `GET /users` needs `users.view`, and not every grantor holds it. **Corrected
+ * 2026-08-10:** this used to say only Super Admin does — true when written on
+ * 2026-07-31, wrong since the backend's 2026-08-03 least-privilege redesign,
+ * which gave both the School Admin and Department Admin templates
+ * `users.view`/`users.update` (School Admin also `users.deactivate`). The
+ * branch below has always been driven by `hasPermission`, not by a role name,
+ * so the behaviour was right throughout — only this comment was stale.
+ *
+ * Who lands in which branch today (`backend_verified_RBAC.txt` §8):
+ * System Administrator, School Admin and Department Admin hold `users.view`
+ * and get `GET /users`; a module-scoped Project Coordinator holds
+ * `roles.assign` and `users.create` but not `users.view`, so they fall back to
+ * `GET /schools/:id/coordinators` / `GET /departments/:id/coordinators`.
  *
  * ## The gap this leaves, stated plainly
  *
- * Those endpoints return **only users who already hold Project Coordinator**
- * (`findCoordinators` filters on the role template). So a School or Department
- * Admin can re-delegate among existing Coordinators, but cannot pick a plain
- * account to make into a Marker. There is no endpoint that would let them.
- * Staffing someone from scratch goes through `POST /users` with a bundled
- * assignment — CH-11, Phase 3. The screen says so rather than silently showing
- * a short list.
+ * Two different shapes of gap, depending on the branch.
+ *
+ * **Coordinators-only branch:** those endpoints return **only users who already
+ * hold Project Coordinator** (`findCoordinators` filters on the role template),
+ * so the grantor can re-delegate among existing Coordinators but cannot pick a
+ * plain account to make into a Marker. The screen says so (`isCoordinatorsOnly`
+ * drives an inline note) rather than silently showing a short list.
+ *
+ * **`GET /users` branch:** the list is self-filtered server-side
+ * (`UsersService.findAll`) to users whose active assignments fall inside the
+ * caller's own administered scopes — so a School Admin sees their school's
+ * people, not the platform's, and an account holding no assignment at all is
+ * invisible to them. Narrower than it looks, and not currently noted on screen.
+ *
+ * Either way, staffing someone from scratch goes through `POST /users` with a
+ * bundled assignment — CH-11, Phase 3.
  *
  * ## Why only one coordinators call
  *
@@ -47,6 +63,11 @@ export interface DelegationCandidate {
 export function useDelegationCandidates() {
   const { permissions: summary } = useAuth();
   const canListUsers = hasPermission(summary, "users.view");
+  // `UsersService.findAll` branches on exactly this: System Administrator gets every account,
+  // everyone else gets only users whose active assignments fall inside their own administered
+  // scopes. Role identity rather than a capability because the backend's own branch is role
+  // identity — mirroring it is what makes the on-screen note true (see `isScopeFiltered`).
+  const listsEveryUser = hasRole(summary, "system_administrator");
 
   // The first school/department the grantor holds a role at — used purely to
   // satisfy the endpoints' path param, not to filter the result.
@@ -98,6 +119,13 @@ export function useDelegationCandidates() {
     candidates,
     /** True when the list is existing Coordinators only — drives the inline note. */
     isCoordinatorsOnly: !canListUsers,
+    /**
+     * True when the list came from `GET /users` but was self-filtered server-side to the
+     * caller's own scopes — a School or Department Admin. Also drives an inline note: the
+     * picker looks like "every user" and isn't, and an account holding no role at all is
+     * invisible to them, which is exactly the person they'd be trying to staff from scratch.
+     */
+    isScopeFiltered: canListUsers && !listsEveryUser,
     isLoading: activeQuery.isLoading,
     isError: activeQuery.isError,
   };
