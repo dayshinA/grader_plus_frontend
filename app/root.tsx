@@ -12,12 +12,12 @@ import {
 import { NotFoundPage } from "~/components/ui/not-found-page";
 import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { AuthProvider } from "~/features/auth/api/auth-provider";
 import { queryClient } from "~/lib/query-client";
 import type { Route } from "./+types/root";
 import "./app.css";
 
-// Geist ships with the app (see `@fontsource-variable/geist` in app.css), so there is no
-// stylesheet to fetch from a third-party host here.
+// Geist ships with the app, so there is no stylesheet to fetch from a third party host.
 export const links: Route.LinksFunction = () => [];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -41,10 +41,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Outlet />
-        <Toaster />
-      </TooltipProvider>
+      {/* AuthProvider sits inside the query client because it reads /me and
+          /me/permissions through it. */}
+      <AuthProvider>
+        <TooltipProvider>
+          <Outlet />
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
@@ -55,24 +59,24 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     return <NotFoundPage homeHref="/" backLabel="Back to home" />;
   }
 
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
+  let message = "Something went wrong";
+  let details = "An unexpected error stopped the page from rendering.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = "Error";
+    message = `Error ${error.status}`;
     details = error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+  } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
     stack = error.stack;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="mx-auto max-w-2xl space-y-4 p-6 pt-16">
+      <h1 className="text-xl font-semibold">{message}</h1>
+      <p className="text-sm text-muted-foreground">{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="w-full overflow-x-auto rounded-lg bg-muted p-4 text-xs">
           <code>{stack}</code>
         </pre>
       )}
