@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { UserMinus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +38,16 @@ export function UserDetailPage({ userId }: { userId: string }) {
   const { data: user, isPending, isError, error, refetch, isFetching } = useUser(userId);
   const update = useUpdateUser();
   const deactivate = useDeactivateUser();
+
+  // The grants on this account arrive named, the rows behind the Roles card do not, so the
+  // card is given the lookup rather than a second request.
+  const scopeNames = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const grant of user?.roles ?? []) {
+      if (grant.scopeId && grant.scopeName) names.set(grant.scopeId, grant.scopeName);
+    }
+    return names;
+  }, [user]);
 
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -223,7 +233,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <RoleGrantsCard userId={user.id} userName={user.fullName} />
+      <RoleGrantsCard userId={user.id} userName={user.fullName} scopeNames={scopeNames} />
 
       <ConfirmDialog
         open={confirmDeactivate}

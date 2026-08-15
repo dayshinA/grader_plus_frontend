@@ -11,7 +11,7 @@ export const accessService = {
     return api.get<ResolvedGrant[]>("/me/permissions");
   },
 
-  /** Revoked grants come back too, because history is the point of the table. */
+  /** Active grants only, narrowed to the scopes the caller reaches. */
   listRoles(userId: string): Promise<RoleAssignment[]> {
     return api.get<RoleAssignment[]>(`/users/${userId}/roles`);
   },
@@ -20,7 +20,8 @@ export const accessService = {
     return apiWithMessage.post<RoleAssignment>(`/users/${userId}/roles`, payload);
   },
 
-  /** Revoked, not deleted. The row stays visible with a revokedAt on it. */
+  /** Sets revoked_at rather than deleting, so marking already recorded is untouched. The
+   * grant leaves every list, because no route returns a revoked one. */
   revokeRole(roleAssignmentId: string): Promise<ApiResult<RoleAssignment>> {
     return apiWithMessage.delete<RoleAssignment>(`/roles/${roleAssignmentId}`);
   },

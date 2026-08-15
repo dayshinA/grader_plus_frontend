@@ -95,7 +95,13 @@ export interface ResolvedGrant {
   permissions: Permission[];
 }
 
-/** A row of `GET /users/:id/roles`. Revoked grants stay in the list as history. */
+/**
+ * A row of `GET /users/:id/roles`, narrowed to the scopes the caller reaches.
+ *
+ * Active grants only. Revoking sets `revoked_at` rather than deleting the row, so the
+ * record survives in the database, but no route returns a revoked grant and `revokedAt` is
+ * therefore always null on anything the frontend sees.
+ */
 export interface RoleAssignment {
   id: string;
   userId: string;

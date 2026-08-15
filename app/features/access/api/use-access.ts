@@ -9,7 +9,11 @@ export const accessKeys = {
   roles: (userId: string) => [...accessKeys.all, "roles", userId] as const,
 };
 
-/** Includes revoked grants, because the history is the point of the table. */
+/**
+ * Active grants only, and only the ones the caller's own scope reaches. A coordinator
+ * reading a marker who also works in another School sees the offering they share and
+ * nothing else, so this list can be shorter than the person actually holds.
+ */
 export function useUserRoles(userId: string | undefined) {
   return useQuery({
     queryKey: accessKeys.roles(userId ?? ""),

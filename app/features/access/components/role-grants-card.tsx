@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Plus, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Callout } from "~/components/ui/callout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
@@ -145,37 +144,43 @@ function GrantRoleDialog({
   );
 }
 
+/**
+ * `GET /users/:id/roles` names no scopes, so the name comes from the `roles` on the user
+ * the detail screen already holds. A truncated id is the fallback for a grant that lookup
+ * does not cover, which is better than nothing but is not meant to be read.
+ */
+function scopeLabel(grant: RoleAssignment, scopeNames: Map<string, string>): string {
+  if (grant.scopeType === "system") return "Across the whole platform";
+  if (grant.scopeId && scopeNames.has(grant.scopeId)) {
+    return scopeNames.get(grant.scopeId) as string;
+  }
+  const kind = grant.scopeType === "academic_unit" ? "Academic unit" : "Offering";
+  return `${kind} ${grant.scopeId?.slice(0, 8)}`;
+}
+
 function GrantRow({
   grant,
+  scopeNames,
   canRevoke,
   onRevoke,
 }: {
   grant: RoleAssignment;
+  scopeNames: Map<string, string>;
   canRevoke: boolean;
   onRevoke: (grant: RoleAssignment) => void;
 }) {
-  const revoked = grant.revokedAt !== null;
-
   return (
     <li className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium">{ROLE_LABELS[grant.role]}</p>
-          {revoked && <Badge variant="outline">Revoked</Badge>}
-        </div>
+        <p className="font-medium">{ROLE_LABELS[grant.role]}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {grant.scopeType === "system"
-            ? "Across the whole platform"
-            : grant.scopeType === "academic_unit"
-              ? `Academic unit ${grant.scopeId?.slice(0, 8)}`
-              : `Offering ${grant.scopeId?.slice(0, 8)}`}
+          {scopeLabel(grant, scopeNames)}
           {" · granted "}
           {formatDateTime(grant.grantedAt)}
-          {revoked && ` · revoked ${formatDateTime(grant.revokedAt)}`}
         </p>
       </div>
 
-      {canRevoke && !revoked && (
+      {canRevoke && (
         <Button
           variant="ghost"
           size="sm"
@@ -191,10 +196,23 @@ function GrantRow({
 }
 
 /**
- * The grants on one account, live and revoked alike. A revoked grant stays in the list
- * because the record of who held what is the point of the table, and there is no delete.
+ * The grants on one account. Active ones only: revoking sets `revoked_at` rather than
+ * deleting the row, but no route hands a revoked grant back, so there is no history to
+ * show here.
+ *
+ * The list is also narrowed to the scopes the caller reaches, which is why this card can
+ * be shorter than the one a system administrator sees on the same person.
  */
-export function RoleGrantsCard({ userId, userName }: { userId: string; userName: string }) {
+export function RoleGrantsCard({
+  userId,
+  userName,
+  scopeNames,
+}: {
+  userId: string;
+  userName: string;
+  /** scopeId to name, from the `roles` on the user. These rows carry no name of their own. */
+  scopeNames: Map<string, string>;
+}) {
   const canGrant = usePermission("role.grant");
   const canRevoke = usePermission("role.revoke");
   const { data, isPending, isError, error, refetch, isFetching } = useUserRoles(userId);
@@ -204,8 +222,6 @@ export function RoleGrantsCard({ userId, userName }: { userId: string; userName:
   const [revoking, setRevoking] = useState<RoleAssignment | undefined>();
 
   const grants = data ?? [];
-  const active = grants.filter((grant) => grant.revokedAt === null);
-  const history = grants.filter((grant) => grant.revokedAt !== null);
 
   return (
     <Card>
@@ -214,7 +230,7 @@ export function RoleGrantsCard({ userId, userName }: { userId: string; userName:
           <CardTitle className="text-base">Roles</CardTitle>
           <CardDescription>
             A grant is a role and a scope. Revoking takes effect on the next request, not the
-            next sign in.
+            next sign in, and takes the grant off this list.
           </CardDescription>
         </div>
         {canGrant && (
@@ -247,36 +263,17 @@ export function RoleGrantsCard({ userId, userName }: { userId: string; userName:
             This account holds no roles, so nothing in GraderPlus is open to it yet.
           </p>
         ) : (
-          <>
-            {active.length > 0 && (
-              <ul className="space-y-2">
-                {active.map((grant) => (
-                  <GrantRow
-                    key={grant.id}
-                    grant={grant}
-                    canRevoke={canRevoke}
-                    onRevoke={setRevoking}
-                  />
-                ))}
-              </ul>
-            )}
-
-            {history.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Previously held</p>
-                <ul className="space-y-2 opacity-70">
-                  {history.map((grant) => (
-                    <GrantRow
-                      key={grant.id}
-                      grant={grant}
-                      canRevoke={false}
-                      onRevoke={setRevoking}
-                    />
-                  ))}
-                </ul>
-              </div>
-            )}
-          </>
+          <ul className="space-y-2">
+            {grants.map((grant) => (
+              <GrantRow
+                key={grant.id}
+                grant={grant}
+                scopeNames={scopeNames}
+                canRevoke={canRevoke}
+                onRevoke={setRevoking}
+              />
+            ))}
+          </ul>
         )}
       </CardContent>
 
@@ -295,7 +292,7 @@ export function RoleGrantsCard({ userId, userName }: { userId: string; userName:
         title="Revoke this role?"
         description={
           revoking
-            ? `${userName} loses ${ROLE_LABELS[revoking.role]} on that scope from their next request onward. The grant stays in the list as history rather than being deleted.`
+            ? `${userName} loses ${ROLE_LABELS[revoking.role]} on that scope from their next request onward. Nothing they have already marked is touched.`
             : ""
         }
         confirmLabel="Revoke"

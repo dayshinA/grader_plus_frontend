@@ -18,16 +18,22 @@ import { FilterTabs, type FilterTabOption } from "~/components/ui/filter-tabs";
 import { ListPager } from "~/components/ui/list-pager";
 import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
-import { usePermission } from "~/features/auth/api/auth-context";
+import { isSystemWide } from "~/features/access/permissions";
+import { ROLES, ROLE_LABELS, type Role } from "~/features/access/types";
+import { useAuth, usePermission } from "~/features/auth/api/auth-context";
 import { useUsers } from "~/features/users/api/use-users";
 import { BulkImportDialog } from "~/features/users/components/bulk-import-dialog";
 import { CreateUserDialog } from "~/features/users/components/create-user-dialog";
-import type { User } from "~/features/users/types";
+import type { User, UserRoleSummary } from "~/features/users/types";
 import { backTo } from "~/hooks/use-back-link";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { formatDateTime, pluralise } from "~/utils/format";
 
 type StatusFilter = "all" | "active" | "deactivated";
+type RoleFilter = Role | "all";
+
+/** How many grants a row shows before the rest collapse into a count. */
+const ROLES_SHOWN = 2;
 
 const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
   { id: "all", label: "All" },
@@ -35,16 +41,80 @@ const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
   { id: "deactivated", label: "Deactivated" },
 ];
 
+/** The unit's name, the offering's code and year, or the platform for a system grant. */
+function scopeLabel(grant: UserRoleSummary): string | null {
+  if (grant.scopeName) return grant.scopeName;
+  return grant.scopeType === "system" ? "Across the whole platform" : null;
+}
+
+/** Everything about a row that search should match, including its roles and their scopes. */
+function searchableText(user: User): string {
+  const roles = (user.roles ?? [])
+    .map((grant) => `${ROLE_LABELS[grant.role]} ${grant.scopeName ?? ""}`)
+    .join(" ");
+  return `${user.fullName} ${user.email} ${roles}`.toLowerCase();
+}
+
+/**
+ * The grants on one row.
+ *
+ * An empty array is not "this person holds nothing". The response carries only the grants
+ * the caller's own scope reaches, so a coordinator reading an account that also works in
+ * another School sees none of that, and saying "no roles" there would be a confident false
+ * statement. Only a caller holding a system wide grant sees the whole picture.
+ */
+function UserRoles({
+  grants,
+  seesEverything,
+}: {
+  grants: UserRoleSummary[];
+  seesEverything: boolean;
+}) {
+  if (grants.length === 0) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        {seesEverything ? "None" : "None in your scope"}
+      </span>
+    );
+  }
+
+  const shown = grants.slice(0, ROLES_SHOWN);
+  const hidden = grants.length - shown.length;
+
+  return (
+    <div className="min-w-0 space-y-1">
+      {shown.map((grant) => {
+        const scope = scopeLabel(grant);
+        return (
+          <div key={grant.id} className="min-w-0">
+            <span className="block truncate text-sm">{ROLE_LABELS[grant.role]}</span>
+            {scope && (
+              <span className="block truncate text-xs text-muted-foreground">{scope}</span>
+            )}
+          </div>
+        );
+      })}
+      {hidden > 0 && <span className="block text-xs text-muted-foreground">+{hidden} more</span>}
+    </div>
+  );
+}
+
 /**
  * Staff accounts. Deactivated rather than deleted, so somebody who has marked anything
  * stays readable, and the list keeps them visible under their own filter.
  */
 export function UsersPage() {
   const canCreate = usePermission("user.create");
+  const { grants } = useAuth();
   const { data, isLoading, isError, error, refetch, isFetching } = useUsers();
+
+  // Reads the scope on the caller's own grants rather than a role name, which is the same
+  // test and the one this app is allowed to make.
+  const seesEverything = isSystemWide(grants);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [role, setRole] = useState<RoleFilter>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -55,11 +125,27 @@ export function UsersPage() {
         status === "all" ||
         (status === "active" && user.isActive) ||
         (status === "deactivated" && !user.isActive);
-      const matchesTerm =
-        !term || `${user.fullName} ${user.email}`.toLowerCase().includes(term);
-      return matchesStatus && matchesTerm;
+      const matchesRole =
+        role === "all" || (user.roles ?? []).some((grant) => grant.role === role);
+      const matchesTerm = !term || searchableText(user).includes(term);
+      return matchesStatus && matchesRole && matchesTerm;
     });
-  }, [data, search, status]);
+  }, [data, search, status, role]);
+
+  /**
+   * The roles actually present in the response, not the four that exist. A coordinator
+   * mostly sees markers, and a tab that always empties the list is worse than no tab.
+   * `ROLES` is already ordered by reach, so filtering it keeps that order.
+   */
+  const roleFilters: FilterTabOption<RoleFilter>[] = useMemo(() => {
+    const held = new Set((data ?? []).flatMap((user) => user.roles ?? []).map((g) => g.role));
+    const present = ROLES.filter((option) => held.has(option));
+    if (present.length < 2) return [];
+    return [
+      { id: "all", label: "All roles" },
+      ...present.map((option) => ({ id: option, label: ROLE_LABELS[option] })),
+    ];
+  }, [data]);
 
   const paged = usePagedList(filtered, 20);
   const backHere = backTo({
@@ -84,6 +170,13 @@ export function UsersPage() {
         </div>
       ),
       skeletonClassName: "w-44",
+    },
+    {
+      id: "roles",
+      header: "Roles",
+      cell: (user) => <UserRoles grants={user.roles ?? []} seesEverything={seesEverything} />,
+      className: "hidden md:table-cell",
+      skeletonClassName: "w-32",
     },
     {
       id: "status",
@@ -132,6 +225,11 @@ export function UsersPage() {
           <Badge variant="outline">Deactivated</Badge>
         )}
       </div>
+      <div className="mt-3 border-t border-border pt-3">
+        <p className="mb-1 text-xs text-muted-foreground">Roles</p>
+        <UserRoles grants={user.roles ?? []} seesEverything={seesEverything} />
+      </div>
+
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
         <span className="text-muted-foreground">Last signed in</span>
         <span>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never"}</span>
@@ -139,7 +237,7 @@ export function UsersPage() {
     </div>
   );
 
-  const hasFilters = search.trim() !== "" || status !== "all";
+  const hasFilters = search.trim() !== "" || status !== "all" || role !== "all";
 
   return (
     <div className="space-y-6">
@@ -181,15 +279,26 @@ export function UsersPage() {
           <ListToolbar
             search={search}
             onSearchChange={setSearch}
-            searchLabel="Search accounts by name or email"
+            searchLabel="Search accounts by name, email, role or scope"
             placeholder="Search accounts"
             filters={
-              <FilterTabs
-                options={STATUS_FILTERS}
-                value={status}
-                onChange={setStatus}
-                label="Filter by account status"
-              />
+              <>
+                <FilterTabs
+                  options={STATUS_FILTERS}
+                  value={status}
+                  onChange={setStatus}
+                  label="Filter by account status"
+                />
+                {roleFilters.length > 0 && (
+                  <FilterTabs
+                    options={roleFilters}
+                    value={role}
+                    onChange={setRole}
+                    label="Filter by role"
+                    className="w-full sm:w-auto"
+                  />
+                )}
+              </>
             }
           />
 
@@ -224,6 +333,7 @@ export function UsersPage() {
                         onClick={() => {
                           setSearch("");
                           setStatus("all");
+                          setRole("all");
                         }}
                       >
                         Clear filters
