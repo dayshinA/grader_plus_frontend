@@ -32,6 +32,11 @@ export default [
       route("audit", "routes/admin/audit.tsx"),
     ]),
 
+    ...prefix("marking", [
+      index("routes/marking/index.tsx"),
+      route(":projectId", "routes/marking/workspace.tsx"),
+    ]),
+
     // The coordinator surface is one frame with tabs inside it, in the order the work
     // actually happens: intake and the rubric before assignments, grades and export last.
     route("offerings/:offeringId", "routes/offerings/layout.tsx", [
