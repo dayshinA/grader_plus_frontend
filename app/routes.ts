@@ -45,8 +45,15 @@ export default [
       route("rubric", "routes/offerings/rubric.tsx"),
       route("assignments", "routes/offerings/assignments.tsx"),
       route("dashboard", "routes/offerings/dashboard.tsx"),
+      route("discrepancies", "routes/offerings/discrepancies.tsx"),
+      route("grades", "routes/offerings/grades.tsx"),
+      route("export", "routes/offerings/export.tsx"),
       route("audit", "routes/offerings/audit.tsx"),
     ]),
+
+    // Outside the offering frame: a case is reached from the list, and its own header
+    // names the student rather than the offering.
+    route("discrepancies/:caseId", "routes/discrepancy.tsx"),
 
     // The unit surface is one frame with tabs inside it, so the layout owns the header
     // and each tab is only its own content.
