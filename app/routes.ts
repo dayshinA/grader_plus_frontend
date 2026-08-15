@@ -37,6 +37,7 @@ export default [
     route("offerings/:offeringId", "routes/offerings/layout.tsx", [
       index("routes/offerings/settings.tsx"),
       route("intake", "routes/offerings/intake.tsx"),
+      route("rubric", "routes/offerings/rubric.tsx"),
       route("dashboard", "routes/offerings/dashboard.tsx"),
       route("audit", "routes/offerings/audit.tsx"),
     ]),
