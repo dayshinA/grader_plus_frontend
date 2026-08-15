@@ -21,5 +21,22 @@ export default [
       route("notifications", "routes/account/notifications.tsx"),
       route("password", "routes/account/password.tsx"),
     ]),
+
+    ...prefix("admin", [
+      route("units", "routes/admin/units.tsx"),
+      route("programmes", "routes/admin/programmes.tsx"),
+      route("modules", "routes/admin/modules.tsx"),
+      route("overview", "routes/admin/overview.tsx"),
+      route("audit", "routes/admin/audit.tsx"),
+    ]),
+
+    // The unit surface is one frame with tabs inside it, so the layout owns the header
+    // and each tab is only its own content.
+    route("units/:unitId", "routes/units/layout.tsx", [
+      route("dashboard", "routes/units/dashboard.tsx"),
+      route("programmes", "routes/units/programmes.tsx"),
+      route("modules", "routes/units/modules.tsx"),
+      route("audit", "routes/units/audit.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;
