@@ -16,6 +16,7 @@ import {
 
 import type { Permission, ResolvedGrant } from "~/features/access/types";
 import { can, isSystemWide } from "~/features/access/permissions";
+import { AUDIT_HIDDEN } from "~/features/audit/visibility";
 import type { HomeSummary } from "~/features/dashboard/types";
 
 /**
@@ -125,7 +126,10 @@ export interface OfferingNavItem {
   permission: Permission;
 }
 
-export const OFFERING_NAV: OfferingNavItem[] = [
+/** Audit is hidden for now, so its tab is filtered out rather than deleted from the list. */
+const isVisibleTab = (item: { id: string }) => !AUDIT_HIDDEN || !item.id.endsWith("-audit");
+
+export const OFFERING_NAV: OfferingNavItem[] = ([
   {
     id: "offering-settings",
     title: "Settings",
@@ -198,7 +202,7 @@ export const OFFERING_NAV: OfferingNavItem[] = [
     description: "What happened on this offering, append only.",
     permission: "audit.read_scoped",
   },
-];
+] satisfies OfferingNavItem[]).filter(isVisibleTab);
 
 /** The unit surface, likewise per unit. */
 export interface UnitNavItem {
@@ -210,7 +214,7 @@ export interface UnitNavItem {
   permission: Permission;
 }
 
-export const UNIT_NAV: UnitNavItem[] = [
+export const UNIT_NAV: UnitNavItem[] = ([
   {
     id: "unit-dashboard",
     title: "Progress",
@@ -243,7 +247,7 @@ export const UNIT_NAV: UnitNavItem[] = [
     description: "What happened inside this unit, append only.",
     permission: "audit.read_scoped",
   },
-];
+] satisfies UnitNavItem[]).filter(isVisibleTab);
 
 /**
  * The sidebar for this caller. `home` is built from the permission set; the offering and
@@ -300,7 +304,7 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
   if (can(grants, "platform.read")) {
     administration.push(NAV.adminOverview);
   }
-  if (can(grants, "audit.read")) {
+  if (!AUDIT_HIDDEN && can(grants, "audit.read")) {
     administration.push(NAV.adminAudit);
   }
   if (administration.length > 0) {

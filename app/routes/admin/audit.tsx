@@ -1,8 +1,10 @@
 import { useState } from "react";
 
 import { PageHeader } from "~/components/ui/page-header";
+import { NotFoundPage } from "~/components/ui/not-found-page";
 import { usePlatformAudit } from "~/features/audit/api/use-audit";
 import { AuditTable } from "~/features/audit/components/audit-table";
+import { AUDIT_HIDDEN } from "~/features/audit/visibility";
 import { usePermission } from "~/features/auth/api/auth-context";
 import { RequirePermission } from "~/features/auth/components/protected-route";
 import { FormField } from "~/components/ui/form-field";
@@ -12,6 +14,12 @@ export function meta() {
 }
 
 export default function AdminAuditRoute() {
+  // Hidden for now. The screen is intact and mounts again with the flag, and nothing is
+  // requested while it does not.
+  return AUDIT_HIDDEN ? <NotFoundPage /> : <AdminAuditScreen />;
+}
+
+function AdminAuditScreen() {
   const allowed = usePermission("audit.read");
   const [action, setAction] = useState("");
   const [actor, setActor] = useState("");

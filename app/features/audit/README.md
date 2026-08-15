@@ -6,6 +6,12 @@
 
 The append only log. New in version 2, no version 1 counterpart.
 
+**Hidden as of 2026-08-15.** Everything in this folder still works and still compiles, and
+the three routes are still registered, but every way in is gated on `AUDIT_HIDDEN` in
+`visibility.ts`: the sidebar entry, the offering and unit tabs, the home screen shortcut, and
+the screens themselves, which return a 404 rather than mount. Set the flag to false to bring
+all of it back. Nothing was deleted.
+
 ## Screens
 
 `/admin/audit`, `/units/:id/audit`.

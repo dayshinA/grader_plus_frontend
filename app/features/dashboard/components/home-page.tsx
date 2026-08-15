@@ -14,6 +14,7 @@ import {
 import { ErrorCard } from "~/components/ui/error-card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
+import { AUDIT_HIDDEN } from "~/features/audit/visibility";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { useHome } from "~/features/dashboard/api/use-dashboard";
 import { OfferingStatusBadge } from "~/features/structure/components/offering-status-badge";
@@ -209,9 +210,11 @@ export function HomePage() {
             <Button asChild variant="outline" className="h-11 cursor-pointer sm:h-9">
               <Link to="/admin/users">Accounts</Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 cursor-pointer sm:h-9">
-              <Link to="/admin/audit">Audit log</Link>
-            </Button>
+            {!AUDIT_HIDDEN && (
+              <Button asChild variant="outline" className="h-11 cursor-pointer sm:h-9">
+                <Link to="/admin/audit">Audit log</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
