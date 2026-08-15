@@ -1,34 +1,26 @@
-import { Navigate } from "react-router";
-import { Wave } from "~/components/ui/wave";
-import { useAuth } from "~/features/auth/api/auth-context";
-import { landingPath } from "~/features/auth/utils";
+import { Link } from "react-router";
 
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+
+// Placeholder until the dashboard feature ships. The real home calls GET /me/home and
+// renders whatever the response is shaped as for that caller.
 export default function Home() {
-  const { user, permissions, isBootstrapping } = useAuth();
-
-  // Same isBootstrapping gate as ProtectedRoute — this route sits outside
-  // require-auth.tsx (it has to decide whether to send an unauthenticated
-  // visitor to /login or a real user to their dashboard), so it needs its
-  // own copy of the check. Without it, a reopened tab lands here before the
-  // mount-time silent-refresh resolves, `user` is still null, and this
-  // redirects to /login before the session ever gets a chance to recover —
-  // and /login doesn't re-check auth state, so the user gets stuck there.
-  if (isBootstrapping) {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-background"
-      >
-        <Wave className="size-8 text-primary" />
-        <p className="text-sm text-muted-foreground">Restoring your session…</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to={landingPath(permissions)} replace />;
+  return (
+    <main className="flex min-h-svh items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardContent className="space-y-4 pt-6">
+          <div className="space-y-1">
+            <h1 className="text-lg font-medium">GraderPlus</h1>
+            <p className="text-sm text-muted-foreground">
+              Version 2 rebuild in progress. No screens are wired up yet.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/dev/preview">Component library</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

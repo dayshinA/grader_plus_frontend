@@ -12,7 +12,6 @@ import {
 import { NotFoundPage } from "~/components/ui/not-found-page";
 import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
-import { AuthProvider } from "~/features/auth/api/auth-context";
 import { queryClient } from "~/lib/query-client";
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -42,14 +41,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Inside the router (so it can redirect on a 401) and above everything that reads the
-          session. */}
-      <AuthProvider>
-        <TooltipProvider>
-          <Outlet />
-          <Toaster />
-        </TooltipProvider>
-      </AuthProvider>
+      <TooltipProvider>
+        <Outlet />
+        <Toaster />
+      </TooltipProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
@@ -57,7 +52,7 @@ export default function App() {
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error) && error.status === 404) {
-    return <NotFoundPage homeHref="/workspace/dashboard" backLabel="Back to dashboard" />;
+    return <NotFoundPage homeHref="/" backLabel="Back to home" />;
   }
 
   let message = "Oops!";

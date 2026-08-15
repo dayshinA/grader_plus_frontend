@@ -1,0 +1,40 @@
+# assignments
+
+- Backend module: `src/assignments/` (AssignmentsModule)
+- API reference: `.claude/API-REFERENCE.md`, section "Assignments"
+- Design: `.claude/FRONTEND-DESIGN.md`, "Assignments"
+
+Who marks what. Replaces the version 1 `marker-assignments` folder.
+
+## Screens
+
+`/offerings/:id/assignments`, a matrix of projects against markers.
+
+## Routes
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/offerings/:id/assignments` | `assignment.read` |
+| POST | `/offerings/:id/assignments` | `assignment.write` |
+| POST | `/offerings/:id/assignments/auto` | `assignment.write` |
+| POST | `/offerings/:id/assignments/import` | `assignment.write` |
+| GET | `/offerings/:id/assignments/coverage` | `assignment.read` |
+| GET | `/offerings/:id/markers` | `assignment.read` |
+| PATCH | `/assignments/:id` | `assignment.write` |
+| DELETE | `/assignments/:id` | `assignment.write` |
+| POST | `/offerings/:id/open-marking` | `offering.update` |
+
+## Notes
+
+Two markers minimum, five maximum. One first marker, one second marker and one moderator at
+most; `additional_marker` is the unconstrained value for a fourth or fifth opinion.
+Moderator is a value here, not a role, and it marks blind like any other.
+
+Coverage says which projects are short and gates opening marking. Surface it as a checklist
+rather than letting the open action fail.
+
+The coordinator cannot assign themselves. The server refuses it and the picker should not
+offer them.
+
+This screen names markers, and that is correct. Blindness is between markers, not between a
+coordinator and their own allocation.

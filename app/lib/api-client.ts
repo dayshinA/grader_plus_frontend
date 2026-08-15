@@ -1,3 +1,7 @@
+// Version 1 client, kept compiling but not yet rewritten for version 2. The envelope, the
+// error codes and the session bootstrap all change, and some comments below still point at
+// files deleted with the version 1 features. See .claude/FRONTEND-DESIGN.md before reusing
+// any of it.
 import axios from "axios";
 import type {
   AxiosError,
