@@ -32,6 +32,15 @@ export default [
       route("audit", "routes/admin/audit.tsx"),
     ]),
 
+    // The coordinator surface is one frame with tabs inside it, in the order the work
+    // actually happens: intake and the rubric before assignments, grades and export last.
+    route("offerings/:offeringId", "routes/offerings/layout.tsx", [
+      index("routes/offerings/settings.tsx"),
+      route("intake", "routes/offerings/intake.tsx"),
+      route("dashboard", "routes/offerings/dashboard.tsx"),
+      route("audit", "routes/offerings/audit.tsx"),
+    ]),
+
     // The unit surface is one frame with tabs inside it, so the layout owns the header
     // and each tab is only its own content.
     route("units/:unitId", "routes/units/layout.tsx", [
