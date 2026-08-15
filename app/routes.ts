@@ -10,6 +10,10 @@ export default [
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
 
+  // Needs a session but not the shell: a temporary password has nowhere else to go
+  // until it is replaced, so this sits outside the protected layout.
+  route("set-password", "routes/set-password.tsx"),
+
   // The component gallery, which is a style guide rather than a real screen.
   route("dev/preview", "routes/dev/preview.tsx"),
 

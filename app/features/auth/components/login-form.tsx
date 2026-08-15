@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { FormError } from "~/components/ui/form-error";
 import { FormField } from "~/components/ui/form-field";
 import { SubmitButton } from "~/components/ui/submit-button";
-import { CHANGE_PASSWORD_PATH } from "~/features/auth/api/auth-context";
+import { SET_PASSWORD_PATH } from "~/features/auth/api/auth-context";
 import { useLogin } from "~/features/auth/api/use-auth";
 import { isApiError } from "~/lib/api-client";
 
@@ -31,7 +31,7 @@ export function LoginForm() {
         onSuccess: ({ data, message }) => {
           toast.success(message || "Signed in.");
           // A temporary password gets one destination, whatever they were headed for.
-          void navigate(data.user.mustChangePassword ? CHANGE_PASSWORD_PATH : from, {
+          void navigate(data.user.mustChangePassword ? SET_PASSWORD_PATH : from, {
             replace: true,
           });
         },

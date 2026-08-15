@@ -6,7 +6,8 @@ import type { SessionResponse } from "~/lib/api-client";
 import type { User } from "~/features/users/types";
 
 export const LOGIN_PATH = "/login";
-export const CHANGE_PASSWORD_PATH = "/account/password";
+/** The forced screen a temporary password gets, outside the shell. */
+export const SET_PASSWORD_PATH = "/set-password";
 
 export interface AuthContextValue {
   /** From GET /me. Identity does not come out of the token. */

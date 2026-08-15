@@ -5,7 +5,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { Button } from "~/components/ui/button";
 import { ErrorCard } from "~/components/ui/error-card";
 import {
-  CHANGE_PASSWORD_PATH,
+  SET_PASSWORD_PATH,
   LOGIN_PATH,
   useAuth,
 } from "~/features/auth/api/auth-context";
@@ -78,9 +78,10 @@ export function ProtectedRoute({ children }: { children?: React.ReactNode }) {
     return <FullPageSpinner label="Loading your account" />;
   }
 
-  // A temporary password gets one screen and nothing else until it is replaced.
-  if (mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
-    return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
+  // A temporary password gets one screen and nothing else until it is replaced. That
+  // screen sits outside this layout, so nothing renders around it.
+  if (mustChangePassword && location.pathname !== SET_PASSWORD_PATH) {
+    return <Navigate to={SET_PASSWORD_PATH} replace />;
   }
 
   return <>{children ?? <Outlet />}</>;

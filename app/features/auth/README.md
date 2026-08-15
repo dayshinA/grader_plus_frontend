@@ -8,7 +8,9 @@ Turning credentials into a session. Knows nothing about academic structure.
 
 ## Screens
 
-`/login`, `/forgot-password`, `/reset-password`, and the forced change password screen.
+`/login`, `/forgot-password`, `/reset-password`, and `/set-password`, the forced screen a
+temporary password lands on. The voluntary change lives on `/account/password` and uses the
+same form.
 
 ## Routes
 
@@ -29,8 +31,12 @@ nothing else. Refresh is an httpOnly cookie this code never reads.
 The single flight refresh belongs here or in `lib/api-client.ts`, and nowhere else.
 Concurrent 401s must share one refresh or the backend revokes the chain as a replay.
 
-`mustChangePassword` on the login response forces the change password screen before
-anything else renders. After login and after every refresh, call `access` for permissions
+`mustChangePassword` on the login response forces `/set-password` before anything else
+renders. That screen is authenticated but sits outside the app shell, since every link a
+sidebar would offer bounces straight back to it. Changing a password revokes every refresh
+token, so the forced path signs back in with the password just set and lands on home,
+rather than asking for a second sign in on a first visit. The voluntary change on
+`/account/password` still signs out. After login and after every refresh, call `access` for permissions
 and `users` for the person: identity does not come out of the token.
 
 ## Files in this folder
@@ -45,4 +51,5 @@ and `users` for the person: identity does not come out of the token.
 - `components/login-form.tsx`
 - `components/protected-route.tsx`
 - `components/reset-password-form.tsx`
+- `components/set-password-page.tsx`
 - `types.ts`
