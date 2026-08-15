@@ -26,6 +26,8 @@ export default [
       route("units", "routes/admin/units.tsx"),
       route("programmes", "routes/admin/programmes.tsx"),
       route("modules", "routes/admin/modules.tsx"),
+      route("users", "routes/admin/users.tsx"),
+      route("users/:userId", "routes/admin/user-detail.tsx"),
       route("overview", "routes/admin/overview.tsx"),
       route("audit", "routes/admin/audit.tsx"),
     ]),
