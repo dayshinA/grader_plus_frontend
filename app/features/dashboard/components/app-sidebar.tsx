@@ -1,4 +1,4 @@
-import { Bell, GraduationCap, KeyRound, LogOut, UserRound } from "lucide-react";
+import { Bell, KeyRound, LogOut, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 import { DashboardSidebar } from "~/components/ui/dashboard-sidebar";
@@ -29,12 +29,14 @@ function Brand() {
       <SidebarMenuItem>
         <SidebarMenuButton size="lg" asChild className="cursor-pointer">
           <Link to="/">
-            <span
+            {/* The crest carries its own purple ground, so it sits on nothing rather than
+                on a primary tile. The text beside it names both, so this is decorative. */}
+            <img
+              src="/logo_only_no_text.jpeg"
+              alt=""
               aria-hidden="true"
-              className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
-            >
-              <GraduationCap className="size-4" />
-            </span>
+              className="aspect-square size-8 shrink-0 rounded-md object-cover"
+            />
             <div className="grid flex-1 text-left leading-tight">
               <span className="truncate text-sm font-semibold">GraderPlus</span>
               <span className="truncate text-xs text-muted-foreground">

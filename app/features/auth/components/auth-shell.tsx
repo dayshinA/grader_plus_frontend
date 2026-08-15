@@ -1,4 +1,3 @@
-import { GraduationCap } from "lucide-react";
 import type { ReactNode } from "react";
 
 /**
@@ -19,17 +18,15 @@ export function AuthShell({
   return (
     <main className="flex min-h-dvh flex-col bg-muted/30 px-4 py-8 sm:items-center sm:justify-center sm:px-6">
       <div className="w-full sm:max-w-md">
-        <div className="mb-8 flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-          >
-            <GraduationCap className="size-5" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-base font-semibold">GraderPlus</p>
-            <p className="text-xs text-muted-foreground">Loughborough University</p>
-          </div>
+        <div className="mb-8 space-y-3">
+          {/* The lockup is a single purple ink on transparent, so on a dark background it
+              is flattened to black and inverted to white rather than left to disappear. */}
+          <img
+            src="/logo_with_text_2.png"
+            alt="Loughborough University"
+            className="h-9 w-auto dark:brightness-0 dark:invert"
+          />
+          <p className="text-base font-semibold">GraderPlus</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-background p-6 shadow-sm sm:p-8">
