@@ -17,12 +17,12 @@ import { SecretField } from "~/components/ui/secret-field";
 import { SelectField } from "~/components/ui/select-field";
 import { SubmitButton } from "~/components/ui/submit-button";
 import { ScopePicker } from "~/features/access/components/scope-picker";
-import { ROLE_LABELS, ROLES, SCOPE_FOR_ROLE, type Role } from "~/features/access/types";
+import { grantableRoles } from "~/features/access/permissions";
+import { ROLE_LABELS, SCOPE_FOR_ROLE, type Role } from "~/features/access/types";
+import { useAuth } from "~/features/auth/api/auth-context";
 import { useCreateUser } from "~/features/users/api/use-users";
 import type { CreatedUser } from "~/features/users/types";
 import { isApiError } from "~/lib/api-client";
-
-const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }));
 
 /**
  * Every account is created with its first role, because an account with no grant opens
@@ -37,12 +37,20 @@ export function CreateUserDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const create = useCreateUser();
+  const { grants } = useAuth();
 
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<Role>("marker");
   const [scopeId, setScopeId] = useState("");
   const [created, setCreated] = useState<CreatedUser | undefined>();
+
+  // An account is created with its first role, so the same delegation rule applies here as
+  // on the grant dialog: a role at or above the caller's own level is not offered.
+  const roleOptions = grantableRoles(grants).map((option) => ({
+    value: option,
+    label: ROLE_LABELS[option],
+  }));
 
   const scopeType = SCOPE_FOR_ROLE[role];
   const needsScope = scopeType !== "system";
@@ -155,8 +163,8 @@ export function CreateUserDialog({
               setRole(value as Role);
               setScopeId("");
             }}
-            options={ROLE_OPTIONS}
-            hint="More can be granted afterwards. Capability is the union of every grant."
+            options={roleOptions}
+            hint="Roles below your own only. More can be granted afterwards, and capability is the union of every grant."
             error={fieldError("role")}
           />
 

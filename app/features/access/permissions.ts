@@ -1,3 +1,4 @@
+import { ROLE_RANK, ROLES } from "~/features/access/types";
 import type { Permission, ResolvedGrant, Role, ScopeType } from "~/features/access/types";
 
 /**
@@ -74,4 +75,25 @@ export function unitIds(grants: ResolvedGrant[]): string[] {
 /** Everything the caller can do, flattened. For the account screen's summary. */
 export function allPermissions(grants: ResolvedGrant[]): Permission[] {
   return [...new Set(grants.flatMap((grant) => grant.permissions))].sort();
+}
+
+/**
+ * The roles this caller is allowed to hand out, highest first.
+ *
+ * The backend's rule is strictly below their own level: a system administrator grants
+ * anything, a unit admin grants a coordinator or a marker but not another unit admin, and a
+ * coordinator grants a marker. Anything else comes back 403 GRANT_ABOVE_LEVEL or
+ * GRANT_REFUSED, so offering it in a picker only wastes a filled in form.
+ *
+ * This is the one helper here that reads `grant.role`, because delegation is the one rule
+ * the server defines over roles rather than over permissions. It narrows a picker and
+ * nothing else. The server still decides, including on scope, which this does not check.
+ */
+export function grantableRoles(grants: ResolvedGrant[]): Role[] {
+  if (grants.some((grant) => grant.role === "system_admin")) {
+    return [...ROLES];
+  }
+
+  const highest = grants.reduce((rank, grant) => Math.max(rank, ROLE_RANK[grant.role]), -1);
+  return ROLES.filter((role) => ROLE_RANK[role] < highest);
 }

@@ -21,19 +21,17 @@ import { SelectField } from "~/components/ui/select-field";
 import { Skeleton } from "~/components/ui/skeleton";
 import { SubmitButton } from "~/components/ui/submit-button";
 import { useGrantRole, useRevokeRole, useUserRoles } from "~/features/access/api/use-access";
+import { grantableRoles } from "~/features/access/permissions";
 import { ScopePicker } from "~/features/access/components/scope-picker";
 import {
   ROLE_LABELS,
-  ROLES,
   SCOPE_FOR_ROLE,
   type Role,
   type RoleAssignment,
 } from "~/features/access/types";
-import { usePermission } from "~/features/auth/api/auth-context";
+import { useAuth, usePermission } from "~/features/auth/api/auth-context";
 import { formatDateTime } from "~/utils/format";
 import { isApiError } from "~/lib/api-client";
-
-const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }));
 
 function GrantRoleDialog({
   open,
@@ -47,8 +45,16 @@ function GrantRoleDialog({
   userName: string;
 }) {
   const grant = useGrantRole(userId);
+  const { grants } = useAuth();
   const [role, setRole] = useState<Role>("marker");
   const [scopeId, setScopeId] = useState("");
+
+  // Nobody grants a role at or above their own, so the ones this caller would be refused
+  // for are absent rather than offered and rejected on submit.
+  const roleOptions = grantableRoles(grants).map((option) => ({
+    value: option,
+    label: ROLE_LABELS[option],
+  }));
 
   const scopeType = SCOPE_FOR_ROLE[role];
   const needsScope = scopeType !== "system";
@@ -92,7 +98,7 @@ function GrantRoleDialog({
               setRole(value as Role);
               setScopeId("");
             }}
-            options={ROLE_OPTIONS}
+            options={roleOptions}
             error={isApiError(error) ? error.fieldError("role") : undefined}
           />
 
@@ -102,6 +108,11 @@ function GrantRoleDialog({
             onScopeIdChange={setScopeId}
             error={isApiError(error) ? error.fieldError("scopeId") : undefined}
           />
+
+          <p className="text-xs text-muted-foreground">
+            You can grant a role below your own, on a scope you hold. Your own level and
+            anything above it is not on this list, and nobody grants themselves a role.
+          </p>
 
           {role === "coordinator" && (
             <Callout variant="info">

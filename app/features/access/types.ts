@@ -11,6 +11,19 @@ export const ROLE_LABELS: Record<Role, string> = {
   marker: "Marker",
 };
 
+/**
+ * Mirrors `ROLE_RANK` in the backend's `src/access/enums/role.enum.ts`. It exists for one
+ * rule, that nobody grants a role at or above their own level, and nothing else reads it.
+ * It is not a hierarchy: capability is still the union of the permission sets, and no
+ * screen decides what to render from a role name.
+ */
+export const ROLE_RANK: Record<Role, number> = {
+  system_admin: 3,
+  unit_admin: 2,
+  coordinator: 1,
+  marker: 0,
+};
+
 export const SCOPE_TYPES = ["system", "academic_unit", "module_offering"] as const;
 export type ScopeType = (typeof SCOPE_TYPES)[number];
 
