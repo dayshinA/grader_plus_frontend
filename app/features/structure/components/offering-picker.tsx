@@ -43,7 +43,7 @@ export function OfferingPicker({
       for (const child of rows
         .filter((unit) => unit.parentUnitId === school.id)
         .sort((a, b) => a.name.localeCompare(b.name))) {
-        options.push({ value: child.id, label: `— ${child.name}` });
+        options.push({ value: child.id, label: `\u00a0\u00a0\u00a0${child.name}` });
       }
     }
     for (const unit of rows) {

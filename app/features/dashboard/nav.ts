@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import type { Permission, ResolvedGrant } from "~/features/access/types";
-import { can, canAny, isSystemWide, scopeIdsFor } from "~/features/access/permissions";
+import { can, isSystemWide } from "~/features/access/permissions";
 import type { HomeSummary } from "~/features/dashboard/types";
 
 /**
@@ -190,6 +190,14 @@ export const OFFERING_NAV: OfferingNavItem[] = [
     description: "The preview names every gap before anything leaves the system.",
     permission: "export.run",
   },
+  {
+    id: "offering-audit",
+    title: "Audit",
+    segment: "audit",
+    icon: ShieldCheck,
+    description: "What happened on this offering, append only.",
+    permission: "audit.read_scoped",
+  },
 ];
 
 /** The unit surface, likewise per unit. */
@@ -314,22 +322,4 @@ export function findNavItem(groups: NavGroup[], pathname: string): NavItem | und
 
 export function findNavGroupHeading(groups: NavGroup[], item: NavItem): string | undefined {
   return groups.find((group) => group.items.includes(item))?.heading;
-}
-
-/**
- * Whether this caller has anything at all. A person with no grants yet sees an explanation
- * rather than a shell with one empty screen in it.
- */
-export function hasAnyRole(grants: ResolvedGrant[]): boolean {
-  return grants.length > 0;
-}
-
-/** Convenience for the home screen: does this person mark anywhere. */
-export function marksAnywhere(grants: ResolvedGrant[]): boolean {
-  return scopeIdsFor(grants, "marker").length > 0 || can(grants, "marking.work");
-}
-
-/** Whether the administration section is worth rendering at all. */
-export function hasAdministration(grants: ResolvedGrant[]): boolean {
-  return canAny(grants, ["user.read", "platform.read", "audit.read", "unit.create"]);
 }

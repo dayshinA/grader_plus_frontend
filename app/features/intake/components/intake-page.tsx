@@ -101,7 +101,7 @@ export function IntakePage({ offeringId }: { offeringId: string }) {
         <div className="min-w-0">
           <p className="truncate font-medium">{project.studentNameSnapshot}</p>
           <p className="truncate font-mono text-xs text-muted-foreground">
-            {project.student?.learnId ?? "—"}
+            {project.student?.learnId ?? "Not set"}
           </p>
         </div>
       ),
@@ -216,7 +216,7 @@ export function IntakePage({ offeringId }: { offeringId: string }) {
         <div className="min-w-0">
           <p className="truncate font-medium">{project.studentNameSnapshot}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {project.student?.learnId ?? "—"}
+            {project.student?.learnId ?? "Not set"}
           </p>
         </div>
         <RowActions project={project} />

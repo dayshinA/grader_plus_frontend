@@ -37,3 +37,16 @@ deciding what to ask for. A person with no roles yet sees an explanation, not a 
 dashboard.
 
 The application shell and navigation live here too, built from the caller's permission set.
+
+## Files in this folder
+
+- `api/dashboard.service.ts`
+- `api/use-dashboard.ts`
+- `components/admin-overview-page.tsx`
+- `components/app-shell.tsx`
+- `components/app-sidebar.tsx`
+- `components/home-page.tsx`
+- `components/offering-dashboard-page.tsx`
+- `components/unit-dashboard-page.tsx`
+- `nav.ts`
+- `types.ts`

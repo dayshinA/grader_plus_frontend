@@ -58,6 +58,7 @@ export default [
     // The unit surface is one frame with tabs inside it, so the layout owns the header
     // and each tab is only its own content.
     route("units/:unitId", "routes/units/layout.tsx", [
+      index("routes/units/index.tsx"),
       route("dashboard", "routes/units/dashboard.tsx"),
       route("programmes", "routes/units/programmes.tsx"),
       route("modules", "routes/units/modules.tsx"),

@@ -15,7 +15,7 @@ function randomChar(pool: string): string {
 }
 
 /**
- * `crypto.getRandomValues`-backed, not `Math.random()` — this fills a field the
+ * `crypto.getRandomValues`-backed, not `Math.random()`, because this fills a field the
  * Super Admin hands to someone else as their login credential, so it needs to
  * be unguessable, not just "looks random". Guarantees one char from each of
  * lower/upper/digit/symbol (comfortably clears the backend's `MinLength(8)`

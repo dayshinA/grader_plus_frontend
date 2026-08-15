@@ -8,15 +8,15 @@ export interface PagedList<T> {
   page: number;
   pageCount: number;
   setPage: (page: number) => void;
-  /** Rows across every page, after filtering — for the "12 of 40" summary line. */
+  /** Rows across every page, after filtering, for the "12 of 40" summary line. */
   total: number;
 }
 
 /**
  * Client-side paging for a list screen.
  *
- * The API returns every row in one response — it has no pagination anywhere — so paging is
- * entirely ours. The page number still lives in the URL (see `usePageParam`) so it survives
+ * The API returns every row in one response, because it has no pagination anywhere, so paging
+ * is entirely ours. The page number still lives in the URL, see `usePageParam`, so it survives
  * opening a record and coming back.
  *
  * Filtering happens before this: pass the already-filtered rows, and the hook resets to page 1

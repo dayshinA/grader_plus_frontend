@@ -26,7 +26,7 @@ export function UnitScopePicker({
       emptyText="No academic units are visible to your account."
       options={ordered.map(({ unit, nested }) => ({
         value: unit.id,
-        label: nested ? `— ${unit.name}` : unit.name,
+        label: nested ? `\u00a0\u00a0\u00a0${unit.name}` : unit.name,
       }))}
     />
   );

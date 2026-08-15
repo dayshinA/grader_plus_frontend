@@ -2,17 +2,26 @@
 
 const LOCALE = "en-GB";
 
-export function formatDate(value: string | Date | null | undefined): string {
-  if (!value) return "—";
+/**
+ * What a table cell shows where there is no value. A word rather than a dash, because a
+ * dash in a column of marks reads as a zero at a glance.
+ */
+export const NOT_SET = "Not set";
+
+export function formatDate(value: string | Date | null | undefined, fallback = NOT_SET): string {
+  if (!value) return fallback;
   const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return fallback;
   return date.toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function formatDateTime(value: string | Date | null | undefined): string {
-  if (!value) return "—";
+export function formatDateTime(
+  value: string | Date | null | undefined,
+  fallback = NOT_SET,
+): string {
+  if (!value) return fallback;
   const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return fallback;
   return date.toLocaleString(LOCALE, {
     day: "numeric",
     month: "short",
@@ -22,7 +31,7 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   });
 }
 
-/** For a deadline: "in 6 days", "today", "3 days ago". */
+/** For a deadline: "in 6 days", "due today", "3 days ago". */
 export function formatRelativeDays(days: number | null | undefined): string {
   if (days === null || days === undefined) return "No deadline set";
   if (days === 0) return "Due today";
@@ -33,19 +42,19 @@ export function formatRelativeDays(days: number | null | undefined): string {
 }
 
 /** A percentage as the API stores it: two decimals, trailing zeros trimmed. */
-export function formatPercent(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
+export function formatPercent(value: number | null | undefined, fallback = NOT_SET): string {
+  if (value === null || value === undefined) return fallback;
   const rounded = Math.round(value * 100) / 100;
   return `${rounded}%`;
 }
 
-export function formatNumber(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
+export function formatNumber(value: number | null | undefined, fallback = NOT_SET): string {
+  if (value === null || value === undefined) return fallback;
   return value.toLocaleString(LOCALE);
 }
 
-export function formatFileSize(bytes: number | null | undefined): string {
-  if (bytes === null || bytes === undefined) return "—";
+export function formatFileSize(bytes: number | null | undefined, fallback = NOT_SET): string {
+  if (bytes === null || bytes === undefined) return fallback;
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

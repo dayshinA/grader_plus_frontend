@@ -32,3 +32,17 @@ Concurrent 401s must share one refresh or the backend revokes the chain as a rep
 `mustChangePassword` on the login response forces the change password screen before
 anything else renders. After login and after every refresh, call `access` for permissions
 and `users` for the person: identity does not come out of the token.
+
+## Files in this folder
+
+- `api/auth-context.ts`
+- `api/auth-provider.tsx`
+- `api/auth.service.ts`
+- `api/use-auth.ts`
+- `components/auth-shell.tsx`
+- `components/change-password-form.tsx`
+- `components/forgot-password-form.tsx`
+- `components/login-form.tsx`
+- `components/protected-route.tsx`
+- `components/reset-password-form.tsx`
+- `types.ts`

@@ -32,3 +32,14 @@ build a delete affordance.
 empty directory is a legitimate answer and not an error.
 
 How much per row detail bulk import shows is an open question in `FRONTEND-DESIGN.md`.
+
+## Files in this folder
+
+- `api/use-users.ts`
+- `api/users.service.ts`
+- `components/account-page.tsx`
+- `components/bulk-import-dialog.tsx`
+- `components/create-user-dialog.tsx`
+- `components/user-detail-page.tsx`
+- `components/users-page.tsx`
+- `types.ts`

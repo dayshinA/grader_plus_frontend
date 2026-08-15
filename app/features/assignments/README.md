@@ -38,3 +38,13 @@ offer them.
 
 This screen names markers, and that is correct. Blindness is between markers, not between a
 coordinator and their own allocation.
+
+## Files in this folder
+
+- `api/assignments.service.ts`
+- `api/use-assignments.ts`
+- `components/assign-marker-dialog.tsx`
+- `components/assignments-page.tsx`
+- `components/auto-assign-dialog.tsx`
+- `components/coverage-card.tsx`
+- `types.ts`

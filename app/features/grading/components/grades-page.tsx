@@ -137,7 +137,7 @@ export function GradesPage({ offeringId }: { offeringId: string }) {
             {GRADE_SOURCE_LABELS[row.source]}
           </Badge>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">Not settled</span>
         ),
       className: "hidden md:table-cell",
       skeletonClassName: "w-28",

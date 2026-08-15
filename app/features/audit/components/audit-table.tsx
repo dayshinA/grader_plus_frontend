@@ -135,7 +135,7 @@ export function AuditTable({
       id: "ip",
       header: "From",
       cell: (entry) => (
-        <span className="font-mono text-xs text-muted-foreground">{entry.ipAddress ?? "—"}</span>
+        <span className="font-mono text-xs text-muted-foreground">{entry.ipAddress ?? "Not recorded"}</span>
       ),
       className: "hidden xl:table-cell",
       skeletonClassName: "w-24",

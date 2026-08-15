@@ -25,3 +25,10 @@ permission gated, so do not build a row menu that implies one.
 
 `/admin/audit` filters on `action`, `actor` and `limit`. That `limit` is the only paging
 like parameter in the whole API and is not pagination.
+
+## Files in this folder
+
+- `api/audit.service.ts`
+- `api/use-audit.ts`
+- `components/audit-table.tsx`
+- `types.ts`

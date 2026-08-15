@@ -25,3 +25,10 @@ marks alongside it.
 
 A discrepancy notification goes to the coordinator only. A marker never learns a case
 exists, so nothing here may hint at one.
+
+## Files in this folder
+
+- `api/notifications.service.ts`
+- `api/use-notifications.ts`
+- `components/notifications-page.tsx`
+- `types.ts`

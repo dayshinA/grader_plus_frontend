@@ -120,7 +120,7 @@ export function ScoringForm({
           <div>
             <p className="text-xs text-muted-foreground">Your total</p>
             <p className="text-3xl font-semibold tabular-nums">
-              {total === null ? "—" : formatPercent(total)}
+              {total === null ? "Not scored" : formatPercent(total)}
             </p>
           </div>
           <Badge variant={submitted ? "success" : "secondary"}>

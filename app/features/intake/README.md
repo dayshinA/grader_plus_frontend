@@ -43,3 +43,14 @@ student's work can never be graded, so confirm it properly.
 
 Signed URLs are short lived. Fetch one when a file is opened, not when the screen loads,
 and refetch on expiry rather than holding it in state.
+
+## Files in this folder
+
+- `api/intake.service.ts`
+- `api/use-intake.ts`
+- `components/archive-upload-card.tsx`
+- `components/exclude-project-dialog.tsx`
+- `components/intake-page.tsx`
+- `components/project-files-dialog.tsx`
+- `components/project-form-dialog.tsx`
+- `types.ts`

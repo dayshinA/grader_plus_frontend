@@ -32,3 +32,12 @@ normal even when the button rendered. Handle it, do not prevent it.
 A grant is `(role, scope)` and the scope picker changes shape with the role: system takes
 no scope, unit admin takes an academic unit, coordinator and marker take an offering.
 Grants are revoked, never deleted, and a revoked grant stays visible in history.
+
+## Files in this folder
+
+- `api/access.service.ts`
+- `api/use-access.ts`
+- `components/role-grants-card.tsx`
+- `components/scope-picker.tsx`
+- `permissions.ts`
+- `types.ts`

@@ -8,8 +8,8 @@ import { useSearchParams } from "react-router";
  * record and coming back (see `useBackLink`, which carries the whole query string as the back
  * target), and so "the row I meant is on page 3" is something you can send to a colleague.
  *
- * Page 1 is the absence of the param, not `?page=1` — the first page and no page are the same
- * list, and two URLs for one view is a URL nobody can compare.
+ * Page 1 is the absence of the param rather than `?page=1`: the first page and no page are the
+ * same list, and two URLs for one view is a URL nobody can compare.
  */
 export function usePageParam(): [number, (page: number) => void] {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -16,7 +16,7 @@ import type { Route } from "./+types/preview";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Component Preview — GraderPlus" },
+    { title: "Component preview | GraderPlus" },
     {
       name: "description",
       content: "Live preview of every UI component built for GraderPlus.",

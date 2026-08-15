@@ -84,7 +84,7 @@ export function AccountPage() {
 
             <DetailList
               items={[
-                { label: "Email", value: user?.email ?? "—" },
+                { label: "Email", value: user?.email ?? "Not set" },
                 {
                   label: "Last signed in",
                   value: user?.lastLoginAt ? formatDateTime(user.lastLoginAt) : "First session",

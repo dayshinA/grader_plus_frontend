@@ -29,3 +29,11 @@ allowing a save, because 33.33 three times is 99.99 and is genuinely invalid.
 Once any evaluation exists in the offering, structural edits are refused: no adding,
 removing or reweighting. Wording stays editable. The editor must reflect that, because
 changing a weighting mid marking moves totals under markers who have already submitted.
+
+## Files in this folder
+
+- `api/rubrics.service.ts`
+- `api/use-rubrics.ts`
+- `components/rubric-editor.tsx`
+- `components/rubric-page.tsx`
+- `types.ts`

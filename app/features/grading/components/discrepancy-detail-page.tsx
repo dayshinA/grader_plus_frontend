@@ -53,7 +53,7 @@ function MarkerColumn({
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="min-w-0 truncate text-sm">{criterion.label}</p>
                   <p className="shrink-0 text-sm font-medium tabular-nums">
-                    {score ? `${score.rawScore} / ${criterion.maxScore}` : "—"}
+                    {score ? `${score.rawScore} / ${criterion.maxScore}` : "Not scored"}
                   </p>
                 </div>
                 {score?.comment && (

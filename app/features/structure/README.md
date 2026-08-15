@@ -50,3 +50,25 @@ mark those programmes unavailable with the reason rather than letting the save 4
 
 Deactivate rather than delete. Reopening a closed offering is a separate permission most
 coordinators do not hold.
+
+## Files in this folder
+
+- `api/structure.service.ts`
+- `api/use-offering-header.ts`
+- `api/use-structure.ts`
+- `api/use-unit-scope.ts`
+- `components/module-form-dialog.tsx`
+- `components/module-programmes-dialog.tsx`
+- `components/modules-panel.tsx`
+- `components/offering-form-dialog.tsx`
+- `components/offering-layout.tsx`
+- `components/offering-picker.tsx`
+- `components/offering-settings-page.tsx`
+- `components/offering-status-badge.tsx`
+- `components/programme-form-dialog.tsx`
+- `components/programmes-panel.tsx`
+- `components/unit-form-dialog.tsx`
+- `components/unit-layout.tsx`
+- `components/unit-scope-picker.tsx`
+- `components/units-page.tsx`
+- `types.ts`

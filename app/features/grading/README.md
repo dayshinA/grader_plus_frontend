@@ -44,3 +44,13 @@ unavailable, not a way to settle an ordinary disagreement, so word it that way a
 the reason.
 
 Closing is the freeze. Warn plainly that writes are refused afterwards.
+
+## Files in this folder
+
+- `api/grading.service.ts`
+- `api/use-grading.ts`
+- `components/discrepancies-page.tsx`
+- `components/discrepancy-detail-page.tsx`
+- `components/grades-page.tsx`
+- `components/override-grade-dialog.tsx`
+- `types.ts`

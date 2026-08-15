@@ -51,3 +51,16 @@ only. Say that plainly rather than offering an annotator that misbehaves.
 
 A closed offering returns 403 on write, which must read as "this offering is closed".
 Autosave failing must be visible and must not lose the form.
+
+## Files in this folder
+
+- `api/marking.service.ts`
+- `api/use-marking.ts`
+- `components/annotation-panel.tsx`
+- `components/autosave-indicator.tsx`
+- `components/document-pane.tsx`
+- `components/marking-queue-page.tsx`
+- `components/marking-workspace-page.tsx`
+- `components/scoring-form.tsx`
+- `hooks/use-autosave.ts`
+- `types.ts`
