@@ -26,15 +26,46 @@ export const intakeService = {
     const body = new FormData();
     body.append("file", file);
 
-    return apiWithMessage.post<IntakeRunResult>(`/offerings/${offeringId}/intake`, body, {
-      // The walk itself happens after the bytes land, so the default 30 seconds is not
-      // enough for a real archive.
-      timeout: 10 * 60 * 1000,
-      onUploadProgress: (event) => {
-        if (!onUploadProgress || !event.total) return;
-        onUploadProgress(Math.round((event.loaded / event.total) * 100));
-      },
+    const url = `/offerings/${offeringId}/intake`;
+    const startedAt = performance.now();
+    console.log("[intake] upload starting", {
+      url,
+      name: file.name,
+      bytes: file.size,
+      type: file.type,
     });
+
+    return apiWithMessage
+      .post<IntakeRunResult>(url, body, {
+        // The walk itself happens after the bytes land, so the default 30 seconds is not
+        // enough for a real archive.
+        timeout: 10 * 60 * 1000,
+        onUploadProgress: (event) => {
+          // Whether any bytes leave the browser at all is the thing worth knowing when
+          // the request dies below HTTP.
+          console.log("[intake] bytes sent", {
+            loaded: event.loaded,
+            total: event.total ?? "unknown",
+          });
+          if (!onUploadProgress || !event.total) return;
+          onUploadProgress(Math.round((event.loaded / event.total) * 100));
+        },
+      })
+      .then((result) => {
+        console.log("[intake] upload finished", {
+          ms: Math.round(performance.now() - startedAt),
+          jobId: result.data.jobId,
+          report: result.data.report,
+        });
+        return result;
+      })
+      .catch((error: unknown) => {
+        console.error("[intake] upload failed", {
+          ms: Math.round(performance.now() - startedAt),
+          error,
+        });
+        throw error;
+      });
   },
 
   report(offeringId: string, jobId: string): Promise<IntakeJob> {

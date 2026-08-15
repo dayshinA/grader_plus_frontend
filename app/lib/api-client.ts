@@ -119,24 +119,29 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const REFRESH_URL = "/auth/refresh";
 
 // withCredentials carries the httpOnly refresh cookie on the /auth routes that set it.
-// The fetch adapter keeps behaviour identical between the browser and jsdom.
+// Leave the adapter alone. Setting it to "fetch" breaks every upload that passes
+// onUploadProgress: axios then streams the body as a ReadableStream, Chrome requires
+// HTTP/2 for a streamed request body, and the dev backend is plain HTTP/1.1, so the
+// request dies as ERR_ALPN_NEGOTIATION_FAILED before it leaves the browser.
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: config.apiBaseUrl,
   timeout: REQUEST_TIMEOUT_MS,
-  adapter: "fetch",
   withCredentials: true,
 });
 
-axiosInstance.interceptors.request.use((requestConfig: InternalAxiosRequestConfig) => {
-  const token = currentSession?.access_token;
-  if (token) {
-    requestConfig.headers.set("Authorization", `Bearer ${token}`);
-  }
-  return requestConfig;
-});
+axiosInstance.interceptors.request.use(
+  (requestConfig: InternalAxiosRequestConfig) => {
+    const token = currentSession?.access_token;
+    if (token) {
+      requestConfig.headers.set("Authorization", `Bearer ${token}`);
+    }
+    return requestConfig;
+  },
+);
 
 function hadTokenOnRequest(requestConfig?: AxiosRequestConfig): boolean {
-  const headers = requestConfig?.headers as { get?: (name: string) => unknown } | undefined;
+  const headers = requestConfig?.headers as
+    { get?: (name: string) => unknown } | undefined;
   return Boolean(headers?.get?.("Authorization"));
 }
 
@@ -207,10 +212,14 @@ const RAW_RESPONSE_KEY = "__rawResponse" as const;
 type RawRequestConfig = AxiosRequestConfig & { [RAW_RESPONSE_KEY]?: boolean };
 
 function isRawRequest(requestConfig?: AxiosRequestConfig): boolean {
-  return Boolean((requestConfig as RawRequestConfig | undefined)?.[RAW_RESPONSE_KEY]);
+  return Boolean(
+    (requestConfig as RawRequestConfig | undefined)?.[RAW_RESPONSE_KEY],
+  );
 }
 
-export function parseContentDispositionFilename(header: unknown): string | null {
+export function parseContentDispositionFilename(
+  header: unknown,
+): string | null {
   if (typeof header !== "string") return null;
   const match = /filename\s*=\s*(?:"([^"]*)"|([^;]+))/i.exec(header);
   const name = (match?.[1] ?? match?.[2])?.trim();
@@ -227,7 +236,8 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     if (isRawRequest(response.config)) return response;
 
-    const envelope = response.data as ApiSuccessResponse<unknown> | ApiErrorResponse;
+    const envelope = response.data as
+      ApiSuccessResponse<unknown> | ApiErrorResponse;
     if (!envelope.success) {
       throwApiError(envelope, hadTokenOnRequest(response.config));
     }
@@ -237,12 +247,16 @@ axiosInstance.interceptors.response.use(
   },
   (error: AxiosError) => {
     const originalRequest = error.config as
-      | (InternalAxiosRequestConfig & { _retry?: boolean })
-      | undefined;
+      (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
     const isRefreshCall = originalRequest?.url === REFRESH_URL;
     const hadToken = !isRefreshCall && hadTokenOnRequest(originalRequest);
 
-    if (error.response?.status === 401 && hadToken && originalRequest && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      hadToken &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
       return refreshSession().then((refreshed) => {
         if (refreshed) {
@@ -266,6 +280,18 @@ axiosInstance.interceptors.response.use(
       throwApiError(error.response.data, hadToken);
     }
 
+    // No response at all means the request died below HTTP and never reached the server,
+    // which is a different fault to any status code it could have answered with. The
+    // envelope thrown below flattens that distinction, so record it before it is lost.
+    if (!error.response) {
+      console.error("[api] request failed before any response", {
+        method: originalRequest?.method,
+        url: originalRequest?.url,
+        axiosCode: error.code,
+        message: error.message,
+      });
+    }
+
     throw new ApiError({
       success: false,
       statusCode: error.response?.status ?? 0,
@@ -277,27 +303,45 @@ axiosInstance.interceptors.response.use(
 
 /** Every helper resolves the unwrapped `data`, never the envelope. */
 export const api = {
-  get: async <T>(url: string, requestConfig?: AxiosRequestConfig): Promise<T> => {
+  get: async <T>(
+    url: string,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
     const response = await axiosInstance.get<T>(url, requestConfig);
     return response.data;
   },
 
-  post: async <T>(url: string, data?: unknown, requestConfig?: AxiosRequestConfig): Promise<T> => {
+  post: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
     const response = await axiosInstance.post<T>(url, data, requestConfig);
     return response.data;
   },
 
-  put: async <T>(url: string, data?: unknown, requestConfig?: AxiosRequestConfig): Promise<T> => {
+  put: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
     const response = await axiosInstance.put<T>(url, data, requestConfig);
     return response.data;
   },
 
-  patch: async <T>(url: string, data?: unknown, requestConfig?: AxiosRequestConfig): Promise<T> => {
+  patch: async <T>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
     const response = await axiosInstance.patch<T>(url, data, requestConfig);
     return response.data;
   },
 
-  delete: async <T>(url: string, requestConfig?: AxiosRequestConfig): Promise<T> => {
+  delete: async <T>(
+    url: string,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<T> => {
     const response = await axiosInstance.delete<T>(url, requestConfig);
     return response.data;
   },
@@ -321,7 +365,9 @@ export const api = {
       } as RawRequestConfig);
       return {
         data: response.data,
-        filename: parseContentDispositionFilename(response.headers?.["content-disposition"]),
+        filename: parseContentDispositionFilename(
+          response.headers?.["content-disposition"],
+        ),
       };
     } catch (error) {
       throw await reinterpretBlobError(error);
@@ -333,7 +379,8 @@ export const api = {
 async function reinterpretBlobError(error: unknown): Promise<unknown> {
   if (!isApiError(error) || error.code !== "NETWORK_ERROR") return error;
 
-  const body = (error as unknown as { response?: { data?: unknown } }).response?.data;
+  const body = (error as unknown as { response?: { data?: unknown } }).response
+    ?.data;
   if (!(body instanceof Blob)) return error;
 
   try {
@@ -366,7 +413,10 @@ export const apiWithMessage = {
       data,
       requestConfig,
     )) as ResponseWithApiMessage;
-    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+    return {
+      data: response.data as T,
+      message: response[API_MESSAGE_KEY] ?? "",
+    };
   },
 
   put: async <T>(
@@ -379,7 +429,10 @@ export const apiWithMessage = {
       data,
       requestConfig,
     )) as ResponseWithApiMessage;
-    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+    return {
+      data: response.data as T,
+      message: response[API_MESSAGE_KEY] ?? "",
+    };
   },
 
   patch: async <T>(
@@ -392,14 +445,23 @@ export const apiWithMessage = {
       data,
       requestConfig,
     )) as ResponseWithApiMessage;
-    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+    return {
+      data: response.data as T,
+      message: response[API_MESSAGE_KEY] ?? "",
+    };
   },
 
-  delete: async <T>(url: string, requestConfig?: AxiosRequestConfig): Promise<ApiResult<T>> => {
+  delete: async <T>(
+    url: string,
+    requestConfig?: AxiosRequestConfig,
+  ): Promise<ApiResult<T>> => {
     const response = (await axiosInstance.delete<T>(
       url,
       requestConfig,
     )) as ResponseWithApiMessage;
-    return { data: response.data as T, message: response[API_MESSAGE_KEY] ?? "" };
+    return {
+      data: response.data as T,
+      message: response[API_MESSAGE_KEY] ?? "",
+    };
   },
 };
