@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { CalendarPlus, Layers, Link2, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,12 +34,17 @@ import { ModuleProgrammesDialog } from "~/features/structure/components/module-p
 import { OfferingFormDialog } from "~/features/structure/components/offering-form-dialog";
 import { OfferingStatusBadge } from "~/features/structure/components/offering-status-badge";
 import type { ProjectModule } from "~/features/structure/types";
+import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { formatDate, pluralise } from "~/utils/format";
 
 /** A module's offerings, one row each, opened on demand rather than fetched for every row. */
 function OfferingList({ moduleId }: { moduleId: string }) {
   const { data, isPending, isError, error, refetch } = useOfferings(moduleId);
+  // This panel is mounted at two paths, /admin/modules and /units/:id/modules, so the back
+  // target is the screen the reader is actually on rather than a hardcoded one.
+  const { pathname, search } = useLocation();
+  const declaredBack = useDeclaredBackTarget();
 
   if (isPending) {
     return <Skeleton className="h-12 rounded-lg" />;
@@ -69,6 +74,11 @@ function OfferingList({ moduleId }: { moduleId: string }) {
           <div className="min-w-0">
             <Link
               to={`/offerings/${offering.id}`}
+              state={backTo({
+                to: `${pathname}${search}`,
+                label: "modules",
+                back: declaredBack,
+              })}
               className="font-medium underline-offset-4 hover:underline"
             >
               {offering.academicYear}

@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router";
  * A list screen's page number, held in the URL rather than in component state.
  *
  * It lives there for the same reason the filters do: so the page an admin is on survives opening a
- * record and coming back (see `useBackLink`, which carries the whole query string as the back
+ * record and coming back (see `backTo`, which carries the whole query string as the back
  * target), and so "the row I meant is on page 3" is something you can send to a colleague.
  *
  * Page 1 is the absence of the param rather than `?page=1`: the first page and no page are the

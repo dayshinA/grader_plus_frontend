@@ -19,6 +19,7 @@ import { ListToolbar } from "~/components/ui/list-toolbar";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePermission } from "~/features/auth/api/auth-context";
+import { backTo } from "~/hooks/use-back-link";
 import { useUnits, useUpdateUnit } from "~/features/structure/api/use-structure";
 import { UnitFormDialog } from "~/features/structure/components/unit-form-dialog";
 import {
@@ -86,6 +87,7 @@ function UnitRow({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to={`/units/${unit.id}/dashboard`}
+              state={backTo({ to: "/admin/units", label: "academic units" })}
               className={
                 nested
                   ? "truncate underline-offset-4 hover:underline"

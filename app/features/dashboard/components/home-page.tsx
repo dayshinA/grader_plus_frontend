@@ -18,6 +18,7 @@ import { useAuth } from "~/features/auth/api/auth-context";
 import { useHome } from "~/features/dashboard/api/use-dashboard";
 import { OfferingStatusBadge } from "~/features/structure/components/offering-status-badge";
 import { ACADEMIC_UNIT_LEVEL_LABELS } from "~/features/structure/types";
+import { backTo } from "~/hooks/use-back-link";
 
 /**
  * Role aware, but not role branched: the response is already shaped for whoever asked, so
@@ -132,6 +133,7 @@ export function HomePage() {
               <Link
                 key={offering.offeringId}
                 to={`/offerings/${offering.offeringId}`}
+                state={backTo({ to: "/", label: "home" })}
                 className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -168,6 +170,7 @@ export function HomePage() {
               <Link
                 key={unit.unitId}
                 to={`/units/${unit.unitId}/dashboard`}
+                state={backTo({ to: "/", label: "home" })}
                 className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
               >
                 <div className="flex items-start justify-between gap-3">

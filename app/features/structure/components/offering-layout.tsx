@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useParams } from "react-router";
 import { Lock } from "lucide-react";
 
+import { BackLink } from "~/components/ui/back-link";
 import { Callout } from "~/components/ui/callout";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -10,6 +11,7 @@ import { OFFERING_NAV } from "~/features/dashboard/nav";
 import { useOfferingHeader } from "~/features/structure/api/use-offering-header";
 import { OfferingStatusBadge } from "~/features/structure/components/offering-status-badge";
 import { formatDate, formatRelativeDays } from "~/utils/format";
+import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { cn } from "~/lib/utils";
 
 /**
@@ -23,12 +25,17 @@ import { cn } from "~/lib/utils";
 export function OfferingLayout() {
   const { offeringId = "" } = useParams();
   const { grants } = useAuth();
+  // The tabs are the same navigation the unit frame does: hand the trail along, or opening
+  // intake from an offering opened from a unit loses the unit.
+  const declaredBack = useDeclaredBackTarget();
   const { offering, isPending, isError } = useOfferingHeader(offeringId);
 
   const tabs = OFFERING_NAV.filter((item) => can(grants, item.permission));
 
   return (
     <div className="space-y-6">
+      <BackLink />
+
       {isPending && !offering ? (
         <Skeleton className="h-16 rounded-xl" />
       ) : (
@@ -67,6 +74,7 @@ export function OfferingLayout() {
                     : `/offerings/${offeringId}`
                 }
                 end={tab.segment === ""}
+                state={declaredBack ? backTo(declaredBack) : undefined}
                 className={({ isActive }) =>
                   cn(
                     "-mb-px block whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors",

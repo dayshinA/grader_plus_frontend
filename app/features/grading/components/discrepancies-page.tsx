@@ -18,7 +18,7 @@ import { ListToolbar } from "~/components/ui/list-toolbar";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useDiscrepancies } from "~/features/grading/api/use-grading";
 import { useOfferingHeader } from "~/features/structure/api/use-offering-header";
-import { backTo } from "~/hooks/use-back-link";
+import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { formatDateTime, pluralise } from "~/utils/format";
 
 type Filter = "open" | "resolved" | "all";
@@ -51,10 +51,14 @@ export function DiscrepanciesPage({ offeringId }: { offeringId: string }) {
     });
   }, [data, search, filter]);
 
+  const declaredBack = useDeclaredBackTarget();
   const open = (data ?? []).filter((row) => row.status === "open").length;
+  // Two steps from wherever the offering was opened, so the case carries the step behind
+  // it as well: coming back out of a case restores the offering's own back link.
   const backHere = backTo({
     to: `/offerings/${offeringId}/discrepancies`,
     label: "discrepancies",
+    back: declaredBack,
   });
 
   if (isError) {

@@ -302,7 +302,7 @@ export const componentRegistry: ComponentDemoEntry[] = [
     category: "Navigation",
     icon: ArrowLeft,
     description:
-      "The '← Back to X' link on a detail screen. Reads its destination from the navigation that opened the screen (backTo()), so it returns where the admin actually came from; falls back to the domain's list on a cold entry.",
+      "The back link on a detail screen or a tabbed frame. Reads its destination from the navigation that opened the screen (backTo()), so it names where somebody actually came from, and renders nothing when they arrived from the sidebar or a pasted link.",
     render: () => <BackLinkDemo />,
   },
   {

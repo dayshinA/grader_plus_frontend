@@ -7,7 +7,14 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { useMarkingQueue, useMarkingWorkspace } from "~/features/marking/api/use-marking";
 import { DocumentPane } from "~/features/marking/components/document-pane";
 import { ScoringForm } from "~/features/marking/components/scoring-form";
+import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { isApiError, isForbidden, isNotFound } from "~/lib/api-client";
+
+/**
+ * Only the 404 uses this. The queue is the one route into the workspace, so it is where a
+ * project that did exist would be.
+ */
+const EXIT: BackTarget = { to: "/marking", label: "my marking" };
 
 /**
  * The blind marking workspace: the document on the left, the caller's own rubric form on
@@ -21,6 +28,8 @@ import { isApiError, isForbidden, isNotFound } from "~/lib/api-client";
 export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } =
     useMarkingWorkspace(projectId);
+  const declaredBack = useDeclaredBackTarget();
+  const back = declaredBack ?? EXIT;
   // The workspace response carries no offering status, so the queue is where a closed
   // offering is visible before the first save discovers it.
   const queue = useMarkingQueue();
@@ -30,8 +39,8 @@ export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
   if (isNotFound(error)) {
     return (
       <NotFoundPage
-        homeHref="/marking"
-        backLabel="Back to my marking"
+        homeHref={back.to}
+        backLabel={declaredBack ? `Back to ${back.label}` : `Go to ${back.label}`}
         title="No such project"
         description="That project does not exist"
         helperText="If it was in your queue a moment ago, it may have been removed by the coordinator."
@@ -45,7 +54,7 @@ export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
 
     return (
       <div className="space-y-6">
-        <BackLink fallback={{ to: "/marking", label: "my marking" }} />
+        <BackLink />
         <ErrorCard
           title={
             excluded
@@ -86,7 +95,7 @@ export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
-      <BackLink fallback={{ to: "/marking", label: "my marking" }} />
+      <BackLink />
 
       <PageHeader
         title={data.project.studentName}

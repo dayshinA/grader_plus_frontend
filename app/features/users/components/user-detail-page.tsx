@@ -18,11 +18,20 @@ import { SubmitButton } from "~/components/ui/submit-button";
 import { RoleGrantsCard } from "~/features/access/components/role-grants-card";
 import { usePermission } from "~/features/auth/api/auth-context";
 import { useDeactivateUser, useUpdateUser, useUser } from "~/features/users/api/use-users";
+import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { formatDateTime } from "~/utils/format";
 import { isApiError, isNotFound } from "~/lib/api-client";
 
+/**
+ * Only the 404 uses this. That screen is a dead end and needs one door out whatever route
+ * brought somebody to it, and the accounts list is where an account that did exist would be.
+ */
+const EXIT: BackTarget = { to: "/admin/users", label: "accounts" };
+
 /** Editing one account, and the grants on it. There is no delete: the API deactivates. */
 export function UserDetailPage({ userId }: { userId: string }) {
+  const declaredBack = useDeclaredBackTarget();
+  const back = declaredBack ?? EXIT;
   const canUpdate = usePermission("user.update");
   const canDeactivate = usePermission("user.deactivate");
 
@@ -38,8 +47,8 @@ export function UserDetailPage({ userId }: { userId: string }) {
   if (isNotFound(error)) {
     return (
       <NotFoundPage
-        homeHref="/admin/users"
-        backLabel="Back to accounts"
+        homeHref={back.to}
+        backLabel={declaredBack ? `Back to ${back.label}` : `Go to ${back.label}`}
         title="No such account"
         description="That account does not exist"
         helperText="A refusal would read differently. This one is absent for everybody, not hidden from you."
@@ -50,7 +59,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   if (isError) {
     return (
       <div className="space-y-6">
-        <BackLink fallback={{ to: "/admin/users", label: "accounts" }} />
+        <BackLink />
         <ErrorCard
           title="Could not load this account"
           error={error}
@@ -80,7 +89,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      <BackLink fallback={{ to: "/admin/users", label: "accounts" }} />
+      <BackLink />
 
       <PageHeader
         title={user.fullName}

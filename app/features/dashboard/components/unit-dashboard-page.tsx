@@ -14,8 +14,10 @@ import { ErrorCard } from "~/components/ui/error-card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useUnitDashboard } from "~/features/dashboard/api/use-dashboard";
 import type { UnitDashboard } from "~/features/dashboard/types";
+import { ConstituentUnitsPanel } from "~/features/structure/components/constituent-units-panel";
 import { OfferingStatusBadge } from "~/features/structure/components/offering-status-badge";
 import type { OfferingStatus } from "~/features/structure/types";
+import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { formatDate } from "~/utils/format";
 
 type OfferingRow = UnitDashboard["offerings"][number];
@@ -51,6 +53,7 @@ function CompletionBar({ percent }: { percent: number }) {
  */
 export function UnitDashboardPage({ unitId }: { unitId: string }) {
   const { data, isLoading, isError, error, refetch, isFetching } = useUnitDashboard(unitId);
+  const declaredBack = useDeclaredBackTarget();
 
   if (isError) {
     return (
@@ -85,6 +88,11 @@ export function UnitDashboardPage({ unitId }: { unitId: string }) {
         <div className="min-w-0">
           <Link
             to={`/offerings/${row.offeringId}`}
+            state={backTo({
+              to: `/units/${unitId}/dashboard`,
+              label: data.unit.name,
+              back: declaredBack,
+            })}
             className="block truncate font-medium underline-offset-4 hover:underline"
           >
             {row.moduleCode} {row.academicYear}
@@ -152,6 +160,11 @@ export function UnitDashboardPage({ unitId }: { unitId: string }) {
         <div className="min-w-0">
           <Link
             to={`/offerings/${row.offeringId}`}
+            state={backTo({
+              to: `/units/${unitId}/dashboard`,
+              label: data.unit.name,
+              back: declaredBack,
+            })}
             className="block truncate font-medium underline-offset-4 hover:underline"
           >
             {row.moduleCode} {row.academicYear}
@@ -189,6 +202,8 @@ export function UnitDashboardPage({ unitId }: { unitId: string }) {
         <StatTile label="Graded" value={data.totals.graded} />
         <StatTile label="Open cases" value={data.totals.openCases} />
       </div>
+
+      <ConstituentUnitsPanel unitId={unitId} />
 
       <DataTable
         columns={columns}

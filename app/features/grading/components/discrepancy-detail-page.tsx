@@ -17,6 +17,7 @@ import { ASSIGNMENT_ROLE_LABELS } from "~/features/assignments/types";
 import { useDiscrepancy, useResolveDiscrepancy } from "~/features/grading/api/use-grading";
 import type { DiscrepancyDetail, MarkerEvaluationDetail } from "~/features/grading/types";
 import type { RubricCriterion } from "~/features/rubrics/types";
+import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { formatDateTime, formatPercent } from "~/utils/format";
 import { isApiError, isNotFound } from "~/lib/api-client";
 
@@ -227,6 +228,12 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
 }
 
 /**
+ * Only the 404 uses this. A case belongs to its offering's case list, but the response
+ * carries no offering id to name that list with, so a dead end here can only offer home.
+ */
+const EXIT: BackTarget = { to: "/", label: "home" };
+
+/**
  * The one screen where both markers' work appears side by side, reachable only by the
  * offering's coordinator and only once a case exists.
  *
@@ -235,12 +242,16 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
  */
 export function DiscrepancyDetailPage({ caseId }: { caseId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } = useDiscrepancy(caseId);
+  // The response carries no offering id, so a cold entry genuinely has nowhere better than
+  // home to offer. Reached the normal way, from an offering's case list, this is that list.
+  const declaredBack = useDeclaredBackTarget();
+  const back = declaredBack ?? EXIT;
 
   if (isNotFound(error)) {
     return (
       <NotFoundPage
-        homeHref="/"
-        backLabel="Back to home"
+        homeHref={back.to}
+        backLabel={declaredBack ? `Back to ${back.label}` : `Go to ${back.label}`}
         title="No such case"
         description="That discrepancy case does not exist"
         helperText="It may have been settled and removed, or the link may be wrong."
@@ -251,7 +262,7 @@ export function DiscrepancyDetailPage({ caseId }: { caseId: string }) {
   if (isError) {
     return (
       <div className="space-y-6">
-        <BackLink fallback={{ to: "/", label: "home" }} />
+        <BackLink />
         <ErrorCard
           title="Could not load this case"
           error={error}
@@ -280,7 +291,7 @@ export function DiscrepancyDetailPage({ caseId }: { caseId: string }) {
 
   return (
     <div className="space-y-6">
-      <BackLink fallback={{ to: "/", label: "home" }} />
+      <BackLink />
 
       <PageHeader
         title={data.project.studentName}
