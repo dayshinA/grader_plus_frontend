@@ -31,6 +31,14 @@ nothing else. Refresh is an httpOnly cookie this code never reads.
 The single flight refresh belongs here or in `lib/api-client.ts`, and nowhere else.
 Concurrent 401s must share one refresh or the backend revokes the chain as a replay.
 
+An interrupted session keeps the current protected URL so the same person can return after
+signing in again. The redirect state carries the interrupted account's user id, and the
+login form resumes the route only when the same account signs back in. A deliberate sign
+out clears that return state entirely. Either way a different account starts at home, where
+its own permissions determine what it can open. `ProtectedRoute` is the only place that
+navigates on session loss: `signOut` and the 401 handler just clear state and record
+whether the loss was deliberate, so two redirects never race for the same transition.
+
 `mustChangePassword` on the login response forces `/set-password` before anything else
 renders. That screen is authenticated but sits outside the app shell, since every link a
 sidebar would offer bounces straight back to it. Changing a password revokes every refresh
