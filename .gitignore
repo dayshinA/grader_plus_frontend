@@ -12,5 +12,6 @@
 .DS_Store
 .claude/
 CLAUDE.md
+AGENTS.md
 .gitignore
 .env
