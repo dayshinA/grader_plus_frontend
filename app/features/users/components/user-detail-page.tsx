@@ -61,7 +61,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
         backLabel={declaredBack ? `Back to ${back.label}` : `Go to ${back.label}`}
         title="No such account"
         description="That account does not exist"
-        helperText="A refusal would read differently. This one is absent for everybody, not hidden from you."
+        helperText="This is not a permissions problem. There is no account at this address for anybody."
       />
     );
   }
@@ -244,7 +244,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
         open={confirmDeactivate}
         onOpenChange={setConfirmDeactivate}
         title="Deactivate this account?"
-        description={`${user.fullName} can no longer sign in, and an existing session dies within fifteen minutes. Nothing they have marked is removed, and the account stays readable. Deactivation is refused if they are the only coordinator on an open offering.`}
+        description={`${user.fullName} can no longer sign in, and if they are signed in now they will be signed out within fifteen minutes. Nothing they have marked is removed, and the account stays visible. Deactivation is refused if they are the only coordinator on an open offering.`}
         confirmLabel="Deactivate"
         pendingLabel="Deactivating"
         destructive

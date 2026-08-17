@@ -157,10 +157,10 @@ function FileViewer({
 
       {!file.isAnnotatable ? (
         <Callout variant="info" title="This file cannot be annotated">
-          Only PDF supports pins, because a Word document is converted before it is rendered
-          and no converter has been pinned: the same pin would land somewhere else on the next
-          conversion. Download it, and leave your comments on the criteria or in the general
-          feedback.
+          Pins only work on PDF files. A Word document has to be converted before it can be
+          shown, and that can shift its pages, so a pin could end up pointing at the wrong
+          place. Download it instead, and leave your comments on the criteria or in the
+          general feedback.
         </Callout>
       ) : link.isPending ? (
         <Skeleton className="h-96 rounded-lg" />

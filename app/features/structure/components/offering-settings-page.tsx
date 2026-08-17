@@ -236,7 +236,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
         open={confirmClose}
         onOpenChange={setConfirmClose}
         title="Close this offering?"
-        description="Every write is refused afterwards: no marking, no rubric edits, no assignment changes, no grade overrides. Reopening is a separate permission that most coordinators do not hold, so this is not something you can quietly undo."
+        description="Nothing can be changed afterwards: no marking, no rubric edits, no assignment changes, no grade overrides. Reopening needs a separate permission that most coordinators do not hold, so this is not something you can quietly undo."
         details={
           openCases > 0 || ungraded > 0
             ? `${pluralise(openCases, "case")} still open and ${pluralise(ungraded, "project")} without a grade. Those projects stay ungraded.`
@@ -260,7 +260,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
         open={confirmReopen}
         onOpenChange={setConfirmReopen}
         title="Reopen this offering?"
-        description="It goes back to marking, and writes are accepted again. This is recorded in the audit log with your name on it."
+        description="The offering opens again and marking can continue. This is recorded in the audit log with your name on it."
         confirmLabel="Reopen"
         pendingLabel="Reopening"
         isPending={reopen.isPending}

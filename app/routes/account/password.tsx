@@ -11,7 +11,7 @@ export default function ChangePasswordRoute() {
     <div className="space-y-6">
       <PageHeader
         title="Change password"
-        description="Sets a new password and ends every session on the account, including this one."
+        description="Sets a new password and signs you out everywhere, including here."
       />
       <Card className="max-w-lg">
         <CardContent className="pt-6">

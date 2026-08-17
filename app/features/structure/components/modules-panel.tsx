@@ -355,7 +355,7 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           open={importOpen}
           onOpenChange={setImportOpen}
           title="Import modules"
-          description="Create only, one module per row, all under this unit. A row matching an existing module exactly is left unchanged. Programme links are a separate import, deliberately."
+          description="This only creates modules, one per row, all under this unit. A row that matches an existing module exactly is left unchanged. Programme links have their own import."
           columnsHelp={
             <>
               <code className="text-xs">code</code> and <code className="text-xs">title</code>,
@@ -375,7 +375,7 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           open={linkImportOpen}
           onOpenChange={setLinkImportOpen}
           title="Import programme links"
-          description="Adds links, never removes them. Each row links one module under this unit to one programme, an existing link is left unchanged, and a link only ends through the module's programme editor, which replaces the full set."
+          description="This only adds links, never removes them. Each row links one module under this unit to one programme, and a link that already exists is left unchanged. Removing a link happens in the module's programme editor instead."
           columnsHelp={
             <>
               <code className="text-xs">module_code</code>,{" "}

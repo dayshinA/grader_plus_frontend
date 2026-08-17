@@ -11,7 +11,7 @@ export default function LoginRoute() {
   return (
     <AuthShell
       title="Sign in"
-      description="Staff accounts only. Students never sign in to GraderPlus."
+      description="Staff accounts only."
       footer={
         <Link to="/forgot-password" className="underline underline-offset-4 hover:text-foreground">
           Forgotten your password?

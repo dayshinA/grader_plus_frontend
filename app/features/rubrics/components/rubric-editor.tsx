@@ -249,7 +249,7 @@ export function RubricEditor({
                   onChange={(event) =>
                     update(criterion.key, { maxScore: Number(event.target.value) })
                   }
-                  hint="The raw scale a marker enters against."
+                  hint="The highest score a marker can give for this criterion."
                 />
               </div>
             </CardContent>

@@ -273,7 +273,7 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
           open={importOpen}
           onOpenChange={setImportOpen}
           title="Import programmes"
-          description="Create only, one programme per row, all under this unit. A row matching an existing programme exactly is left unchanged, and a code already held with a different title or level fails its row."
+          description="This only creates programmes, one per row, all under this unit. A row that matches an existing programme exactly is left unchanged, and a code already in use with a different title or level is rejected."
           columnsHelp={
             <>
               <code className="text-xs">code</code>, <code className="text-xs">title</code> and{" "}

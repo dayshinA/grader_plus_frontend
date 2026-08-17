@@ -30,7 +30,7 @@ export function ResetPasswordForm() {
   if (!token) {
     return (
       <Callout variant="warning" title="This link is incomplete">
-        The reset link did not carry a token. Open it straight from the email rather than
+        Part of the link is missing. Open it straight from the email rather than
         retyping it, or{" "}
         <Link to="/forgot-password" className="underline underline-offset-4">
           request a new one

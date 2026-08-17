@@ -139,8 +139,8 @@ export function AccountPage() {
                       {grant.scopeType === "system"
                         ? "Across the whole platform"
                         : grant.scopeType === "academic_unit"
-                          ? "Scoped to an academic unit"
-                          : "Scoped to one module offering"}
+                          ? "For one academic unit"
+                          : "For one module offering"}
                     </p>
                   </div>
                   <Badge variant="secondary" className="w-fit">

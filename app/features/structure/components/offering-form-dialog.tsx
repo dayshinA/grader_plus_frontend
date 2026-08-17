@@ -142,7 +142,7 @@ export function OfferingFormDialog({
           />
 
           <Callout variant="warning" title="This one is fixed at creation">
-            There is no route that changes the maximum number of markers afterwards. Two is
+            The maximum number of markers cannot be changed once the offering exists. Two is
             the minimum in every case.
           </Callout>
 

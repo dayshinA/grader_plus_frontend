@@ -186,8 +186,8 @@ export function RubricPage({ offeringId }: { offeringId: string }) {
     <div className="space-y-4">
       {!canWrite && (
         <Callout variant="info">
-          You can read this rubric but not change it. Authoring belongs to the offering's
-          coordinator.
+          You can read this rubric but not change it. Only the offering's coordinator can
+          edit it.
         </Callout>
       )}
 

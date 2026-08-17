@@ -127,7 +127,7 @@ export function AssignMarkerDialog({
               value,
               label: ASSIGNMENT_ROLE_LABELS[value],
             }))}
-            hint="Moderator is a value on the assignment, not a role in the permission system. They mark blind like everyone else."
+            hint="Moderator is just a label on this project, not extra access. They see the same screens and mark blind like everyone else."
             error={isApiError(error) ? error.fieldError("assignmentRole") : undefined}
           />
 

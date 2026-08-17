@@ -35,7 +35,7 @@ function AdminAuditScreen() {
       <div className="space-y-6">
         <PageHeader
           title="Audit log"
-          description="Every recorded action, newest first. The table is append only: there is no update route and no delete route behind it."
+          description="Every recorded action, newest first. Entries can never be edited or deleted."
         />
 
         <div className="grid gap-4 sm:grid-cols-2">

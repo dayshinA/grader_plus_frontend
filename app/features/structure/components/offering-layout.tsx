@@ -58,8 +58,9 @@ export function OfferingLayout() {
           title="This offering is closed"
           icon={<Lock className="size-4" />}
         >
-          The grades are frozen. Every write on it is refused from here on, which is what
-          closing is for. Reopening is a separate permission most coordinators do not hold.
+          The grades are frozen and nothing on this offering can be changed any more, which
+          is what closing is for. Reopening needs a separate permission most coordinators do
+          not hold.
         </Callout>
       )}
 

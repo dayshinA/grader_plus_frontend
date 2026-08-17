@@ -105,8 +105,8 @@ export function CreateUserDialog({
             </div>
 
             <Callout variant="warning" title="This is the only time you will see it">
-              Nothing stores it in readable form. If it is lost, the account uses the forgotten
-              password link instead.
+              It cannot be shown again. If it is lost, the person uses the forgotten password
+              link on the sign in screen instead.
             </Callout>
           </div>
 
@@ -152,7 +152,7 @@ export function CreateUserDialog({
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            hint="Case insensitive, so one person cannot end up with two accounts."
+            hint="Capital letters do not matter, so one person cannot end up with two accounts."
             error={fieldError("email")}
           />
 
@@ -164,7 +164,7 @@ export function CreateUserDialog({
               setScopeId("");
             }}
             options={roleOptions}
-            hint="Roles below your own only. More can be granted afterwards, and capability is the union of every grant."
+            hint="Roles below your own only. More can be granted afterwards, and someone with several roles can do everything each of them allows."
             error={fieldError("role")}
           />
 

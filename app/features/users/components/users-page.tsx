@@ -73,7 +73,7 @@ function UserRoles({
   if (grants.length === 0) {
     return (
       <span className="text-sm text-muted-foreground">
-        {seesEverything ? "None" : "None in your scope"}
+        {seesEverything ? "None" : "None you can see"}
       </span>
     );
   }
@@ -279,7 +279,7 @@ export function UsersPage() {
           <ListToolbar
             search={search}
             onSearchChange={setSearch}
-            searchLabel="Search accounts by name, email, role or scope"
+            searchLabel="Search accounts by name, email, role or unit"
             placeholder="Search accounts"
             filters={
               <>
@@ -323,7 +323,7 @@ export function UsersPage() {
                       <EmptyDescription>
                         {hasFilters
                           ? "Try a different search term, or clear the filters."
-                          : "This list is narrowed to the people your own roles reach, so an empty list can mean your scope covers nobody yet."}
+                          : "You only see the people your own roles reach, so an empty list can mean nobody is in your area yet."}
                       </EmptyDescription>
                     </EmptyHeader>
                     {hasFilters ? (

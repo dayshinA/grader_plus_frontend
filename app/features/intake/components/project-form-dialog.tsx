@@ -137,7 +137,7 @@ export function ProjectFormDialog({
             name="supervisorName"
             value={supervisorName}
             onChange={(event) => setSupervisorName(event.target.value)}
-            hint="A name on the project. It grants nothing: a supervisor who marks gets an ordinary assignment."
+            hint="Just a name on the project. It gives no access: a supervisor who also marks is added as a marker like anyone else."
             error={fieldError("supervisorName")}
           />
 

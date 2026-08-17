@@ -27,7 +27,7 @@ import { formatDateTime, humanise, pluralise } from "~/utils/format";
 /** Before and after, only when there is something to show. */
 function ChangeDetail({ entry }: { entry: AuditLogEntry }) {
   if (!entry.before && !entry.after) {
-    return <span className="text-xs text-muted-foreground">No payload recorded</span>;
+    return <span className="text-xs text-muted-foreground">No details recorded</span>;
   }
 
   return (
