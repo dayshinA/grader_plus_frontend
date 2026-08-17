@@ -1,5 +1,6 @@
 import { api, apiWithMessage } from "~/lib/api-client";
 import type { ApiResult } from "~/lib/api-client";
+import type { ImportReport } from "~/types/import-report";
 import type {
   AcademicUnit,
   CreateModulePayload,
@@ -106,4 +107,61 @@ export const structureService = {
   reopenOffering(id: string): Promise<ApiResult<ModuleOffering>> {
     return apiWithMessage.post<ModuleOffering>(`/offerings/${id}/reopen`);
   },
+
+  /**
+   * Create only, partial, idempotent on re-upload. A row matching an existing programme
+   * exactly is unchanged; a code held with a different title or level fails its row.
+   */
+  importProgrammes(
+    unitId: string,
+    file: File,
+    dryRun: boolean,
+  ): Promise<ApiResult<ImportReport>> {
+    return postImport(`/units/${unitId}/programmes/import`, file, dryRun);
+  },
+
+  /** The programme import's mirror: code and title, no link columns by design. */
+  importModules(unitId: string, file: File, dryRun: boolean): Promise<ApiResult<ImportReport>> {
+    return postImport(`/units/${unitId}/modules/import`, file, dryRun);
+  },
+
+  /**
+   * Additive only: a row adds one link and an import never removes one. Removal stays with
+   * the module's programme editor, which replaces the full set.
+   */
+  importModuleProgrammeLinks(
+    unitId: string,
+    file: File,
+    dryRun: boolean,
+  ): Promise<ApiResult<ImportReport>> {
+    return postImport(`/units/${unitId}/module-programmes/import`, file, dryRun);
+  },
+
+  /**
+   * Opens the new year's offering for every active module the unit administers, carrying
+   * threshold and marker cap forward and never the deadline. Not an upload: the system
+   * already knows which modules ran last year.
+   */
+  rolloverOfferings(
+    unitId: string,
+    payload: { fromYear: string; toYear: string; dryRun?: boolean },
+  ): Promise<ApiResult<ImportReport>> {
+    return apiWithMessage
+      .post<{ report: ImportReport }>(`/units/${unitId}/offerings/rollover`, payload)
+      .then(({ data, message }) => ({ data: data.report, message }));
+  },
 };
+
+/** The upload routes all take multipart `file` plus `dryRun` as a literal string. */
+function postImport(
+  url: string,
+  file: File,
+  dryRun: boolean,
+): Promise<ApiResult<ImportReport>> {
+  const body = new FormData();
+  body.append("file", file);
+  body.append("dryRun", dryRun ? "true" : "false");
+  return apiWithMessage
+    .post<{ report: ImportReport }>(url, body)
+    .then(({ data, message }) => ({ data: data.report, message }));
+}

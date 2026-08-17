@@ -1,4 +1,5 @@
 import type { Role, RoleAssignment, ScopeType } from "~/features/access/types";
+import type { ImportReport } from "~/types/import-report";
 
 /**
  * One grant on an account, flattened for display, as it arrives on `GET /users` and
@@ -68,13 +69,17 @@ export interface UpdateMePayload {
   fullName?: string;
 }
 
-/** `POST /users/bulk-import`. Rows that failed are named; rows that worked carry a password. */
+/**
+ * `POST /users/bulk-import`. The shared row report, plus the created accounts with their
+ * temporary passwords, which exist nowhere else in readable form. This route has no dryRun
+ * yet, so `report.dryRun` is always false and `report.noChange` always 0 today.
+ */
 export interface BulkImportResult {
-  created: {
+  report: ImportReport;
+  createdUsers: {
     row: number;
     email: string;
     fullName: string;
     temporaryPassword: string;
   }[];
-  failed: { row: number; email: string; reason: string }[];
 }

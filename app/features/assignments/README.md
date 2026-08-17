@@ -39,6 +39,11 @@ offer them.
 This screen names markers, and that is correct. Blindness is between markers, not between a
 coordinator and their own allocation.
 
+The "Import eligible markers" button on this screen belongs to the access feature: the
+route is `POST /offerings/:id/marker-roles/import` (`role.grant`) and the dialog, service
+and hook live in `app/features/access/`. It feeds the eligible list behind
+`GET /offerings/:id/markers`.
+
 ## Files in this folder
 
 - `api/assignments.service.ts`

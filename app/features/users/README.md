@@ -31,7 +31,12 @@ build a delete affordance.
 `GET /users` returns a scoped view: what comes back depends on the caller's roles, so an
 empty directory is a legitimate answer and not an error.
 
-How much per row detail bulk import shows is an open question in `FRONTEND-DESIGN.md`.
+Bulk import (contract of 2026-08-17): file columns are `email`, `full_name`, `role` and
+the scope columns that role uses, named by what a person has in front of them
+(`school_code`, `unit_name`, `module_code`, `academic_year`), never UUIDs. The response is
+`{ report, createdUsers }` on the shared import report shape in
+`app/types/import-report.ts`. This route has no dryRun yet, so the dialog uploads
+directly with no preview step, unlike the other importers.
 
 ## Files in this folder
 

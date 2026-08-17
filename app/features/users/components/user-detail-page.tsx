@@ -233,7 +233,12 @@ export function UserDetailPage({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <RoleGrantsCard userId={user.id} userName={user.fullName} scopeNames={scopeNames} />
+      <RoleGrantsCard
+        userId={user.id}
+        userName={user.fullName}
+        userIsActive={user.isActive}
+        scopeNames={scopeNames}
+      />
 
       <ConfirmDialog
         open={confirmDeactivate}

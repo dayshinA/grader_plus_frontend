@@ -184,3 +184,62 @@ export function useReopenOffering(offeringId: string) {
     },
   });
 }
+
+// The import mutations invalidate on apply only: a dry run writes nothing, so the caches
+// it would refresh have not moved.
+
+export function useImportProgrammes(unitId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) =>
+      structureService.importProgrammes(unitId, file, dryRun),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: structureKeys.programmes(unitId) });
+    },
+  });
+}
+
+export function useImportModules(unitId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) =>
+      structureService.importModules(unitId, file, dryRun),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: structureKeys.modules(unitId) });
+    },
+  });
+}
+
+/** The rows land on modules, not the unit, so every cached link set is refetched. */
+export function useImportModuleProgrammeLinks(unitId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) =>
+      structureService.importModuleProgrammeLinks(unitId, file, dryRun),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({
+        queryKey: [...structureKeys.all, "module-programmes"],
+      });
+    },
+  });
+}
+
+/**
+ * The report does not carry the created offerings, so every cached offering list under the
+ * unit is refetched rather than patched.
+ */
+export function useRolloverOfferings(unitId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { fromYear: string; toYear: string; dryRun?: boolean }) =>
+      structureService.rolloverOfferings(unitId, payload),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: [...structureKeys.all, "offerings"] });
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    },
+  });
+}

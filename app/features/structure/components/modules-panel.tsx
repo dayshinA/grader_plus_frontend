@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { CalendarPlus, Layers, Link2, Pencil, Plus } from "lucide-react";
+import { CalendarPlus, Layers, Link2, Pencil, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
@@ -19,11 +19,14 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty";
 import { ErrorCard } from "~/components/ui/error-card";
+import { ImportFileDialog } from "~/components/ui/import-file-dialog";
 import { ListPager } from "~/components/ui/list-pager";
 import { ListToolbar } from "~/components/ui/list-toolbar";
 import { Skeleton } from "~/components/ui/skeleton";
 import { usePermission } from "~/features/auth/api/auth-context";
 import {
+  useImportModuleProgrammeLinks,
+  useImportModules,
   useModules,
   useOfferings,
   useUnits,
@@ -108,9 +111,13 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
   const { data, isLoading, isError, error, refetch, isFetching } = useModules(unitId);
   const { data: units } = useUnits();
   const update = useUpdateModule(unitId);
+  const importModules = useImportModules(unitId);
+  const importLinks = useImportModuleProgrammeLinks(unitId);
 
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [linkImportOpen, setLinkImportOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectModule | undefined>();
   const [linking, setLinking] = useState<ProjectModule | undefined>();
   const [addingOffering, setAddingOffering] = useState<ProjectModule | undefined>();
@@ -147,18 +154,40 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           placeholder="Search modules"
           className="flex-1"
         />
-        {canCreate && (
-          <Button
-            className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
-            onClick={() => {
-              setEditing(undefined);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            New module
-          </Button>
-        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {canEdit && (
+            <Button
+              variant="outline"
+              className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+              onClick={() => setLinkImportOpen(true)}
+            >
+              <Link2 className="size-4" aria-hidden="true" />
+              Import links
+            </Button>
+          )}
+          {canCreate && (
+            <>
+              <Button
+                variant="outline"
+                className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+                onClick={() => setImportOpen(true)}
+              >
+                <Upload className="size-4" aria-hidden="true" />
+                Import
+              </Button>
+              <Button
+                className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+                onClick={() => {
+                  setEditing(undefined);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                New module
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -318,6 +347,49 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           open
           onOpenChange={(open) => !open && setAddingOffering(undefined)}
           module={addingOffering}
+        />
+      )}
+
+      {importOpen && (
+        <ImportFileDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title="Import modules"
+          description="Create only, one module per row, all under this unit. A row matching an existing module exactly is left unchanged. Programme links are a separate import, deliberately."
+          columnsHelp={
+            <>
+              <code className="text-xs">code</code> and <code className="text-xs">title</code>,
+              nothing else.
+            </>
+          }
+          template={{
+            fileName: "modules-import-template.csv",
+            content: "code,title\n",
+          }}
+          submit={(file, dryRun) => importModules.mutateAsync({ file, dryRun })}
+        />
+      )}
+
+      {linkImportOpen && (
+        <ImportFileDialog
+          open={linkImportOpen}
+          onOpenChange={setLinkImportOpen}
+          title="Import programme links"
+          description="Adds links, never removes them. Each row links one module under this unit to one programme, an existing link is left unchanged, and a link only ends through the module's programme editor, which replaces the full set."
+          columnsHelp={
+            <>
+              <code className="text-xs">module_code</code>,{" "}
+              <code className="text-xs">programme_code</code> and an optional{" "}
+              <code className="text-xs">programme_unit_name</code> naming the unit that runs
+              the programme when it is not this one. A link crossing two Schools is service
+              teaching and is refused here for everyone; those are made by hand.
+            </>
+          }
+          template={{
+            fileName: "module-programme-links-template.csv",
+            content: "module_code,programme_code,programme_unit_name\n",
+          }}
+          submit={(file, dryRun) => importLinks.mutateAsync({ file, dryRun })}
         />
       )}
     </div>

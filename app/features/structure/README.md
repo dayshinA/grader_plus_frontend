@@ -33,6 +33,10 @@ which described a model that no longer exists.
 | POST | `/modules/:id/offerings` | `offering.create` |
 | PATCH | `/offerings/:id` | `offering.update` |
 | POST | `/offerings/:id/reopen` | `offering.reopen` |
+| POST | `/units/:id/programmes/import` | `programme.create` |
+| POST | `/units/:id/modules/import` | `module.create` |
+| POST | `/units/:id/module-programmes/import` | `module.update` |
+| POST | `/units/:id/offerings/rollover` | `offering.create` |
 
 ## Notes
 
@@ -51,6 +55,14 @@ mark those programmes unavailable with the reason rather than letting the save 4
 Deactivate rather than delete. Reopening a closed offering is a separate permission most
 coordinators do not hold.
 
+The four batch routes (2026-08-17) sit beside the manual dialogs, never instead of them,
+and answer the shared import report from `app/types/import-report.ts` with the dryRun
+preview flow. The programme and module imports are create only. The link import is
+additive only: it adds links and never removes one, so it must not read as an alternative
+to the full-set-replace editor in `module-programmes-dialog.tsx`. Rollover is a JSON form
+on the unit page header, one row per active module, carrying threshold and marker cap
+forward and never the deadline.
+
 ## Files in this folder
 
 - `api/structure.service.ts`
@@ -63,6 +75,7 @@ coordinators do not hold.
 - `components/offering-form-dialog.tsx`
 - `components/offering-layout.tsx`
 - `components/offering-picker.tsx`
+- `components/offering-rollover-dialog.tsx`
 - `components/offering-settings-page.tsx`
 - `components/offering-status-badge.tsx`
 - `components/programme-form-dialog.tsx`

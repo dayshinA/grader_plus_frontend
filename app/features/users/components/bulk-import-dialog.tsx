@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleCheck, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
@@ -14,18 +14,27 @@ import {
 } from "~/components/ui/dialog";
 import { FileInput } from "~/components/ui/file-input";
 import { FormError } from "~/components/ui/form-error";
+import { ImportReportView } from "~/components/ui/import-report-view";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { SecretField } from "~/components/ui/secret-field";
 import { useBulkImportUsers } from "~/features/users/api/use-users";
 import type { BulkImportResult } from "~/features/users/types";
+import { downloadCsv } from "~/utils/download-file";
 import { pluralise } from "~/utils/format";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
+const TEMPLATE_CSV =
+  "email,full_name,role,school_code,unit_name,module_code,academic_year\n";
+
 /**
- * A spreadsheet of email, name, role and scope. The result is per row on both sides, and
- * the created rows carry a temporary password that is shown here once and never again, so
- * this screen stays on the result until it is dismissed.
+ * A spreadsheet of people, one row each, with the role's scope named by what the uploader
+ * has in front of them rather than by ids. The result is per row, and the created rows
+ * carry a temporary password that is shown here once and never again, so this screen stays
+ * on the result until it is dismissed.
+ *
+ * This route has no dry run yet, so unlike the other import dialogs there is no preview
+ * step: the upload applies directly.
  */
 export function BulkImportDialog({
   open,
@@ -46,24 +55,23 @@ export function BulkImportDialog({
           <DialogHeader>
             <DialogTitle>Import finished</DialogTitle>
             <DialogDescription>
-              {pluralise(result.created.length, "account")} created,{" "}
-              {pluralise(result.failed.length, "row")} skipped. Rows are handled one at a
-              time, so a failure further down did not undo what came before it.
+              Rows are handled one at a time, so a failure further down did not undo what
+              came before it.
             </DialogDescription>
           </DialogHeader>
 
-          {result.created.length > 0 && (
+          {result.createdUsers.length > 0 && (
             <div className="space-y-2">
               <p className="flex items-center gap-2 text-sm font-medium">
                 <CircleCheck className="size-4 text-green-600" aria-hidden="true" />
-                Created
+                {pluralise(result.createdUsers.length, "account")} created
               </p>
               <Callout variant="warning">
                 Each password below is shown once. Copy them before closing this dialog.
               </Callout>
               <ScrollArea className="h-56 rounded-lg border border-border">
                 <ul className="divide-y divide-border">
-                  {result.created.map((row) => (
+                  {result.createdUsers.map((row) => (
                     <li key={`${row.row}-${row.email}`} className="space-y-2 p-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{row.fullName}</p>
@@ -82,26 +90,9 @@ export function BulkImportDialog({
             </div>
           )}
 
-          {result.failed.length > 0 && (
-            <div className="space-y-2">
-              <p className="flex items-center gap-2 text-sm font-medium">
-                <CircleX className="size-4 text-destructive" aria-hidden="true" />
-                Skipped
-              </p>
-              <ScrollArea className="h-40 rounded-lg border border-border">
-                <ul className="divide-y divide-border">
-                  {result.failed.map((row) => (
-                    <li key={`${row.row}-${row.email}`} className="p-3">
-                      <p className="truncate text-sm">
-                        Row {row.row} · {row.email || "no address"}
-                      </p>
-                      <p className="text-xs text-destructive">{row.reason}</p>
-                    </li>
-                  ))}
-                </ul>
-              </ScrollArea>
-            </div>
-          )}
+          {/* no_change is not expected from this route yet, but render it if it appears
+              rather than silently dropping a category the backend later turns on. */}
+          <ImportReportView report={result.report} statuses={["failed", "no_change"]} />
 
           <DialogFooter>
             <Button className="h-11 cursor-pointer sm:h-9" onClick={() => onOpenChange(false)}>
@@ -128,14 +119,42 @@ export function BulkImportDialog({
           <FormError error={importUsers.error} />
 
           <Callout variant="info" title="Columns">
-            <code className="text-xs">email</code>, <code className="text-xs">fullName</code>,{" "}
-            <code className="text-xs">role</code>, and{" "}
-            <code className="text-xs">scopeId</code> for everything but system_admin. Role is
-            one of system_admin, unit_admin, coordinator or marker.
+            <code className="text-xs">email</code>, <code className="text-xs">full_name</code>{" "}
+            and <code className="text-xs">role</code> (one of system_admin, unit_admin,
+            coordinator or marker), then the scope columns that role uses:
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              <li>system_admin: leave every scope column empty</li>
+              <li>
+                unit_admin: <code className="text-xs">school_code</code>, plus{" "}
+                <code className="text-xs">unit_name</code> for a constituent unit
+              </li>
+              <li>
+                coordinator and marker: <code className="text-xs">school_code</code>,{" "}
+                <code className="text-xs">module_code</code> and{" "}
+                <code className="text-xs">academic_year</code>, plus{" "}
+                <code className="text-xs">unit_name</code> when the module sits under a
+                constituent unit
+              </li>
+            </ul>
+            <p className="mt-1">
+              A value in a column the row&apos;s role does not use fails that row. Matching is
+              case insensitive, and an ambiguous name is refused rather than guessed.
+            </p>
           </Callout>
 
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 cursor-pointer"
+            onClick={() => downloadCsv(TEMPLATE_CSV, "accounts-import-template.csv")}
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Download a template CSV
+          </Button>
+
           <FileInput
-            accept={[".csv", ".xlsx", ".xls"]}
+            accept={[".csv", ".xlsx"]}
             maxSizeBytes={MAX_BYTES}
             disabled={importUsers.isPending}
             onFileSelect={(chosen) => {

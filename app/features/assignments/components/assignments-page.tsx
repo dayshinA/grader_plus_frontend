@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Upload, Users, Wand2 } from "lucide-react";
+import { Plus, Trash2, Upload, UserPlus, Users, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
@@ -41,6 +41,7 @@ import {
   ASSIGNMENT_ROLE_LABELS,
   type MarkerAssignment,
 } from "~/features/assignments/types";
+import { MarkerEligibilityImportDialog } from "~/features/access/components/marker-eligibility-import-dialog";
 import { usePermission } from "~/features/auth/api/auth-context";
 import { useProjects } from "~/features/intake/api/use-intake";
 import type { Project } from "~/features/intake/types";
@@ -94,7 +95,7 @@ function ImportDialog({
           </Callout>
 
           <FileInput
-            accept={[".csv", ".xlsx", ".xls"]}
+            accept={[".csv", ".xlsx"]}
             maxSizeBytes={MAX_IMPORT_BYTES}
             disabled={importMatrix.isPending}
             onFileSelect={(chosen) => {
@@ -151,6 +152,7 @@ function ImportDialog({
 export function AssignmentsPage({ offeringId }: { offeringId: string }) {
   const canWrite = usePermission("assignment.write");
   const canOpenMarking = usePermission("offering.update");
+  const canGrant = usePermission("role.grant");
 
   const { offering } = useOfferingHeader(offeringId);
   const closed = offering?.isClosed ?? false;
@@ -164,6 +166,7 @@ export function AssignmentsPage({ offeringId }: { offeringId: string }) {
   const [assigning, setAssigning] = useState<Project | undefined>();
   const [autoOpen, setAutoOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [eligibilityOpen, setEligibilityOpen] = useState(false);
   const [removing, setRemoving] = useState<MarkerAssignment | undefined>();
 
   const byProject = useMemo(() => {
@@ -226,24 +229,38 @@ export function AssignmentsPage({ offeringId }: { offeringId: string }) {
         </Callout>
       )}
 
-      {canWrite && !closed && (
+      {!closed && (canWrite || canGrant) && (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            variant="outline"
-            className="h-11 cursor-pointer sm:h-9"
-            onClick={() => setAutoOpen(true)}
-          >
-            <Wand2 className="size-4" aria-hidden="true" />
-            Propose an allocation
-          </Button>
-          <Button
-            variant="outline"
-            className="h-11 cursor-pointer sm:h-9"
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="size-4" aria-hidden="true" />
-            Import a matrix
-          </Button>
+          {canWrite && (
+            <>
+              <Button
+                variant="outline"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => setAutoOpen(true)}
+              >
+                <Wand2 className="size-4" aria-hidden="true" />
+                Propose an allocation
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 cursor-pointer sm:h-9"
+                onClick={() => setImportOpen(true)}
+              >
+                <Upload className="size-4" aria-hidden="true" />
+                Import a matrix
+              </Button>
+            </>
+          )}
+          {canGrant && (
+            <Button
+              variant="outline"
+              className="h-11 cursor-pointer sm:h-9"
+              onClick={() => setEligibilityOpen(true)}
+            >
+              <UserPlus className="size-4" aria-hidden="true" />
+              Import eligible markers
+            </Button>
+          )}
         </div>
       )}
 
@@ -411,6 +428,14 @@ export function AssignmentsPage({ offeringId }: { offeringId: string }) {
 
       {importOpen && (
         <ImportDialog open={importOpen} onOpenChange={setImportOpen} offeringId={offeringId} />
+      )}
+
+      {eligibilityOpen && (
+        <MarkerEligibilityImportDialog
+          open={eligibilityOpen}
+          onOpenChange={setEligibilityOpen}
+          offeringId={offeringId}
+        />
       )}
 
       <ConfirmDialog

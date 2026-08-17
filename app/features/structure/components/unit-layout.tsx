@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router";
+import { Repeat } from "lucide-react";
 
 import { BackLink } from "~/components/ui/back-link";
+import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { can } from "~/features/access/permissions";
 import { useUnits } from "~/features/structure/api/use-structure";
+import { OfferingRolloverDialog } from "~/features/structure/components/offering-rollover-dialog";
 import { UNIT_NAV } from "~/features/dashboard/nav";
 import { ACADEMIC_UNIT_LEVEL_LABELS } from "~/features/structure/types";
 import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
@@ -26,6 +30,7 @@ export function UnitLayout() {
   // along or the back link degrades to its fallback on the first tab click.
   const declaredBack = useDeclaredBackTarget();
   const { data: units, isPending } = useUnits();
+  const [rolloverOpen, setRolloverOpen] = useState(false);
 
   const unit = units?.find((candidate) => candidate.id === unitId);
   const parent = unit?.parentUnitId
@@ -47,6 +52,19 @@ export function UnitLayout() {
               unit
                 ? `${ACADEMIC_UNIT_LEVEL_LABELS[unit.level]}${unit.code ? ` · ${unit.code}` : ""}`
                 : "This unit is not in the list your account can see, which usually means it is out of scope."
+            }
+            actions={
+              unit &&
+              can(grants, "offering.create") && (
+                <Button
+                  variant="outline"
+                  className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+                  onClick={() => setRolloverOpen(true)}
+                >
+                  <Repeat className="size-4" aria-hidden="true" />
+                  Roll offerings forward
+                </Button>
+              )
             }
           />
           {unit && parent && (
@@ -88,6 +106,15 @@ export function UnitLayout() {
       </nav>
 
       <Outlet />
+
+      {rolloverOpen && unit && (
+        <OfferingRolloverDialog
+          open={rolloverOpen}
+          onOpenChange={setRolloverOpen}
+          unitId={unit.id}
+          unitName={unit.name}
+        />
+      )}
     </div>
   );
 }

@@ -41,7 +41,11 @@ export const usersService = {
     return apiWithMessage.post<User>(`/users/${id}/deactivate`);
   },
 
-  /** A CSV or spreadsheet of email, name, role and scope. */
+  /**
+   * A CSV or XLSX of email, name, role and the scope columns that role uses, named by what
+   * a person has in front of them (school code, unit name, module code, academic year)
+   * rather than UUIDs. Rows are independent, so a failed row never undoes an earlier one.
+   */
   bulkImport(file: File): Promise<ApiResult<BulkImportResult>> {
     const body = new FormData();
     body.append("file", file);

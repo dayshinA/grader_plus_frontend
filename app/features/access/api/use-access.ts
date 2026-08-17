@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { accessService } from "~/features/access/api/access.service";
 import type { GrantRolePayload } from "~/features/access/types";
+import { assignmentKeys } from "~/features/assignments/api/use-assignments";
 import { userKeys } from "~/features/users/api/use-users";
 
 export const accessKeys = {
@@ -51,5 +52,22 @@ export function useRevokeRole(userId: string) {
   return useMutation({
     mutationFn: (roleAssignmentId: string) => accessService.revokeRole(roleAssignmentId),
     onSuccess: () => invalidateAfterGrantChange(queryClient, userId),
+  });
+}
+
+/**
+ * The eligible marker list on the assignment screen is what this feeds, so that is what is
+ * refetched. On a dry run nothing was written, so nothing is invalidated.
+ */
+export function useImportMarkerRoles(offeringId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) =>
+      accessService.importMarkerRoles(offeringId, file, dryRun),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: assignmentKeys.markers(offeringId) });
+      void queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
   });
 }

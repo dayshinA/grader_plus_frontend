@@ -206,10 +206,13 @@ function GrantRow({
 export function RoleGrantsCard({
   userId,
   userName,
+  userIsActive,
   scopeNames,
 }: {
   userId: string;
   userName: string;
+  /** A grant to a deactivated account is refused with 409, so the dialog is not offered. */
+  userIsActive: boolean;
   /** scopeId to name, from the `roles` on the user. These rows carry no name of their own. */
   scopeNames: Map<string, string>;
 }) {
@@ -233,7 +236,7 @@ export function RoleGrantsCard({
             next sign in, and takes the grant off this list.
           </CardDescription>
         </div>
-        {canGrant && (
+        {canGrant && userIsActive && (
           <Button
             size="sm"
             className="h-9 shrink-0 cursor-pointer"
@@ -246,6 +249,12 @@ export function RoleGrantsCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {canGrant && !userIsActive && (
+          <Callout variant="info">
+            This account is deactivated, so granting it a new role is refused. The roles it
+            already held stay listed for the record.
+          </Callout>
+        )}
         {isError ? (
           <ErrorCard
             title="Could not load roles"

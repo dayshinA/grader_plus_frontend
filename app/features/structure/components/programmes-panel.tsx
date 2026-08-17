@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { GraduationCap, Pencil, Plus } from "lucide-react";
+import { GraduationCap, Pencil, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
@@ -14,10 +14,15 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty";
 import { ErrorCard } from "~/components/ui/error-card";
+import { ImportFileDialog } from "~/components/ui/import-file-dialog";
 import { ListPager } from "~/components/ui/list-pager";
 import { ListToolbar } from "~/components/ui/list-toolbar";
 import { usePermission } from "~/features/auth/api/auth-context";
-import { useProgrammes, useUpdateProgramme } from "~/features/structure/api/use-structure";
+import {
+  useImportProgrammes,
+  useProgrammes,
+  useUpdateProgramme,
+} from "~/features/structure/api/use-structure";
 import { ProgrammeFormDialog } from "~/features/structure/components/programme-form-dialog";
 import { PROGRAMME_LEVEL_LABELS, type Programme } from "~/features/structure/types";
 import { usePagedList } from "~/hooks/use-paged-list";
@@ -32,9 +37,11 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
   const canEdit = usePermission("programme.update");
   const { data, isLoading, isError, error, refetch, isFetching } = useProgrammes(unitId);
   const update = useUpdateProgramme(unitId);
+  const importProgrammes = useImportProgrammes(unitId);
 
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Programme | undefined>();
 
   const filtered = useMemo(() => {
@@ -184,10 +191,20 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
           className="flex-1"
         />
         {canCreate && (
-          <Button className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto" onClick={openCreate}>
-            <Plus className="size-4" aria-hidden="true" />
-            New programme
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="size-4" aria-hidden="true" />
+              Import
+            </Button>
+            <Button className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto" onClick={openCreate}>
+              <Plus className="size-4" aria-hidden="true" />
+              New programme
+            </Button>
+          </div>
         )}
       </div>
 
@@ -248,6 +265,27 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
           onOpenChange={setFormOpen}
           unitId={unitId}
           programme={editing}
+        />
+      )}
+
+      {importOpen && (
+        <ImportFileDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title="Import programmes"
+          description="Create only, one programme per row, all under this unit. A row matching an existing programme exactly is left unchanged, and a code already held with a different title or level fails its row."
+          columnsHelp={
+            <>
+              <code className="text-xs">code</code>, <code className="text-xs">title</code> and{" "}
+              <code className="text-xs">level</code>. Level is written out as a person would:
+              Undergraduate, Postgraduate taught or Postgraduate research.
+            </>
+          }
+          template={{
+            fileName: "programmes-import-template.csv",
+            content: "code,title,level\n",
+          }}
+          submit={(file, dryRun) => importProgrammes.mutateAsync({ file, dryRun })}
         />
       )}
     </div>
