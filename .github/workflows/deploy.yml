@@ -1,0 +1,40 @@
+name: Deploy Grader Plus Frontend
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST}}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+
+            # Navigate to grader_plus_frontend directory and pull the latest changes
+            cd grader_plus_frontend
+            git pull origin production
+            npm install
+            npm run build
+
+            # Stop existing tmux session if it exists
+            tmux kill-session -t grader_plus_frontend 2>/dev/null || true
+
+            # Create and configure new tmux session
+            tmux new-session -d -s grader_plus_frontend
+            tmux send-keys -t grader_plus_frontend "PORT=3001 npm run start" C-m
+
+            # Verification steps
+            sleep 3
+            echo "Active tmux sessions:"
+            tmux list-sessions
+            echo "Application status:"
+            curl -sI localhost:3001 | head -n1 || echo "Could not connect to app"
