@@ -3,14 +3,29 @@ import type {
   PDFDocumentProxy,
   RenderTask,
 } from "pdfjs-dist/types/src/display/api";
+import type { TextLayer } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 
-/** A point on a page as fractions of its width/height, 0–1 — never pixels. */
+/** A point on a page as fractions of its width/height, 0 to 1, never pixels. */
 export interface PdfPoint {
   x: number;
   y: number;
+}
+
+/** A rectangle on a page, all four values as fractions of the page's size. */
+export interface PdfRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A text selection on the page: the text, and one rect per rendered line. */
+export interface PdfTextSelection {
+  text: string;
+  rects: PdfRect[];
 }
 
 /** The rendered page's CSS size, for positioning an overlay on top of it. */
@@ -45,13 +60,14 @@ function loadPdfjs(): Promise<typeof import("pdfjs-dist")> {
 }
 
 /**
- * Renders one page of a PDF to a canvas, scaled to fit its container, with an optional overlay
- * positioned in the page's own coordinate space.
+ * Renders one page of a PDF to a canvas, scaled to fit its container, with a selectable text
+ * layer on top and an optional overlay positioned in the page's own coordinate space.
  *
  * Built for annotating a submission, but deliberately knows nothing about annotations: it reports
- * clicks as `{ x, y }` fractions and hands the overlay the page's rendered size, leaving what to
- * draw entirely to the caller. Fractions rather than pixels because that's what survives a resize
- * or a zoom — the same reason the backend stores `posX`/`posY` that way.
+ * clicks as `{ x, y }` fractions, text selections as the text plus per-line rect fractions, and
+ * hands the overlay the page's rendered size, leaving what to draw entirely to the caller.
+ * Fractions rather than pixels because that's what survives a resize or a zoom, the same reason
+ * the backend stores its annotation geometry that way.
  *
  * @remarks
  * `url` is fetched by pdf.js from the browser, so a cross-origin source must send CORS headers.
@@ -65,6 +81,7 @@ export function PdfViewer({
   zoom = 1,
   onDocumentLoad,
   onPointSelect,
+  onTextSelect,
   overlay,
   onStatusChange,
   className,
@@ -76,17 +93,21 @@ export function PdfViewer({
   /** Multiplier on top of fit-to-width. 1 fills the container. */
   zoom?: number;
   onDocumentLoad?: (pageCount: number) => void;
-  /** Fires with page fractions when the page is clicked. Omit to make the page non-interactive. */
+  /** Fires with page fractions when the page is clicked. Omit to make clicks inert. */
   onPointSelect?: (point: PdfPoint) => void;
+  /** Fires when the pointer is released over a non-empty text selection on this page. */
+  onTextSelect?: (selection: PdfTextSelection) => void;
   /** Drawn on top of the page, in a box exactly matching its rendered size. */
   overlay?: (size: PdfPageSize) => ReactNode;
   onStatusChange?: (status: PdfViewerStatus, error?: unknown) => void;
   className?: string;
-  /** Describes the page for screen readers — a canvas is opaque to them. */
+  /** Describes the page for screen readers, since a canvas is opaque to them. */
   pageLabel?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textLayerContainerRef = useRef<HTMLDivElement | null>(null);
+  const textLayerRef = useRef<TextLayer | null>(null);
   const documentRef = useRef<PDFDocumentProxy | null>(null);
   // Held separately from the document proxy: `destroy()` (abort the fetch, tear down the worker)
   // lives on the loading task, not on the proxy it resolves to.
@@ -95,6 +116,7 @@ export function PdfViewer({
 
   const [containerWidth, setContainerWidth] = useState(0);
   const [pageSize, setPageSize] = useState<PdfPageSize | null>(null);
+  const [scale, setScale] = useState(1);
   const [status, setStatus] = useState<PdfViewerStatus>("loading");
   const [error, setError] = useState<unknown>(null);
 
@@ -167,6 +189,8 @@ export function PdfViewer({
       // belongs to is destroyed, or pdf.js throws on the dangling task.
       renderTaskRef.current?.cancel();
       renderTaskRef.current = null;
+      textLayerRef.current?.cancel();
+      textLayerRef.current = null;
       documentRef.current = null;
       const loadingTask = loadingTaskRef.current;
       loadingTaskRef.current = null;
@@ -202,7 +226,7 @@ export function PdfViewer({
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-        // A canvas can only be in one render at a time — cancel the previous before starting.
+        // A canvas can only be in one render at a time, so cancel the previous before starting.
         renderTaskRef.current?.cancel();
 
         const task = proxy.render({
@@ -216,10 +240,33 @@ export function PdfViewer({
         if (cancelled) return;
 
         renderTaskRef.current = null;
+        setScale(viewport.scale);
         setPageSize({
           width: Math.floor(viewport.width),
           height: Math.floor(viewport.height),
         });
+
+        // The text layer sits invisibly over the canvas so text can be selected. Its failure is
+        // deliberately non-fatal: a scanned PDF has no text to lay out, and the page is still
+        // perfectly readable and clickable without one.
+        const textContainer = textLayerContainerRef.current;
+        if (textContainer) {
+          textLayerRef.current?.cancel();
+          textContainer.replaceChildren();
+          try {
+            const { TextLayer: TextLayerClass } = await loadPdfjs();
+            if (cancelled) return;
+            const textLayer = new TextLayerClass({
+              textContentSource: proxy.streamTextContent(),
+              container: textContainer,
+              viewport,
+            });
+            textLayerRef.current = textLayer;
+            await textLayer.render();
+          } catch {
+            textContainer.replaceChildren();
+          }
+        }
       } catch (cause) {
         // A cancelled render is the expected outcome of a fast resize or page flick, not a failure.
         if (cancelled || (cause as { name?: string })?.name === "RenderingCancelledException") {
@@ -231,21 +278,67 @@ export function PdfViewer({
 
     return () => {
       cancelled = true;
+      textLayerRef.current?.cancel();
+      textLayerRef.current = null;
     };
   }, [page, zoom, containerWidth, status, report]);
 
-  function handleClick(event: React.MouseEvent<HTMLDivElement>) {
-    if (!onPointSelect || !pageSize) return;
+  // One handler decides what a pointer release means: a live text selection anchored in the
+  // text layer is a highlight, a collapsed one is a click. The browser collapses the selection
+  // on mousedown, so a plain click never arrives here looking like a selection.
+  function handleMouseUp(event: React.MouseEvent<HTMLDivElement>) {
+    if (!pageSize) return;
     const bounds = event.currentTarget.getBoundingClientRect();
+    const selection = window.getSelection();
+
+    if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const container = textLayerContainerRef.current;
+      if (!container?.contains(range.commonAncestorContainer)) return;
+      if (!onTextSelect) return;
+
+      const text = selection.toString().replace(/\s+/g, " ").trim();
+      if (!text) return;
+
+      const rects: PdfRect[] = [];
+      for (const rect of range.getClientRects()) {
+        if (rect.width < 1 || rect.height < 1) continue;
+        rects.push({
+          x: clamp01((rect.left - bounds.left) / bounds.width),
+          y: clamp01((rect.top - bounds.top) / bounds.height),
+          width: clamp01(rect.width / bounds.width),
+          height: clamp01(rect.height / bounds.height),
+        });
+      }
+      const merged = mergeLineRects(rects);
+      if (merged.length > 0) onTextSelect({ text, rects: merged });
+      return;
+    }
+
+    if (!onPointSelect) return;
     onPointSelect({
       x: clamp01((event.clientX - bounds.left) / bounds.width),
       y: clamp01((event.clientY - bounds.top) / bounds.height),
     });
   }
 
+  const interactive = Boolean(onPointSelect || onTextSelect);
+
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      <div className="relative mx-auto" style={pageSize ? { width: pageSize.width } : undefined}>
+      <div
+        className={cn(
+          "pdf-page-surface relative mx-auto",
+          onPointSelect && "cursor-crosshair",
+        )}
+        style={
+          {
+            ...(pageSize ? { width: pageSize.width } : undefined),
+            "--scale-factor": String(scale),
+          } as React.CSSProperties
+        }
+        onMouseUp={interactive ? handleMouseUp : undefined}
+      >
         <canvas
           ref={canvasRef}
           role="img"
@@ -256,17 +349,16 @@ export function PdfViewer({
           )}
         />
 
+        <div
+          ref={textLayerContainerRef}
+          className={cn("textLayer", status !== "ready" && "invisible")}
+        />
+
         {pageSize && status === "ready" && (
-          <div
-            // Presentational: the pins inside are real buttons and carry the semantics. Clicking
-            // the page is a shortcut, not the only way in — the panel beside it has a form-based
-            // "Add comment" for anyone not using a pointer.
-            className={cn(
-              "absolute inset-0",
-              onPointSelect ? "cursor-crosshair" : "pointer-events-none",
-            )}
-            onClick={onPointSelect ? handleClick : undefined}
-          >
+          // Presentational and inert to the pointer, so selecting text through it works. The pins
+          // inside are announced by the panel beside the page, which also has a form-based
+          // "Add comment" for anyone not using a pointer.
+          <div className="pointer-events-none absolute inset-0">
             {overlay?.(pageSize)}
           </div>
         )}
@@ -294,8 +386,38 @@ function clamp01(value: number): number {
 }
 
 /**
+ * The browser reports one client rect per text span the selection crosses, so a single visual
+ * line arrives as several abutting rects that would double-darken a translucent highlight at
+ * every seam. Rects that overlap vertically by more than half their height are the same line
+ * and are merged into one.
+ */
+function mergeLineRects(rects: PdfRect[]): PdfRect[] {
+  const sorted = [...rects].sort((a, b) => a.y - b.y || a.x - b.x);
+  const lines: PdfRect[] = [];
+
+  for (const rect of sorted) {
+    const last = lines[lines.length - 1];
+    const overlap = last
+      ? Math.min(last.y + last.height, rect.y + rect.height) - Math.max(last.y, rect.y)
+      : 0;
+
+    if (last && overlap > 0.5 * Math.min(last.height, rect.height)) {
+      const x = Math.min(last.x, rect.x);
+      const y = Math.min(last.y, rect.y);
+      const right = Math.max(last.x + last.width, rect.x + rect.width);
+      const bottom = Math.max(last.y + last.height, rect.y + rect.height);
+      lines[lines.length - 1] = { x, y, width: right - x, height: bottom - y };
+    } else {
+      lines.push(rect);
+    }
+  }
+
+  return lines;
+}
+
+/**
  * Deliberately names the likely cause. A cross-origin fetch blocked by a missing CORS header fails
- * with an opaque "Failed to fetch", which tells whoever hits it nothing actionable — and this is
+ * with an opaque "Failed to fetch", which tells whoever hits it nothing actionable, and this is
  * the single most likely way the viewer breaks in a new environment.
  */
 function PdfLoadError({ error }: { error: unknown }) {
@@ -304,7 +426,7 @@ function PdfLoadError({ error }: { error: unknown }) {
       <p className="font-medium text-foreground">Couldn't display this document</p>
       <p className="mt-1 text-muted-foreground">
         The file may not be a readable PDF, or the storage bucket may not allow this site to read
-        it directly. Use the download link to open it in a new tab instead — you can still add
+        it directly. Use the download link to open it in a new tab instead, where you can still add
         comments from the panel beside this one.
       </p>
       {error instanceof Error && error.message && (

@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, ZoomIn, ZoomOut } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Callout } from "~/components/ui/callout";
 import { ErrorCard } from "~/components/ui/error-card";
-import { PdfViewer } from "~/components/ui/pdf-viewer";
+import { PdfViewer, type PdfTextSelection } from "~/components/ui/pdf-viewer";
 import { Skeleton } from "~/components/ui/skeleton";
 import { intakeService } from "~/features/intake/api/intake.service";
 import type { Submission } from "~/features/intake/types";
 import { useAnnotations } from "~/features/marking/api/use-marking";
 import { AnnotationPanel } from "~/features/marking/components/annotation-panel";
-import type { Annotation } from "~/features/marking/types";
+import type { Annotation, AnnotationRect } from "~/features/marking/types";
 import { formatFileSize } from "~/utils/format";
 import { downloadUrlInNewTab } from "~/utils/download-file";
 import { cn } from "~/lib/utils";
@@ -54,11 +54,55 @@ function Pin({
 }
 
 /**
- * One file, its pages, and the caller's own pins on them. Mounted keyed on the submission
- * id, so switching files resets the page, the zoom and any half placed pin without an
+ * The boxes of one text highlight. Decorative: the note itself is announced through the
+ * panel's list, the same as a pin.
+ */
+function HighlightMarks({
+  rects,
+  focused = false,
+  pending = false,
+}: {
+  rects: AnnotationRect[];
+  focused?: boolean;
+  pending?: boolean;
+}) {
+  return (
+    <>
+      {rects.map((rect, index) => (
+        <span
+          key={index}
+          aria-hidden="true"
+          className={cn(
+            "absolute rounded-xs bg-primary/25",
+            focused && "bg-primary/40 ring-1 ring-primary/60",
+            pending && "animate-pulse bg-primary/30",
+          )}
+          style={{
+            left: `${rect.x * 100}%`,
+            top: `${rect.y * 100}%`,
+            width: `${rect.width * 100}%`,
+            height: `${rect.height * 100}%`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * One file, its pages, and the caller's own notes on them. Mounted keyed on the submission
+ * id, so switching files resets the page, the zoom and any half placed note without an
  * effect chasing the change.
  */
-function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean }) {
+function FileViewer({
+  file,
+  readOnly,
+  toolbarExtra,
+}: {
+  file: Submission;
+  readOnly: boolean;
+  toolbarExtra?: ReactNode;
+}) {
   const link = useSignedUrl(file.id);
   const annotations = useAnnotations(file.isAnnotatable ? file.id : undefined);
 
@@ -66,7 +110,28 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
   const [pageCount, setPageCount] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [pendingPoint, setPendingPoint] = useState<{ x: number; y: number } | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<PdfTextSelection | null>(null);
   const [focusedPin, setFocusedPin] = useState<string | undefined>();
+
+  // One pending note at a time: starting a pin abandons a half placed highlight and the
+  // other way round, matching what the panel's single form can show.
+  function handlePointSelect(point: { x: number; y: number }) {
+    setPendingSelection(null);
+    setPendingPoint(point);
+  }
+
+  function handleTextSelect(selection: PdfTextSelection) {
+    setPendingPoint(null);
+    setPendingSelection(selection);
+    // The preview boxes take over from the browser's own selection paint; leaving both
+    // visible doubles the tint and makes the pending state look saved already.
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function clearPending() {
+    setPendingPoint(null);
+    setPendingSelection(null);
+  }
 
   return (
     <div className="space-y-3">
@@ -156,6 +221,7 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
                 <ZoomIn className="size-4" aria-hidden="true" />
                 <span className="sr-only">Zoom in</span>
               </Button>
+              {toolbarExtra}
             </div>
           </div>
 
@@ -164,20 +230,29 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
             page={page}
             zoom={zoom}
             onDocumentLoad={setPageCount}
-            onPointSelect={readOnly ? undefined : setPendingPoint}
+            onPointSelect={readOnly ? undefined : handlePointSelect}
+            onTextSelect={readOnly ? undefined : handleTextSelect}
             pageLabel={`${file.originalFilename}, page ${page}`}
             overlay={() => (
               <>
                 {(annotations.data ?? [])
                   .filter((annotation) => annotation.page === page)
-                  .map((annotation, index) => (
-                    <Pin
-                      key={annotation.id}
-                      annotation={annotation}
-                      index={index + 1}
-                      focused={focusedPin === annotation.id}
-                    />
-                  ))}
+                  .map((annotation, index) =>
+                    annotation.rects ? (
+                      <HighlightMarks
+                        key={annotation.id}
+                        rects={annotation.rects}
+                        focused={focusedPin === annotation.id}
+                      />
+                    ) : (
+                      <Pin
+                        key={annotation.id}
+                        annotation={annotation}
+                        index={index + 1}
+                        focused={focusedPin === annotation.id}
+                      />
+                    ),
+                  )}
                 {pendingPoint && (
                   <span
                     aria-hidden="true"
@@ -188,6 +263,7 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
                     }}
                   />
                 )}
+                {pendingSelection && <HighlightMarks rects={pendingSelection.rects} pending />}
               </>
             )}
           />
@@ -197,7 +273,8 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
             annotations={annotations.data ?? []}
             page={page}
             pendingPoint={pendingPoint}
-            onPendingHandled={() => setPendingPoint(null)}
+            pendingSelection={pendingSelection}
+            onPendingHandled={clearPending}
             onFocusPin={(annotation) => {
               setPage(annotation.page);
               setFocusedPin(annotation.id);
@@ -213,11 +290,20 @@ function FileViewer({ file, readOnly }: { file: Submission; readOnly: boolean })
 /**
  * The document pane: a file switcher, and the file currently open.
  *
- * The pins shown here belong to the caller's own evaluation. Two markers annotating the same
- * page never see each other's, because a pin is keyed on the evaluation and not on the
- * submission alone.
+ * The notes shown here belong to the caller's own evaluation. Two markers annotating the
+ * same page never see each other's, because a note is keyed on the evaluation and not on
+ * the submission alone.
  */
-export function DocumentPane({ files, readOnly }: { files: Submission[]; readOnly: boolean }) {
+export function DocumentPane({
+  files,
+  readOnly,
+  toolbarExtra,
+}: {
+  files: Submission[];
+  readOnly: boolean;
+  /** Rendered after the zoom controls. The workspace puts its focus toggle here. */
+  toolbarExtra?: ReactNode;
+}) {
   const [activeId, setActiveId] = useState(files[0]?.id);
   const active = files.find((file) => file.id === activeId) ?? files[0];
 
@@ -259,7 +345,7 @@ export function DocumentPane({ files, readOnly }: { files: Submission[]; readOnl
         </div>
       )}
 
-      <FileViewer key={active.id} file={active} readOnly={readOnly} />
+      <FileViewer key={active.id} file={active} readOnly={readOnly} toolbarExtra={toolbarExtra} />
     </div>
   );
 }

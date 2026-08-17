@@ -86,7 +86,18 @@ export interface PutFeedbackPayload {
   generalFeedback: string;
 }
 
-/** A pin on the caller's own evaluation. Two markers on one page never see each other's. */
+/** One rendered line of a text highlight, in the same normalised 0 to 1 space as x/y. */
+export interface AnnotationRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A note on the caller's own evaluation. Two markers on one page never see each other's.
+ * With `rects` it is a text highlight; without, a point pin.
+ */
 export interface Annotation {
   id: string;
   evaluationId: string;
@@ -95,6 +106,7 @@ export interface Annotation {
   /** Normalised 0 to 1, so a pin lands in the same place at any zoom. */
   x: number;
   y: number;
+  rects: AnnotationRect[] | null;
   quotedText: string | null;
   body: string;
   createdAt: string;
@@ -105,6 +117,7 @@ export interface CreateAnnotationPayload {
   page: number;
   x: number;
   y: number;
+  rects?: AnnotationRect[];
   quotedText?: string;
   body: string;
 }

@@ -252,3 +252,76 @@ body {
     @apply font-sans;
   }
 }
+
+/*
+  The pdf.js text layer, reduced from pdfjs-dist/web/pdf_viewer.css to the rules the core
+  TextLayer class needs. Copied rather than importing that file, which is 6000 lines of
+  full-viewer chrome this app does not use. The class names and custom properties are the
+  library's own contract: its JS positions each span through them, so they are not renamed.
+  Keep in step with the installed pdfjs-dist on upgrade.
+*/
+.pdf-page-surface {
+  /* setLayerDimensions sizes the text layer from these. --scale-factor is set inline by
+     PdfViewer to the rendered viewport scale. */
+  --user-unit: 1;
+  --total-scale-factor: calc(var(--scale-factor) * var(--user-unit));
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+}
+
+.textLayer {
+  color-scheme: only light;
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+
+  :is(span, br) {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    user-select: text;
+  }
+
+  > :not(.markedContent),
+  .markedContent span:not(.markedContent) {
+    z-index: 1;
+    --font-height: 0;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+    --scale-x: 1;
+    --rotate: 0deg;
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+  }
+
+  .markedContent {
+    display: contents;
+  }
+
+  span[role="img"] {
+    user-select: none;
+    cursor: default;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, AccentColor, transparent 50%);
+    color: transparent;
+  }
+
+  br::selection {
+    background: transparent;
+  }
+}

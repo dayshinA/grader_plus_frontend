@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { Highlighter, MessageSquarePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { FormError } from "~/components/ui/form-error";
+import type { PdfTextSelection } from "~/components/ui/pdf-viewer";
 import { Textarea } from "~/components/ui/textarea";
 import { TextareaField } from "~/components/ui/textarea-field";
 import {
@@ -19,18 +20,48 @@ import {
   useDeleteAnnotation,
   useUpdateAnnotation,
 } from "~/features/marking/api/use-marking";
-import type { Annotation } from "~/features/marking/types";
+import type { Annotation, CreateAnnotationPayload } from "~/features/marking/types";
 import { pluralise } from "~/utils/format";
 
+function round5(value: number): number {
+  return Number(value.toFixed(5));
+}
+
+// The DTO caps the payload: 120 rects, 2000 characters of quote. Truncating here beats a
+// 422 on a selection that was simply generous.
+function selectionPayload(
+  page: number,
+  selection: PdfTextSelection,
+  body: string,
+): CreateAnnotationPayload {
+  const rects = selection.rects.slice(0, 120).map((rect) => ({
+    x: round5(rect.x),
+    y: round5(rect.y),
+    width: round5(rect.width),
+    height: round5(rect.height),
+  }));
+
+  return {
+    page,
+    x: rects[0].x,
+    y: rects[0].y,
+    rects,
+    quotedText: selection.text.slice(0, 2000),
+    body,
+  };
+}
+
 /**
- * The pins on the caller's own evaluation. Two markers annotating the same page never see
- * each other's, because the pin is keyed on the evaluation and not on the submission alone.
+ * The notes on the caller's own evaluation, pins and highlights alike. Two markers
+ * annotating the same page never see each other's, because the note is keyed on the
+ * evaluation and not on the submission alone.
  */
 export function AnnotationPanel({
   submissionId,
   annotations,
   page,
   pendingPoint,
+  pendingSelection,
   onPendingHandled,
   onFocusPin,
   readOnly,
@@ -40,6 +71,8 @@ export function AnnotationPanel({
   page: number;
   /** Set when the marker clicked the page. Cleared once the note is saved or cancelled. */
   pendingPoint: { x: number; y: number } | null;
+  /** Set when the marker selected text on the page. Same lifecycle as a pending pin. */
+  pendingSelection: PdfTextSelection | null;
   onPendingHandled: () => void;
   onFocusPin: (annotation: Annotation) => void;
   readOnly: boolean;
@@ -53,6 +86,7 @@ export function AnnotationPanel({
   const [editBody, setEditBody] = useState("");
 
   const onThisPage = annotations.filter((annotation) => annotation.page === page);
+  const pending = pendingPoint ?? pendingSelection;
 
   return (
     <div className="space-y-3">
@@ -65,38 +99,50 @@ export function AnnotationPanel({
 
       {!readOnly && (
         <>
-          {pendingPoint ? (
+          {pending ? (
             <form
               className="space-y-2 rounded-lg border border-primary/40 bg-accent/40 p-3"
               noValidate
               onSubmit={(event) => {
                 event.preventDefault();
                 if (body.trim().length === 0) return;
-                create.mutate(
-                  {
-                    page,
-                    x: Number(pendingPoint.x.toFixed(5)),
-                    y: Number(pendingPoint.y.toFixed(5)),
-                    body: body.trim(),
+                const payload = pendingSelection
+                  ? selectionPayload(page, pendingSelection, body.trim())
+                  : {
+                      page,
+                      x: round5(pendingPoint?.x ?? 0),
+                      y: round5(pendingPoint?.y ?? 0),
+                      body: body.trim(),
+                    };
+                create.mutate(payload, {
+                  onSuccess: () => {
+                    setBody("");
+                    onPendingHandled();
                   },
-                  {
-                    onSuccess: () => {
-                      setBody("");
-                      onPendingHandled();
-                    },
-                  },
-                );
+                });
               }}
             >
               <FormError error={create.error} />
-              <p className="text-xs text-muted-foreground">
-                Pinned at {Math.round(pendingPoint.x * 100)}%,{" "}
-                {Math.round(pendingPoint.y * 100)}% of page {page}.
-              </p>
+              {pendingSelection ? (
+                <blockquote className="border-l-2 border-primary/40 pl-2 text-xs text-muted-foreground">
+                  <span className="line-clamp-2">{pendingSelection.text}</span>
+                </blockquote>
+              ) : (
+                pendingPoint && (
+                  <p className="text-xs text-muted-foreground">
+                    Pinned at {Math.round(pendingPoint.x * 100)}%,{" "}
+                    {Math.round(pendingPoint.y * 100)}% of page {page}.
+                  </p>
+                )
+              )}
               <Textarea
                 rows={3}
                 autoFocus
-                placeholder="What you want to say about this part"
+                placeholder={
+                  pendingSelection
+                    ? "What you want to say about this passage"
+                    : "What you want to say about this part"
+                }
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
               />
@@ -107,7 +153,11 @@ export function AnnotationPanel({
                   className="h-9 cursor-pointer"
                   disabled={body.trim().length === 0 || create.isPending}
                 >
-                  {create.isPending ? "Saving" : "Add note"}
+                  {create.isPending
+                    ? "Saving"
+                    : pendingSelection
+                      ? "Add highlight"
+                      : "Add note"}
                 </Button>
                 <Button
                   type="button"
@@ -126,14 +176,15 @@ export function AnnotationPanel({
           ) : (
             <p className="flex items-start gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
               <MessageSquarePlus className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              Click anywhere on the page to pin a note there.
+              Click anywhere on the page to pin a note there, or select text to highlight
+              it.
             </p>
           )}
         </>
       )}
 
       {onThisPage.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nothing pinned on this page yet.</p>
+        <p className="text-xs text-muted-foreground">Nothing on this page yet.</p>
       ) : (
         <ul className="space-y-2">
           {onThisPage.map((annotation, index) => (
@@ -144,13 +195,29 @@ export function AnnotationPanel({
                   className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left"
                   onClick={() => onFocusPin(annotation)}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
-                  >
-                    {index + 1}
+                  {annotation.rects ? (
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
+                    >
+                      <Highlighter className="size-3" />
+                    </span>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
+                    >
+                      {index + 1}
+                    </span>
+                  )}
+                  <span className="min-w-0 text-sm">
+                    {annotation.quotedText && (
+                      <span className="mb-1 line-clamp-2 block text-xs text-muted-foreground">
+                        "{annotation.quotedText}"
+                      </span>
+                    )}
+                    {annotation.body}
                   </span>
-                  <span className="min-w-0 text-sm">{annotation.body}</span>
                 </button>
 
                 {!readOnly && (
@@ -196,7 +263,7 @@ export function AnnotationPanel({
           <DialogHeader>
             <DialogTitle>Edit note</DialogTitle>
             <DialogDescription>
-              Only the text changes. The pin stays where you put it.
+              Only the text changes. The pin or highlight stays where you put it.
             </DialogDescription>
           </DialogHeader>
 

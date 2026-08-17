@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Outlet, useLocation, useMatches } from "react-router";
 
 import {
   Breadcrumb,
@@ -14,6 +14,7 @@ import { useAuth } from "~/features/auth/api/auth-context";
 import { AppSidebar } from "~/features/dashboard/components/app-sidebar";
 import { useHome } from "~/features/dashboard/api/use-dashboard";
 import { buildNavGroups, findNavGroupHeading, findNavItem } from "~/features/dashboard/nav";
+import { cn } from "~/lib/utils";
 
 /**
  * The frame every signed in screen renders inside: a sidebar built from the caller's
@@ -26,6 +27,12 @@ import { buildNavGroups, findNavGroupHeading, findNavItem } from "~/features/das
 export function AppShell() {
   const { pathname } = useLocation();
   const { grants } = useAuth();
+  // A route whose handle asks for it escapes the reading-width cap. The marking workspace
+  // does: the document is the work surface and the cap was making it small.
+  const matches = useMatches();
+  const fullWidth = matches.some(
+    (match) => (match.handle as { fullWidth?: boolean } | undefined)?.fullWidth,
+  );
   // A failure here narrows the sidebar rather than blocking the app: /me/home is a
   // convenience, and the screens it links to are all reachable by URL anyway.
   const { data: home } = useHome();
@@ -63,7 +70,7 @@ export function AppShell() {
         </header>
 
         <div className="flex-1 p-4 sm:p-6">
-          <div className="mx-auto w-full max-w-6xl">
+          <div className={cn("mx-auto w-full", !fullWidth && "max-w-6xl")}>
             <Outlet />
           </div>
         </div>

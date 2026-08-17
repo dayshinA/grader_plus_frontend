@@ -1,4 +1,8 @@
+import { useState } from "react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
+
 import { BackLink } from "~/components/ui/back-link";
+import { Button } from "~/components/ui/button";
 import { Callout } from "~/components/ui/callout";
 import { ErrorCard } from "~/components/ui/error-card";
 import { NotFoundPage } from "~/components/ui/not-found-page";
@@ -9,6 +13,7 @@ import { DocumentPane } from "~/features/marking/components/document-pane";
 import { ScoringForm } from "~/features/marking/components/scoring-form";
 import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { isApiError, isForbidden, isNotFound } from "~/lib/api-client";
+import { cn } from "~/lib/utils";
 
 /**
  * Only the 404 uses this. The queue is the one route into the workspace, so it is where a
@@ -17,8 +22,11 @@ import { isApiError, isForbidden, isNotFound } from "~/lib/api-client";
 const EXIT: BackTarget = { to: "/marking", label: "my marking" };
 
 /**
- * The blind marking workspace: the document on the left, the caller's own rubric form on
- * the right, stacking on a phone.
+ * The blind marking workspace: the document on the left taking most of the width, the
+ * caller's own rubric form on the right, stacking on a phone. The route escapes the
+ * shell's usual width cap (via its handle), because the document is the work surface and
+ * deserves the monitor. A focus toggle hides the form entirely while reading; it only
+ * hides it, never unmounts it, so autosave state and any unsent debounce survive.
  *
  * Must not render, anywhere on this screen: another marker, their total, their feedback,
  * their annotations, how many markers the project has, or any discrepancy or moderation
@@ -28,6 +36,7 @@ const EXIT: BackTarget = { to: "/marking", label: "my marking" };
 export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } =
     useMarkingWorkspace(projectId);
+  const [focusMode, setFocusMode] = useState(false);
   const declaredBack = useDeclaredBackTarget();
   const back = declaredBack ?? EXIT;
   // The workspace response carries no offering status, so the queue is where a closed
@@ -83,7 +92,7 @@ export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
       <div className="space-y-6">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-16 rounded-xl" />
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
           <Skeleton className="h-96 rounded-xl" />
           <Skeleton className="h-96 rounded-xl" />
         </div>
@@ -122,14 +131,41 @@ export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
         </Callout>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div
+        className={cn(
+          "grid gap-6",
+          !focusMode && "lg:grid-cols-[minmax(0,1fr)_400px]",
+        )}
+      >
         <section aria-label="Submitted work" className="min-w-0">
-          <DocumentPane files={data.files} readOnly={readOnly} />
+          <DocumentPane
+            files={data.files}
+            readOnly={readOnly}
+            toolbarExtra={
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 cursor-pointer"
+                aria-pressed={focusMode}
+                onClick={() => setFocusMode((current) => !current)}
+              >
+                {focusMode ? (
+                  <PanelRightOpen className="size-4" aria-hidden="true" />
+                ) : (
+                  <PanelRightClose className="size-4" aria-hidden="true" />
+                )}
+                {focusMode ? "Show scoring" : "Focus"}
+              </Button>
+            }
+          />
         </section>
 
         <section
           aria-label="Your marking"
-          className="min-w-0 lg:sticky lg:top-20 lg:self-start"
+          className={cn(
+            "min-w-0 lg:sticky lg:top-20 lg:self-start",
+            focusMode && "hidden",
+          )}
         >
           <ScoringForm projectId={projectId} workspace={data} readOnly={readOnly} />
         </section>
