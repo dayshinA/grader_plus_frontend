@@ -6,7 +6,9 @@ import {
   Bell,
   Braces,
   ChevronsLeftRight,
+  FolderTree,
   Gauge,
+  Type,
   Inbox,
   type LucideIcon,
   ListFilter,
@@ -60,6 +62,8 @@ import { JsonViewerDemo } from "./json-viewer-demo";
 import { BackLinkDemo } from "./back-link-demo";
 import { CalloutDemo } from "./callout-demo";
 import { ListToolbarDemo } from "./list-toolbar-demo";
+import { FileTreeDemo } from "./file-tree-demo";
+import { ToolbarDemo } from "./toolbar-demo";
 import { SelectFieldDemo } from "./select-field-demo";
 
 export type ComponentDemoEntry = {
@@ -340,5 +344,23 @@ export const componentRegistry: ComponentDemoEntry[] = [
     description:
       "The row above every list screen: a search box that stretches full-width on a phone, and that list's own filters beside it from sm: up.",
     render: () => <ListToolbarDemo />,
+  },
+  {
+    id: "file-tree",
+    name: "File Tree",
+    category: "Data Display",
+    icon: FolderTree,
+    description:
+      "Collapsible folder and file hierarchy with selection, an expand-all toggle and per-node icons. Built for browsing the contents of an uploaded submission archive.",
+    render: () => <FileTreeDemo />,
+  },
+  {
+    id: "toolbar",
+    name: "Toolbar",
+    category: "Actions",
+    icon: Type,
+    description:
+      "Floating rich-text formatting toolbar: format toggles, highlight and colour, exclusive text-align. Controlled or uncontrolled, with a visible prop that animates it out. Restored from v1; decorative until an editor exists to drive it.",
+    render: () => <ToolbarDemo />,
   },
 ];
