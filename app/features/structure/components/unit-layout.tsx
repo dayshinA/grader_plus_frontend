@@ -51,7 +51,7 @@ export function UnitLayout() {
             description={
               unit
                 ? `${ACADEMIC_UNIT_LEVEL_LABELS[unit.level]}${unit.code ? ` · ${unit.code}` : ""}`
-                : "This unit is not in the list your account can see, which usually means it is out of scope."
+                : "This unit is not in the list your account can see, which usually means your roles do not cover it."
             }
             actions={
               unit &&

@@ -20,7 +20,7 @@ export default function AdminProgrammesRoute() {
       <div className="space-y-6">
         <PageHeader
           title="Programmes"
-          description="Degree programmes, listed per academic unit. Modules link to them many to many rather than sitting under them."
+          description="Degree programmes, listed per academic unit. A module can serve several programmes, and a programme can draw on several modules."
         />
 
         {scope.isError ? (

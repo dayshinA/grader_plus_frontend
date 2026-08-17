@@ -81,8 +81,8 @@ export function OverrideGradeDialog({
 
           <Callout variant="warning" title="This is not how a disagreement is settled">
             If two markers disagree, there is a discrepancy case for that, and settling it
-            there records that a disagreement was moderated rather than overridden. Use this
-            only when the normal route cannot complete at all.
+            there records the disagreement properly. Use this only when that normal process
+            cannot finish at all.
           </Callout>
 
           <FormField

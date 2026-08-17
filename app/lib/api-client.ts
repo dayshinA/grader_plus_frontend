@@ -296,7 +296,7 @@ axiosInstance.interceptors.response.use(
       success: false,
       statusCode: error.response?.status ?? 0,
       code: "NETWORK_ERROR",
-      message: error.message || "Network error. Check your connection.",
+      message: error.message || "Could not reach the server. Check your connection.",
     });
   },
 );

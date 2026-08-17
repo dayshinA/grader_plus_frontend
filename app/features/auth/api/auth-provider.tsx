@@ -19,19 +19,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [sessionUser, setSessionUser] = useState<SessionResponse["user"] | null>(null);
+  const [sessionEnd, setSessionEnd] = useState<AuthContextValue["sessionEnd"]>(null);
+
+  // Nothing here navigates. ProtectedRoute is the only place a lost session redirects,
+  // and `deliberate` tells it whether to preserve the interrupted destination: a sign out
+  // ends the account's history, a 401 keeps it so its owner can resume.
+  const clearAuthentication = useCallback(
+    (deliberate: boolean) => {
+      const userId = getCurrentSession()?.user.id;
+      setSessionEnd(userId ? { deliberate, userId } : null);
+      clearSession();
+      setSessionUser(null);
+      setStatus("unauthenticated");
+      // Every cached query belongs to the session that just ended.
+      queryClient.clear();
+    },
+    [queryClient],
+  );
 
   const signOut = useCallback(() => {
-    clearSession();
-    setSessionUser(null);
-    setStatus("unauthenticated");
-    // Every cached query belongs to the session that just ended.
-    queryClient.clear();
-  }, [queryClient]);
+    clearAuthentication(true);
+  }, [clearAuthentication]);
 
   const signIn = useCallback(
     (session: SessionResponse) => {
       setSession(session);
       setSessionUser(session.user);
+      setSessionEnd(null);
       setStatus("authenticated");
       // The previous occupant of this tab has nothing to say about this one.
       queryClient.clear();
@@ -41,15 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     configureApiClient({
-      // No navigation here. ProtectedRoute watches the status and redirects once, rather
-      // than two redirects racing for the same transition.
-      onUnauthorized: signOut,
+      onUnauthorized: () => clearAuthentication(false),
       onSessionRefreshed: (session) => {
         setSessionUser(session.user);
         setStatus("authenticated");
       },
     });
-  }, [signOut]);
+  }, [clearAuthentication]);
 
   // A hard refresh has no token in memory. The httpOnly refresh cookie is the only way
   // back in, and this is the one attempt per page load.
@@ -94,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session: sessionUser,
       grants,
       status,
+      sessionEnd,
       isAuthenticated,
       isLoading: status === "loading",
       isResolvingIdentity: isAuthenticated && (permissionsQuery.isPending || meQuery.isPending),
@@ -116,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionUser,
       grants,
       status,
+      sessionEnd,
       isAuthenticated,
       signIn,
       signOut,

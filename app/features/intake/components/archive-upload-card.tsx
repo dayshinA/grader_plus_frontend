@@ -72,7 +72,7 @@ function ReportPanel({ report }: { report: IntakeReport }) {
       ) : (
         <Callout
           variant="success"
-          title="Every folder parsed"
+          title="Every folder imported"
           icon={<CircleCheck className="size-4" />}
         >
           The archive went through cleanly. Check the project list underneath before moving on
@@ -114,7 +114,8 @@ export function ArchiveUploadCard({
 
         {disabled ? (
           <Callout variant="warning" title="This offering is closed">
-            Intake is a write, so it is refused. Reopening is a separate permission.
+            New student work can no longer be added to it. Reopening needs a separate
+            permission.
           </Callout>
         ) : (
           <>

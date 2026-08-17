@@ -174,7 +174,7 @@ export function UnitFormDialog({
             value={unitKind}
             onValueChange={(value) => setUnitKind(value as AcademicUnitKind)}
             options={KIND_OPTIONS}
-            hint="A label for people reading the list. It grants nothing and nothing branches on it."
+            hint="A label for people reading the list. It does not change what anybody can do."
             error={fieldError("unitKind")}
           />
 

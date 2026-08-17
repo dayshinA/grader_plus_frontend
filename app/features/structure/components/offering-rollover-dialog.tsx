@@ -184,7 +184,7 @@ export function OfferingRolloverDialog({
             value={toYear}
             onChange={(event) => setToYear(event.target.value)}
             placeholder="2026/27"
-            hint="Only modules that ran in the old year are rolled. A module returning after a gap gets its offering created by hand."
+            hint="Only modules that ran in the old year are carried over. A module returning after a gap needs its offering created by hand."
             error={fieldError("toYear")}
           />
 

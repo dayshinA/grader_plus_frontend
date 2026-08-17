@@ -18,7 +18,8 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
 
   // Set by the route guard when it bounced somebody off a screen they were headed for.
-  const from = (location.state as { from?: string } | null)?.from ?? "/";
+  // `userId` names whose journey was interrupted; no id means a fresh visit to a deep link.
+  const redirect = location.state as { from?: string; userId?: string | null } | null;
 
   const error = login.error;
   const fieldError = (name: string) => (isApiError(error) ? error.fieldError(name) : undefined);
@@ -30,6 +31,10 @@ export function LoginForm() {
       {
         onSuccess: ({ data, message }) => {
           toast.success(message || "Signed in.");
+          // Resume the interrupted route only for the account it belongs to. A different
+          // account starts at home rather than on the previous one's screen.
+          const resumable = !redirect?.userId || redirect.userId === data.user.id;
+          const from = resumable ? (redirect?.from ?? "/") : "/";
           // A temporary password gets one destination, whatever they were headed for.
           void navigate(data.user.mustChangePassword ? SET_PASSWORD_PATH : from, {
             replace: true,

@@ -301,7 +301,7 @@ export function RoleGrantsCard({
         title="Revoke this role?"
         description={
           revoking
-            ? `${userName} loses ${ROLE_LABELS[revoking.role]} on that scope from their next request onward. Nothing they have already marked is touched.`
+            ? `${userName} loses ${ROLE_LABELS[revoking.role]} there straight away. Nothing they have already marked is touched.`
             : ""
         }
         confirmLabel="Revoke"

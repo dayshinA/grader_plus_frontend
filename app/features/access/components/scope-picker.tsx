@@ -66,9 +66,9 @@ export function ScopePicker({
   if (scopeType === "system") {
     return (
       <Callout variant="warning" title="This role covers the whole platform">
-        A System Administrator holds no scope, because there is nothing to narrow them to.
-        Their access to academic content is read only: no marking, no rubric authoring, no
-        intake, no resolving a case and no export.
+        A System Administrator's role applies everywhere, so there is nothing to pick here.
+        Their access to academic content is read only: no marking, no rubric writing, no
+        student imports, no resolving a case and no export.
       </Callout>
     );
   }
@@ -82,7 +82,7 @@ export function ScopePicker({
         options={unitOptions}
         placeholder="Choose a unit"
         emptyText="No academic units are visible to your account."
-        hint="A grant on a School covers every constituent unit beneath it too."
+        hint="A role given on a School also covers every unit inside it."
         error={error}
       />
     );

@@ -35,16 +35,27 @@ function FullPageSpinner({ label }: { label: string }) {
  * and leave the navigating to here.
  */
 export function ProtectedRoute({ children }: { children?: React.ReactNode }) {
-  const { isAuthenticated, isLoading, isResolvingIdentity, identityError, mustChangePassword } =
-    useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    isResolvingIdentity,
+    identityError,
+    mustChangePassword,
+    sessionEnd,
+  } = useAuth();
   const location = useLocation();
   const logout = useLogout();
 
   // Memoised: <Navigate> re-runs its effect when `state` changes identity, and a fresh
   // object literal every render is a navigation loop.
   const redirectState = useMemo(
-    () => ({ from: `${location.pathname}${location.search}` }),
-    [location.pathname, location.search],
+    () => ({
+      from: `${location.pathname}${location.search}`,
+      // The destination belongs to whoever was interrupted, so the login form can refuse
+      // to resume it for a different account.
+      userId: sessionEnd?.userId ?? null,
+    }),
+    [location.pathname, location.search, sessionEnd],
   );
 
   if (isLoading) {
@@ -52,7 +63,11 @@ export function ProtectedRoute({ children }: { children?: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={LOGIN_PATH} replace state={redirectState} />;
+    // A deliberate sign out ends the account's navigation history. Only a lost session
+    // keeps the interrupted destination, for its owner to resume after signing back in.
+    return (
+      <Navigate to={LOGIN_PATH} replace state={sessionEnd?.deliberate ? null : redirectState} />
+    );
   }
 
   if (identityError) {
