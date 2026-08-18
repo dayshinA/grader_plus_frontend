@@ -9,7 +9,12 @@ matters: in version 2 `grading` means discrepancies and final grades, not the wo
 
 ## Screens
 
-`/marking` (queue) and `/marking/:projectId` (workspace).
+`/marking` (queue) and `/marking/:projectId` (workspace). When marking is the caller's only
+work surface, `/` redirects to `/marking` and Home is omitted from the sidebar. A caller
+with marking plus coordinated offerings or administered units retains Home. The queue
+opens on Outstanding while work remains and on All when every assigned project has
+`myStatus: "final"`; an empty queue remains on Outstanding so its assignment empty state is
+shown.
 
 ## Routes
 

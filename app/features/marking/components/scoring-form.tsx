@@ -128,8 +128,8 @@ export function ScoringForm({
           </Badge>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Worked out on the server on every save, so it is the same figure the grade is built
-          from.
+          Updates automatically each time you save. This is the total used for the final
+          grade.
         </p>
       </div>
 

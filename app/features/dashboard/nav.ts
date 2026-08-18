@@ -99,13 +99,6 @@ export const NAV: Record<string, NavItem> = {
     icon: Users,
     description: "Staff accounts and the roles they hold. Deactivated, never deleted.",
   },
-  adminOverview: {
-    id: "admin-overview",
-    title: "Platform overview",
-    href: "/admin/overview",
-    icon: GaugeCircle,
-    description: "What the platform holds, counted. No marks anywhere on this screen.",
-  },
   adminAudit: {
     id: "admin-audit",
     title: "Audit log",
@@ -119,7 +112,7 @@ export const NAV: Record<string, NavItem> = {
 export interface OfferingNavItem {
   id: string;
   title: string;
-  /** Appended to /offerings/:id. An empty string is the settings screen itself. */
+  /** Appended to /offerings/:id. The index route selects a default from lifecycle status. */
   segment: string;
   icon: LucideIcon;
   description: string;
@@ -133,7 +126,7 @@ export const OFFERING_NAV: OfferingNavItem[] = ([
   {
     id: "offering-settings",
     title: "Settings",
-    segment: "",
+    segment: "settings",
     icon: GaugeCircle,
     description: "Deadline, discrepancy threshold, and closing the offering.",
     permission: "offering.read",
@@ -250,11 +243,16 @@ export const UNIT_NAV: UnitNavItem[] = ([
 ] satisfies UnitNavItem[]).filter(isVisibleTab);
 
 /**
- * The sidebar for this caller. `home` is built from the permission set; the offering and
- * unit entries come from `GET /me/home`, which already knows which ones they hold.
+ * The sidebar for this caller. The offering and unit entries come from `GET /me/home`,
+ * which already knows which ones they hold. A caller with one useful work surface goes
+ * straight to it, so Home is not another stop above the work it would only repeat.
  */
 export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | undefined): NavGroup[] {
-  const groups: NavGroup[] = [{ items: [NAV.home] }];
+  const groups: NavGroup[] = [];
+
+  if (!singleSurfaceLandingPath(grants, home)) {
+    groups.push({ items: [NAV.home] });
+  }
 
   const marking: NavItem[] = [];
   if (can(grants, "marking.work")) {
@@ -266,7 +264,7 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
 
   // One entry per offering they coordinate, because the surface is offering scoped and a
   // generic "Offerings" link would have nothing to point at.
-  const coordinated = home?.coordinates ?? [];
+  const coordinated = sortedCoordinatedOfferings(home);
   if (coordinated.length > 0) {
     groups.push({
       heading: coordinated.length === 1 ? "My offering" : "My offerings",
@@ -280,7 +278,7 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
     });
   }
 
-  const administered = home?.administers ?? [];
+  const administered = sortedAdministeredUnits(home);
   if (administered.length > 0) {
     groups.push({
       heading: administered.length === 1 ? "My unit" : "My units",
@@ -301,9 +299,6 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
   if (can(grants, "user.read")) {
     administration.push(NAV.adminUsers);
   }
-  if (can(grants, "platform.read")) {
-    administration.push(NAV.adminOverview);
-  }
   if (!AUDIT_HIDDEN && can(grants, "audit.read")) {
     administration.push(NAV.adminAudit);
   }
@@ -314,6 +309,60 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
   groups.push({ heading: "You", items: [NAV.notifications, NAV.account] });
 
   return groups;
+}
+
+function sortedAdministeredUnits(home: HomeSummary | undefined): HomeSummary["administers"] {
+  return [...(home?.administers ?? [])].sort(
+    (a, b) => a.name.localeCompare(b.name) || a.unitId.localeCompare(b.unitId),
+  );
+}
+
+function sortedCoordinatedOfferings(home: HomeSummary | undefined): HomeSummary["coordinates"] {
+  return [...(home?.coordinates ?? [])].sort(
+    (a, b) =>
+      b.academicYear.localeCompare(a.academicYear, undefined, { numeric: true }) ||
+      a.moduleCode.localeCompare(b.moduleCode, undefined, { numeric: true, sensitivity: "base" }) ||
+      a.moduleTitle.localeCompare(b.moduleTitle, undefined, { sensitivity: "base" }) ||
+      a.offeringId.localeCompare(b.offeringId),
+  );
+}
+
+/**
+ * Home combines work across surfaces. If the caller has exactly one kind of work,
+ * `/` routes straight through to marking or the first available scoped entry point.
+ * This is deliberately capability and entry-point driven, never a branch on a role name.
+ */
+export function singleSurfaceLandingPath(
+  grants: ResolvedGrant[],
+  home: HomeSummary | undefined,
+): string | null {
+  if (!home || grants.length === 0 || home.isSystemAdmin) {
+    return null;
+  }
+
+  const coordinated = sortedCoordinatedOfferings(home);
+  const administered = sortedAdministeredUnits(home);
+  const hasMarking = can(grants, "marking.work");
+  const surfaceCount =
+    Number(hasMarking) + Number(coordinated.length > 0) + Number(administered.length > 0);
+
+  if (surfaceCount !== 1) {
+    return null;
+  }
+
+  if (hasMarking) {
+    return NAV.marking.href;
+  }
+
+  if (coordinated.length > 0) {
+    return `/offerings/${coordinated[0].offeringId}`;
+  }
+
+  if (administered.length > 0) {
+    return `/units/${administered[0].unitId}/dashboard`;
+  }
+
+  return null;
 }
 
 /** The nav entry a URL belongs to, matched by longest prefix so detail screens highlight. */

@@ -17,11 +17,12 @@ export const markingKeys = {
     [...markingKeys.all, "annotations", submissionId] as const,
 };
 
-export function useMarkingQueue() {
+export function useMarkingQueue(enabled = true) {
   return useQuery({
     queryKey: markingKeys.queue(),
     queryFn: () => markingService.queue(),
     staleTime: 30 * 1000,
+    enabled,
   });
 }
 

@@ -21,6 +21,7 @@ import { usePermission } from "~/features/auth/api/auth-context";
 import {
   useImportProgrammes,
   useProgrammes,
+  useUnits,
   useUpdateProgramme,
 } from "~/features/structure/api/use-structure";
 import { ProgrammeFormDialog } from "~/features/structure/components/programme-form-dialog";
@@ -36,8 +37,11 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
   const canCreate = usePermission("programme.create");
   const canEdit = usePermission("programme.update");
   const { data, isLoading, isError, error, refetch, isFetching } = useProgrammes(unitId);
+  const { data: units } = useUnits();
   const update = useUpdateProgramme(unitId);
   const importProgrammes = useImportProgrammes(unitId);
+
+  const unitName = units?.find((candidate) => candidate.id === unitId)?.name ?? "this unit";
 
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -214,7 +218,7 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
         getRowId={(programme) => programme.id}
         renderCard={renderCard}
         isLoading={isLoading}
-        caption="Programmes run by this unit"
+        caption={`Programmes run by ${unitName}`}
         empty={
           <Card>
             <CardContent className="py-4">
@@ -229,7 +233,7 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
                   <EmptyDescription>
                     {search
                       ? "Try a shorter term, or clear the search."
-                      : "This unit runs no programmes yet. A programme is a degree students are enrolled on, and modules link to it many to many rather than sitting under it."}
+                      : `${unitName} runs no programmes yet. A programme is a degree students are enrolled on, and modules link to it many to many rather than sitting under it.`}
                   </EmptyDescription>
                 </EmptyHeader>
                 {!search && canCreate && (
@@ -273,7 +277,7 @@ export function ProgrammesPanel({ unitId }: { unitId: string }) {
           open={importOpen}
           onOpenChange={setImportOpen}
           title="Import programmes"
-          description="This only creates programmes, one per row, all under this unit. A row that matches an existing programme exactly is left unchanged, and a code already in use with a different title or level is rejected."
+          description={`Adds new programmes to ${unitName}, one per row. A row that already exists is skipped, and a row is rejected if its code is already used by a different programme.`}
           columnsHelp={
             <>
               <code className="text-xs">code</code>, <code className="text-xs">title</code> and{" "}

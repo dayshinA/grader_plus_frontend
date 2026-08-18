@@ -97,7 +97,7 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
         <CardTitle className="text-base">Settle this case</CardTitle>
         <CardDescription>
           A case never resolves itself. Either take the calculated average, or enter your own
-          figure and say why.
+          mark and say why.
         </CardDescription>
       </CardHeader>
 
@@ -154,10 +154,10 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
                 onChange={() => setAcceptAverage(false)}
               />
               <span className="min-w-0">
-                <span className="block text-sm font-medium">Enter my own figure</span>
+                <span className="block text-sm font-medium">Enter my own mark</span>
                 <span className="block text-xs text-muted-foreground">
-                  A moderation meeting can legitimately land outside both marks. The note is
-                  what says why.
+                  The final mark does not have to match either marker's total. The reason
+                  you give below is kept as the record of why.
                 </span>
               </span>
             </label>
@@ -198,7 +198,7 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
                 required
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                hint={`At least ${MINIMUM_NOTE} characters. This is the record of why the figure is what it is.`}
+                hint={`At least ${MINIMUM_NOTE} characters. This is the record of why the mark was chosen.`}
                 error={
                   note.trim().length > 0 && !noteValid
                     ? `Say a bit more than that: at least ${MINIMUM_NOTE} characters.`

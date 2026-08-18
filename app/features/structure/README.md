@@ -12,7 +12,8 @@ which described a model that no longer exists.
 ## Screens
 
 `/admin/units`, `/admin/units/:id`, `/admin/programmes`, `/admin/modules`,
-`/units/:id/programmes`, `/units/:id/modules`, `/offerings/:id`.
+`/units/:id/programmes`, `/units/:id/modules`, `/offerings/:id` (status-aware entry),
+`/offerings/:id/settings`.
 
 ## Routes
 
@@ -54,6 +55,10 @@ mark those programmes unavailable with the reason rather than letting the save 4
 
 Deactivate rather than delete. Reopening a closed offering is a separate permission most
 coordinators do not hold.
+
+The offering index reads the existing dashboard-backed header and opens Progress when the
+offering is in marking; every other status opens Settings. Settings has the explicit
+`/offerings/:id/settings` path so it remains reachable during marking.
 
 The four batch routes (2026-08-17) sit beside the manual dialogs, never instead of them,
 and answer the shared import report from `app/types/import-report.ts` with the dryRun

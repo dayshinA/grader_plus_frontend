@@ -134,10 +134,10 @@ export function RubricEditor({
           The rubric is frozen along with everything else on it.
         </Callout>
       ) : locked ? (
-        <Callout variant="warning" title="Structural edits are locked">
-          Somebody has already recorded marking against this rubric. Adding, removing or
-          reweighting a criterion would move totals underneath a marker who has already
-          submitted, so only the wording is editable now.
+        <Callout variant="warning" title="Some changes are locked">
+          Marking has already started with this rubric. Adding, removing or reweighting
+          criteria would change totals markers have already submitted, so only the wording
+          can be edited now.
         </Callout>
       ) : null}
 

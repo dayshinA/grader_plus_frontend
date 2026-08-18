@@ -36,11 +36,11 @@ export function ConstituentUnitsPanel({ unitId }: { unitId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Units in this School</CardTitle>
+        <CardTitle className="text-base">Units in {unit.name}</CardTitle>
         <CardDescription>
           {children.length === 1
-            ? "One unit sits under this School."
-            : `${children.length} units sit under this School.`}{" "}
+            ? "One unit sits under it."
+            : `${children.length} units sit under it.`}{" "}
           The progress above already counts every offering beneath them.
         </CardDescription>
       </CardHeader>

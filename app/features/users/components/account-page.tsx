@@ -15,6 +15,7 @@ import { SubmitButton } from "~/components/ui/submit-button";
 import { ROLE_LABELS } from "~/features/access/types";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { usersService } from "~/features/users/api/users.service";
+import { backTo } from "~/hooks/use-back-link";
 import { formatDateTime } from "~/utils/format";
 import { isApiError } from "~/lib/api-client";
 
@@ -47,7 +48,7 @@ export function AccountPage() {
         description="Your name, your password and the roles you currently hold."
         actions={
           <Button asChild variant="outline" className="h-11 w-full cursor-pointer sm:h-9 sm:w-auto">
-            <Link to="/account/password">
+            <Link to="/account/password" state={backTo({ to: "/account", label: "account" })}>
               <KeyRound className="size-4" aria-hidden="true" />
               Change password
             </Link>

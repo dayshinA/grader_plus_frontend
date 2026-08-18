@@ -123,6 +123,7 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
   const [addingOffering, setAddingOffering] = useState<ProjectModule | undefined>();
 
   const unit = units?.find((candidate) => candidate.id === unitId);
+  const unitName = unit?.name ?? "this unit";
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -355,7 +356,7 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           open={importOpen}
           onOpenChange={setImportOpen}
           title="Import modules"
-          description="This only creates modules, one per row, all under this unit. A row that matches an existing module exactly is left unchanged. Programme links have their own import."
+          description={`Adds new modules to ${unitName}, one per row. A row that already exists is skipped. Programme links have their own import.`}
           columnsHelp={
             <>
               <code className="text-xs">code</code> and <code className="text-xs">title</code>,
@@ -375,7 +376,7 @@ export function ModulesPanel({ unitId }: { unitId: string }) {
           open={linkImportOpen}
           onOpenChange={setLinkImportOpen}
           title="Import programme links"
-          description="This only adds links, never removes them. Each row links one module under this unit to one programme, and a link that already exists is left unchanged. Removing a link happens in the module's programme editor instead."
+          description={`Each row links one module in ${unitName} to one programme. This only adds links, never removes them, and a link that already exists is skipped. Remove a link from the module's programme editor instead.`}
           columnsHelp={
             <>
               <code className="text-xs">module_code</code>,{" "}

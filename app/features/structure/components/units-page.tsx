@@ -295,11 +295,15 @@ export function UnitsPage() {
       <ConfirmDialog
         open={Boolean(deactivating)}
         onOpenChange={(open) => !open && setDeactivating(undefined)}
-        title={deactivating?.isActive ? "Deactivate this unit?" : "Reactivate this unit?"}
+        title={
+          deactivating?.isActive
+            ? `Deactivate ${deactivating.name}?`
+            : `Reactivate ${deactivating?.name ?? "this unit"}?`
+        }
         description={
           deactivating?.isActive
-            ? `${deactivating.name} stops appearing in pickers. Nothing is deleted, and its academic history stays readable. Deactivating is refused while any offering beneath it is still open.`
-            : `${deactivating?.name ?? "This unit"} goes back into the pickers.`
+            ? "It stops appearing in pickers. Nothing is deleted, and its academic history stays readable. Deactivating is refused while any offering beneath it is still open."
+            : "It goes back into the pickers."
         }
         confirmLabel={deactivating?.isActive ? "Deactivate" : "Reactivate"}
         pendingLabel="Saving"
