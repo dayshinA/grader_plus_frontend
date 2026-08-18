@@ -31,6 +31,9 @@ export function OfferingPicker({
   const { data: modules } = useModules(unitId || undefined);
   const { data: offerings } = useOfferings(moduleId || undefined);
 
+  const unitName = units?.find((unit) => unit.id === unitId)?.name ?? "This unit";
+  const moduleCode = modules?.find((module) => module.id === moduleId)?.code ?? "This module";
+
   const unitOptions = useMemo(() => {
     const rows = units ?? [];
     const schools = rows
@@ -82,7 +85,7 @@ export function OfferingPicker({
             label: `${module.code} · ${module.title}`,
           }))}
           placeholder="Choose a module"
-          emptyText="This unit runs no modules you can see."
+          emptyText={`${unitName} runs no modules you can see.`}
         />
       )}
 
@@ -98,7 +101,7 @@ export function OfferingPicker({
               label: `${offering.academicYear} · ${offering.status}`,
             }))}
           placeholder="Choose an academic year"
-          emptyText="This module has no other offerings you can see."
+          emptyText={`${moduleCode} has no other offerings you can see.`}
           hint={hint}
           error={error}
         />

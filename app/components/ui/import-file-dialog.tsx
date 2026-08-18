@@ -90,16 +90,19 @@ export function ImportFileDialog({
           <DialogHeader>
             <DialogTitle>Import finished</DialogTitle>
             <DialogDescription>
-              Rows are handled one at a time, so a failure further down did not undo what
-              came before it. Re-uploading the same file is safe: covered rows come back as
-              unchanged.
+              Rows are handled one at a time, so a failure further down did not
+              undo what came before it. Re-uploading the same file is safe:
+              covered rows come back as unchanged.
             </DialogDescription>
           </DialogHeader>
 
           <ImportReportView report={applied} />
 
           <DialogFooter>
-            <Button className="h-11 cursor-pointer sm:h-9" onClick={() => onOpenChange(false)}>
+            <Button
+              className="h-11 cursor-pointer sm:h-9"
+              onClick={() => onOpenChange(false)}
+            >
               Done
             </Button>
           </DialogFooter>
@@ -115,8 +118,8 @@ export function ImportFileDialog({
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              This is what the file would do. Apply it to write the rows, or go back to pick
-              a different file.
+              This is what the file would do. Apply it to write the rows, or go
+              back to pick a different file.
             </DialogDescription>
           </DialogHeader>
 
@@ -168,16 +171,18 @@ export function ImportFileDialog({
           </Callout>
 
           {template && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9 cursor-pointer"
-              onClick={() => downloadCsv(template.content, template.fileName)}
-            >
-              <Download className="size-4" aria-hidden="true" />
-              Download a template CSV
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 cursor-pointer"
+                onClick={() => downloadCsv(template.content, template.fileName)}
+              >
+                <Download className="size-4" aria-hidden="true" />
+                Download a template CSV
+              </Button>
+            </div>
           )}
 
           <FileInput

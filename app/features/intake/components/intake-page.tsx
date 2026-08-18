@@ -382,8 +382,12 @@ export function IntakePage({ offeringId }: { offeringId: string }) {
       <ConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(undefined)}
-        title="Delete this project?"
-        description={`${deleting?.studentNameSnapshot ?? "This project"} is removed entirely. This is refused once a file is attached or any marking exists on it, and excluding is usually the right answer instead: it keeps the record and says why.`}
+        title={
+          deleting?.studentNameSnapshot
+            ? `Delete ${deleting.studentNameSnapshot}'s project?`
+            : "Delete this project?"
+        }
+        description="The project is removed entirely. This is refused once a file is attached or any marking exists on it, and excluding is usually the right answer instead: it keeps the record and says why."
         confirmLabel="Delete"
         pendingLabel="Deleting"
         destructive

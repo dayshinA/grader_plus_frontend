@@ -228,9 +228,11 @@ export function RoleGrantsCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-        <div className="space-y-1.5">
-          <CardTitle className="text-base">Roles</CardTitle>
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <CardTitle asChild className="text-base">
+            <h2>Roles</h2>
+          </CardTitle>
           <CardDescription>
             A grant is a role and a scope. Revoking takes effect on the next request, not the
             next sign in, and takes the grant off this list.
@@ -239,7 +241,7 @@ export function RoleGrantsCard({
         {canGrant && userIsActive && (
           <Button
             size="sm"
-            className="h-9 shrink-0 cursor-pointer"
+            className="h-11 w-full shrink-0 cursor-pointer sm:h-9 sm:w-auto"
             onClick={() => setGrantOpen(true)}
           >
             <Plus className="size-4" aria-hidden="true" />
@@ -298,7 +300,7 @@ export function RoleGrantsCard({
       <ConfirmDialog
         open={Boolean(revoking)}
         onOpenChange={(open) => !open && setRevoking(undefined)}
-        title="Revoke this role?"
+        title={revoking ? `Revoke ${ROLE_LABELS[revoking.role]}?` : "Revoke this role?"}
         description={
           revoking
             ? `${userName} loses ${ROLE_LABELS[revoking.role]} there straight away. Nothing they have already marked is touched.`

@@ -89,8 +89,8 @@ export function OfferingFormDialog({
         <DialogHeader>
           <DialogTitle>New offering of {module.code}</DialogTitle>
           <DialogDescription>
-            One academic year of this module. It starts in setup, with no projects, no rubric
-            and no assignments.
+            One academic year of {module.code}. It starts in setup, with no projects, no
+            rubric and no assignments.
           </DialogDescription>
         </DialogHeader>
 

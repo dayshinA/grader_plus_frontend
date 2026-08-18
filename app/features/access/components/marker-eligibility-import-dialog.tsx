@@ -24,13 +24,14 @@ export function MarkerEligibilityImportDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Import eligible markers"
-      description="Every listed account becomes assignable as a marker on this offering. This makes them assignable, it does not put them on any project, and a coordinator cannot make themselves eligible on their own offering."
+      description="Everyone listed becomes available to pick as a marker on this offering. It does not put anyone on a project, and a coordinator cannot add themselves to their own offering."
       columnsHelp={
         <>
-          <code className="text-xs">email</code>, one address per row and nothing else. The
-          role and the offering come from where you are. An address with no account fails
-          its row: this import creates nobody, so missing people are created first through
-          the accounts screen&apos;s import.
+          <code className="text-xs">email</code>, one address per row and
+          nothing else. The role and the offering come from where you are. An
+          address with no account fails its row: this import creates nobody, so
+          missing people are created first through the accounts screen&apos;s
+          import.
         </>
       }
       template={{

@@ -441,8 +441,8 @@ export function AssignmentsPage({ offeringId }: { offeringId: string }) {
       <ConfirmDialog
         open={Boolean(removing)}
         onOpenChange={(open) => !open && setRemoving(undefined)}
-        title="Remove this marker?"
-        description={`${removing?.marker?.fullName ?? "This marker"} comes off the project. This is refused once they have recorded any work on it, and once marking is open it is refused if it would leave the project with fewer than two markers.`}
+        title={`Remove ${removing?.marker?.fullName ?? "this marker"}?`}
+        description="They come off the project. This is refused once they have recorded any work on it, and once marking is open it is refused if it would leave the project with fewer than two markers."
         confirmLabel="Remove"
         pendingLabel="Removing"
         destructive

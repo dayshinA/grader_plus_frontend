@@ -176,8 +176,8 @@ export function ProjectFilesDialog({
         <ConfirmDialog
           open={Boolean(deleting)}
           onOpenChange={(next) => !next && setDeleting(undefined)}
-          title="Remove this file?"
-          description={`${deleting?.originalFilename ?? "This file"} is removed from the project. This is refused once marking has started on it, because deleting a document pulls the page out from under somebody's annotations.`}
+          title={`Remove ${deleting?.originalFilename ?? "this file"}?`}
+          description="The file is removed from the project. This is refused once marking has started on it, because deleting a document pulls the page out from under somebody's annotations."
           confirmLabel="Remove"
           pendingLabel="Removing"
           destructive

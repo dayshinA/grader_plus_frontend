@@ -146,7 +146,7 @@ export function ModuleProgrammesDialog({
 
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {chosen.size === 0
-            ? "Nothing selected. Saving now unlinks this module from every programme."
+            ? `Nothing selected. Saving now unlinks ${module.code} from every programme.`
             : `${chosen.size} programme${chosen.size === 1 ? "" : "s"} selected.`}
         </p>
 

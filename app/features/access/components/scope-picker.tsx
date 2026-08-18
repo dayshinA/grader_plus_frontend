@@ -40,6 +40,9 @@ export function ScopePicker({
     scopeType === "module_offering" ? moduleId : undefined,
   );
 
+  const unitName = units?.find((unit) => unit.id === unitId)?.name ?? "This unit";
+  const moduleCode = modules?.find((module) => module.id === moduleId)?.code ?? "This module";
+
   const unitOptions = useMemo(() => {
     const rows = units ?? [];
     const schools = rows
@@ -116,7 +119,7 @@ export function ScopePicker({
             label: `${module.code} · ${module.title}`,
           }))}
           placeholder="Choose a module"
-          emptyText="This unit runs no modules yet."
+          emptyText={`${unitName} runs no modules yet.`}
         />
       )}
 
@@ -130,7 +133,7 @@ export function ScopePicker({
             label: `${offering.academicYear} · ${offering.status}`,
           }))}
           placeholder="Choose an academic year"
-          emptyText="This module has no offerings yet."
+          emptyText={`${moduleCode} has no offerings yet.`}
           hint="Coordinator and marker are granted one academic year at a time."
           error={error}
         />

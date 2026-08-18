@@ -179,7 +179,7 @@ export function UnitFormDialog({
           />
 
           {editing && unit?.isActive === false && (
-            <Callout variant="warning" title="This unit is deactivated">
+            <Callout variant="warning" title={`${unit?.name ?? "This unit"} is deactivated`}>
               Its academic history stays in the data. Reactivating it here puts it back in the
               pickers.
             </Callout>

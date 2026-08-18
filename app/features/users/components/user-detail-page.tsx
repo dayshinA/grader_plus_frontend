@@ -85,7 +85,10 @@ export function UserDetailPage({ userId }: { userId: string }) {
       <div className="space-y-6">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-24 rounded-xl" />
-        <Skeleton className="h-56 rounded-xl" />
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,2fr)_minmax(0,3fr)]">
+          <Skeleton className="h-96 rounded-xl" />
+          <Skeleton className="h-[28rem] rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -105,146 +108,150 @@ export function UserDetailPage({ userId }: { userId: string }) {
         title={user.fullName}
         description={user.email}
         actions={
-          canDeactivate &&
-          user.isActive && (
-            <Button
-              variant="outline"
-              className="h-11 w-full cursor-pointer text-destructive hover:text-destructive sm:h-9 sm:w-auto"
-              onClick={() => setConfirmDeactivate(true)}
-            >
-              <UserMinus className="size-4" aria-hidden="true" />
-              Deactivate
-            </Button>
-          )
+          <>
+            <Badge variant={user.isActive ? "success" : "outline"}>
+              {user.isActive ? "Active" : "Deactivated"}
+            </Badge>
+            {canDeactivate && user.isActive && (
+              <Button
+                variant="outline"
+                className="h-11 w-full cursor-pointer text-destructive hover:text-destructive sm:h-9 sm:w-auto"
+                onClick={() => setConfirmDeactivate(true)}
+              >
+                <UserMinus className="size-4" aria-hidden="true" />
+                Deactivate
+              </Button>
+            )}
+          </>
         }
       />
 
-      <Card>
-        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-          <div className="space-y-1.5">
-            <CardTitle className="text-base">Account</CardTitle>
-            <CardDescription>
-              Deactivation bites within one access token lifetime, at most fifteen minutes.
-            </CardDescription>
-          </div>
-          {canUpdate && !editing && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 shrink-0 cursor-pointer"
-              onClick={startEditing}
-            >
-              Edit
-            </Button>
-          )}
-        </CardHeader>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,2fr)_minmax(0,3fr)]">
+        <Card>
+          <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <CardTitle asChild className="text-base">
+                <h2>Account</h2>
+              </CardTitle>
+              <CardDescription>
+                Deactivating an account takes effect within fifteen minutes.
+              </CardDescription>
+            </div>
+            {canUpdate && !editing && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-11 w-full shrink-0 cursor-pointer sm:h-9 sm:w-auto"
+                onClick={startEditing}
+              >
+                Edit
+              </Button>
+            )}
+          </CardHeader>
 
-        <CardContent>
-          {editing ? (
-            <form
-              className="space-y-4"
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                update.mutate(
-                  {
-                    id: user.id,
-                    payload: { fullName: fullName.trim(), email: email.trim() },
-                  },
-                  {
-                    onSuccess: ({ message }) => {
-                      toast.success(message || "Account updated.");
-                      setEditing(false);
+          <CardContent>
+            {editing ? (
+              <form
+                className="space-y-4"
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  update.mutate(
+                    {
+                      id: user.id,
+                      payload: { fullName: fullName.trim(), email: email.trim() },
                     },
+                    {
+                      onSuccess: ({ message }) => {
+                        toast.success(message || "Account updated.");
+                        setEditing(false);
+                      },
+                    },
+                  );
+                }}
+              >
+                <FormError error={update.error} />
+
+                <FormField
+                  label="Full name"
+                  name="fullName"
+                  required
+                  autoFocus
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  error={
+                    isApiError(update.error) ? update.error.fieldError("fullName") : undefined
+                  }
+                />
+
+                <FormField
+                  label="Email address"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  error={
+                    isApiError(update.error) ? update.error.fieldError("email") : undefined
+                  }
+                />
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <SubmitButton
+                    isPending={update.isPending}
+                    pendingLabel="Saving"
+                    className="sm:w-auto"
+                    disabled={fullName.trim().length < 2 || email.trim().length === 0}
+                  >
+                    Save changes
+                  </SubmitButton>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 cursor-pointer sm:h-9"
+                    onClick={() => setEditing(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <DetailList
+                items={[
+                  { label: "Full name", value: user.fullName },
+                  { label: "Email", value: user.email },
+                  {
+                    label: "Password",
+                    value: user.mustChangePassword ? (
+                      <Badge variant="warning">Must change on next sign in</Badge>
+                    ) : (
+                      "Set by the holder"
+                    ),
                   },
-                );
-              }}
-            >
-              <FormError error={update.error} />
-
-              <FormField
-                label="Full name"
-                name="fullName"
-                required
-                autoFocus
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                error={isApiError(update.error) ? update.error.fieldError("fullName") : undefined}
+                  {
+                    label: "Last signed in",
+                    value: user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never",
+                  },
+                  { label: "Created", value: formatDateTime(user.createdAt) },
+                ]}
               />
+            )}
+          </CardContent>
+        </Card>
 
-              <FormField
-                label="Email address"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                error={isApiError(update.error) ? update.error.fieldError("email") : undefined}
-              />
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <SubmitButton
-                  isPending={update.isPending}
-                  pendingLabel="Saving"
-                  className="sm:w-auto"
-                  disabled={fullName.trim().length < 2 || email.trim().length === 0}
-                >
-                  Save changes
-                </SubmitButton>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 cursor-pointer sm:h-9"
-                  onClick={() => setEditing(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <DetailList
-              items={[
-                { label: "Full name", value: user.fullName },
-                { label: "Email", value: user.email },
-                {
-                  label: "Status",
-                  value: user.isActive ? (
-                    <Badge variant="success">Active</Badge>
-                  ) : (
-                    <Badge variant="outline">Deactivated</Badge>
-                  ),
-                },
-                {
-                  label: "Password",
-                  value: user.mustChangePassword ? (
-                    <Badge variant="warning">Must change on next sign in</Badge>
-                  ) : (
-                    "Set by the holder"
-                  ),
-                },
-                {
-                  label: "Last signed in",
-                  value: user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never",
-                },
-                { label: "Created", value: formatDateTime(user.createdAt) },
-              ]}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <RoleGrantsCard
-        userId={user.id}
-        userName={user.fullName}
-        userIsActive={user.isActive}
-        scopeNames={scopeNames}
-      />
+        <RoleGrantsCard
+          userId={user.id}
+          userName={user.fullName}
+          userIsActive={user.isActive}
+          scopeNames={scopeNames}
+        />
+      </div>
 
       <ConfirmDialog
         open={confirmDeactivate}
         onOpenChange={setConfirmDeactivate}
-        title="Deactivate this account?"
-        description={`${user.fullName} can no longer sign in, and if they are signed in now they will be signed out within fifteen minutes. Nothing they have marked is removed, and the account stays visible. Deactivation is refused if they are the only coordinator on an open offering.`}
+        title={`Deactivate ${user.fullName}?`}
+        description="They can no longer sign in, and if they are signed in now they will be signed out within fifteen minutes. Nothing they have marked is removed, and the account stays visible. Deactivation is refused if they are the only coordinator on an open offering."
         confirmLabel="Deactivate"
         pendingLabel="Deactivating"
         destructive

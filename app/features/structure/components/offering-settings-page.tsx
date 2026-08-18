@@ -171,7 +171,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
       {canClose && !offering.isClosed && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Close this offering</CardTitle>
+            <CardTitle className="text-base">Close the {offering.academicYear} offering</CardTitle>
             <CardDescription>
               Closing freezes the grades. It is the point after which the record stops moving.
             </CardDescription>
@@ -205,7 +205,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
       {offering.isClosed && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">This offering is closed</CardTitle>
+            <CardTitle className="text-base">The {offering.academicYear} offering is closed</CardTitle>
             <CardDescription>
               Every write on it is refused. Reopening returns it to marking rather than to
               setup, because an offering that reached closing already has projects and
@@ -235,7 +235,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
       <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        title="Close this offering?"
+        title={`Close the ${offering.academicYear} offering?`}
         description="Nothing can be changed afterwards: no marking, no rubric edits, no assignment changes, no grade overrides. Reopening needs a separate permission that most coordinators do not hold, so this is not something you can quietly undo."
         details={
           openCases > 0 || ungraded > 0
@@ -259,7 +259,7 @@ export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
       <ConfirmDialog
         open={confirmReopen}
         onOpenChange={setConfirmReopen}
-        title="Reopen this offering?"
+        title={`Reopen the ${offering.academicYear} offering?`}
         description="The offering opens again and marking can continue. This is recorded in the audit log with your name on it."
         confirmLabel="Reopen"
         pendingLabel="Reopening"
