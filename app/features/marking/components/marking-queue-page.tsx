@@ -52,7 +52,11 @@ export function MarkingQueuePage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useMarkingQueue();
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("outstanding");
+  const [selectedFilter, setSelectedFilter] = useState<Filter | null>(null);
+  const allSubmitted = Boolean(
+    data && data.length > 0 && data.every((item) => item.myStatus === "final"),
+  );
+  const filter = selectedFilter ?? (allSubmitted ? "all" : "outstanding");
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -101,7 +105,7 @@ export function MarkingQueuePage() {
               <FilterTabs
                 options={FILTERS}
                 value={filter}
-                onChange={setFilter}
+                onChange={setSelectedFilter}
                 label="Filter your queue"
               />
             }

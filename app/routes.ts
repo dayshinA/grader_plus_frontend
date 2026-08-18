@@ -44,7 +44,8 @@ export default [
     // The coordinator surface is one frame with tabs inside it, in the order the work
     // actually happens: intake and the rubric before assignments, grades and export last.
     route("offerings/:offeringId", "routes/offerings/layout.tsx", [
-      index("routes/offerings/settings.tsx"),
+      index("routes/offerings/index.tsx"),
+      route("settings", "routes/offerings/settings.tsx"),
       route("intake", "routes/offerings/intake.tsx"),
       route("rubric", "routes/offerings/rubric.tsx"),
       route("assignments", "routes/offerings/assignments.tsx"),

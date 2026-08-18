@@ -221,8 +221,8 @@ export function UnitDashboardPage({ unitId }: { unitId: string }) {
                   </EmptyMedia>
                   <EmptyTitle>No offerings yet</EmptyTitle>
                   <EmptyDescription>
-                    Nothing beneath this unit is running an academic year. Create a module and
-                    an offering of it before there is progress to watch.
+                    Nothing beneath {data.unit.name} is running an academic year. Create a
+                    module and an offering of it before there is progress to watch.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>

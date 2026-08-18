@@ -1,16 +1,14 @@
-import { usePermission } from "~/features/auth/api/auth-context";
-import { RequirePermission } from "~/features/auth/components/protected-route";
-import { AdminOverviewPage } from "~/features/dashboard/components/admin-overview-page";
+import { redirect } from "react-router";
 
-export function meta() {
-  return [{ title: "Platform overview | GraderPlus" }];
+/**
+ * The platform overview merged into home on 2026-08-18: a system administrator's home is
+ * the overview now. The path stays registered so old links and bookmarks land somewhere
+ * rather than on a 404.
+ */
+export function clientLoader() {
+  return redirect("/");
 }
 
 export default function AdminOverviewRoute() {
-  const allowed = usePermission("platform.read");
-  return (
-    <RequirePermission allowed={allowed} what="the platform overview">
-      <AdminOverviewPage />
-    </RequirePermission>
-  );
+  return null;
 }

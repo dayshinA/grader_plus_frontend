@@ -9,11 +9,12 @@ export const userKeys = {
   detail: (id: string) => [...userKeys.all, "detail", id] as const,
 };
 
-export function useUsers() {
+export function useUsers(enabled = true) {
   return useQuery({
     queryKey: userKeys.list(),
     queryFn: () => usersService.list(),
     staleTime: 60 * 1000,
+    enabled,
   });
 }
 

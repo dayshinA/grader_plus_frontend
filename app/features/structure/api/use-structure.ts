@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { dashboardKeys } from "~/features/dashboard/api/use-dashboard";
 import { structureService } from "~/features/structure/api/structure.service";
@@ -26,11 +26,31 @@ export const structureKeys = {
 /** Structure changes rarely and every screen leans on it, so it holds for a while. */
 const STRUCTURE_STALE_MS = 5 * 60 * 1000;
 
-export function useUnits() {
+export function useUnits(enabled = true) {
   return useQuery({
     queryKey: structureKeys.units(),
     queryFn: () => structureService.listUnits(),
     staleTime: STRUCTURE_STALE_MS,
+    enabled,
+  });
+}
+
+/**
+ * There is no cross university module route, so a screen that wants modules from several
+ * units asks per unit and flattens. Same keys as `useModules`, so the per unit screens
+ * land on a warm cache.
+ */
+export function useModulesForUnits(unitIds: string[]) {
+  return useQueries({
+    queries: unitIds.map((unitId) => ({
+      queryKey: structureKeys.modules(unitId),
+      queryFn: () => structureService.listModules(unitId),
+      staleTime: STRUCTURE_STALE_MS,
+    })),
+    combine: (results) => ({
+      modules: results.flatMap((result) => result.data ?? []),
+      isLoading: results.some((result) => result.isLoading),
+    }),
   });
 }
 

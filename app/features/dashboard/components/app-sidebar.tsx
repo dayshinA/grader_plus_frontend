@@ -15,6 +15,7 @@ import { useAuth } from "~/features/auth/api/auth-context";
 import { useLogout } from "~/features/auth/api/use-auth";
 import { findNavItem, type NavGroup } from "~/features/dashboard/nav";
 import { useNotifications } from "~/features/notifications/api/use-notifications";
+import { backTo } from "~/hooks/use-back-link";
 
 function initials(source: string): string {
   const parts = source.trim().split(/\s+/).filter(Boolean);
@@ -107,8 +108,10 @@ function AccountMenu() {
                 )}
               </Link>
             </DropdownMenuItem>
+            {/* The password screen is a sub-screen of Account, so this menu declares that
+                parent as the way back rather than leaving the screen with none. */}
             <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to="/account/password">
+              <Link to="/account/password" state={backTo({ to: "/account", label: "account" })}>
                 <KeyRound aria-hidden="true" />
                 Change password
               </Link>
