@@ -33,10 +33,7 @@ export interface DiscrepancyListItem {
   resolvedAt: string | null;
 }
 
-/**
- * `GET /discrepancies/:id`. The one response in the system where two markers' work sits
- * side by side, and it is reachable only by the offering's coordinator.
- */
+// The one response where two markers' work sits side by side. Coordinator only.
 export interface MarkerEvaluationDetail {
   markerId: string;
   markerName: string;
@@ -100,6 +97,6 @@ export interface OfferingGradeRow {
 
 export interface OverrideGradePayload {
   mark: number;
-  /** At least ten characters. This is the exceptional path, not a way to settle a dispute. */
+  /** At least ten characters. The exceptional path, not a way to settle a dispute. */
   reason: string;
 }

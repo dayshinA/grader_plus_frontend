@@ -1,5 +1,4 @@
-// Mirrors src/access in the backend. The four roles, the scope a grant is over, and the
-// permission strings the whole UI gates on.
+// Mirrors src/access: the four roles, the scope a grant is over, and the permission strings.
 
 export const ROLES = ["system_admin", "unit_admin", "coordinator", "marker"] as const;
 export type Role = (typeof ROLES)[number];
@@ -11,12 +10,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   marker: "Marker",
 };
 
-/**
- * Mirrors `ROLE_RANK` in the backend's `src/access/enums/role.enum.ts`. It exists for one
- * rule, that nobody grants a role at or above their own level, and nothing else reads it.
- * It is not a hierarchy: capability is still the union of the permission sets, and no
- * screen decides what to render from a role name.
- */
+// Mirrors the backend's ROLE_RANK. One rule only: nobody grants at or above their own level.
 export const ROLE_RANK: Record<Role, number> = {
   system_admin: 3,
   unit_admin: 2,
@@ -84,10 +78,7 @@ export const PERMISSIONS = [
 
 export type Permission = (typeof PERMISSIONS)[number];
 
-/**
- * One row of `GET /me/permissions`. A person holds several of these at once and their
- * capability is the union, which is why nothing in the UI branches on `role`.
- */
+// One row of `GET /me/permissions`. Capability is the union, so nothing branches on `role`.
 export interface ResolvedGrant {
   role: Role;
   scopeType: ScopeType;
@@ -95,13 +86,7 @@ export interface ResolvedGrant {
   permissions: Permission[];
 }
 
-/**
- * A row of `GET /users/:id/roles`, narrowed to the scopes the caller reaches.
- *
- * Active grants only. Revoking sets `revoked_at` rather than deleting the row, so the
- * record survives in the database, but no route returns a revoked grant and `revokedAt` is
- * therefore always null on anything the frontend sees.
- */
+// Narrowed to the scopes the caller reaches. Active only, so `revokedAt` is always null here.
 export interface RoleAssignment {
   id: string;
   userId: string;

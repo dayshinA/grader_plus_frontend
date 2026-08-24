@@ -22,10 +22,7 @@ import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { formatDateTime } from "~/utils/format";
 import { isApiError, isNotFound } from "~/lib/api-client";
 
-/**
- * Only the 404 uses this. That screen is a dead end and needs one door out whatever route
- * brought somebody to it, and the accounts list is where an account that did exist would be.
- */
+// Only the 404 uses this: a dead end needs one door out, and the list is where the account would be.
 const EXIT: BackTarget = { to: "/admin/users", label: "accounts" };
 
 /** Editing one account, and the grants on it. There is no delete: the API deactivates. */
@@ -39,8 +36,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   const update = useUpdateUser();
   const deactivate = useDeactivateUser();
 
-  // The grants on this account arrive named, the rows behind the Roles card do not, so the
-  // card is given the lookup rather than a second request.
+  // The rows behind the card carry no scope name, so it is given the lookup, not a second request.
   const scopeNames = useMemo(() => {
     const names = new Map<string, string>();
     for (const grant of user?.roles ?? []) {

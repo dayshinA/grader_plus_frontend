@@ -3,12 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-/**
- * Full-width submit with a busy state. Disabled while the request is in flight — a second click on
- * a login or a password change isn't just wasted, it's a duplicate write.
- *
- * `h-11` on mobile for a 44px touch target, easing to the design system's `h-9` from `sm:` up.
- */
+// Disabled in flight, because a second click on a password change is a duplicate write.
 export function SubmitButton({
   isPending,
   pendingLabel,
@@ -19,12 +14,9 @@ export function SubmitButton({
   isPending: boolean;
   pendingLabel: string;
   children: React.ReactNode;
-  /** Overrides the full-width default — e.g. `sm:w-auto` for a dialog footer. */
+  /** Overrides the full-width default, for example `sm:w-auto` in a dialog footer. */
   className?: string;
-  /**
-   * Blocks submission for a reason other than a request being in flight — nothing to save, or a
-   * value the form itself knows is unusable. The busy state still wins visually while pending.
-   */
+  // Blocks submission for a reason other than a request in flight.
   disabled?: boolean;
 }) {
   return (

@@ -12,11 +12,7 @@ import { pluralise } from "~/utils/format";
 
 const MINIMUM_MARKERS = 2;
 
-/**
- * Opening marking is gated on the rubric being valid and every project having two markers.
- * Both are shown as a checklist here rather than being discovered when the action fails,
- * which is the difference between a screen that helps and one that refuses.
- */
+// A checklist, so the two conditions are visible rather than discovered when the action fails.
 export function CoverageCard({
   offeringId,
   canOpen,

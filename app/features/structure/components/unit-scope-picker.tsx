@@ -1,10 +1,7 @@
 import { SelectField } from "~/components/ui/select-field";
 import type { AcademicUnit } from "~/features/structure/types";
 
-/**
- * The unit chooser that sits above the platform programme and module screens. The value is
- * owned by `useUnitScope`, which keeps it in the URL.
- */
+// The value is owned by `useUnitScope`, which keeps it in the URL.
 export function UnitScopePicker({
   value,
   onChange,

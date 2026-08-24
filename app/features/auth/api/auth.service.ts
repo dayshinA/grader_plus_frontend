@@ -7,17 +7,13 @@ import type {
   ResetPasswordPayload,
 } from "~/features/auth/types";
 
-/** Plain calls against /auth. No React in this file. */
 export const authService = {
   /** Access token in the body, refresh token set as an httpOnly cookie. */
   login(payload: LoginPayload): Promise<ApiResult<SessionResponse>> {
     return apiWithMessage.post<SessionResponse>("/auth/login", payload);
   },
 
-  /**
-   * Always answers the same way, whether the address exists or not. Do not word the UI as
-   * though a success means an account was found.
-   */
+  // Answers the same either way, so do not word the UI as though success means an account exists.
   forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResult<null>> {
     return apiWithMessage.post<null>("/auth/forgot-password", payload);
   },

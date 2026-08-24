@@ -1,20 +1,15 @@
 import { type RouteConfig, index, layout, prefix, route } from "@react-router/dev/routes";
 
-/**
- * The version 2 route map, from `.claude/FRONTEND-DESIGN.md`. A route group is a permission
- * check rather than a role check: somebody holding coordinator on one offering and marker
- * on another reaches both `/offerings/...` and `/marking`, which is the normal case.
- */
+// The version 2 route map. A route group is a permission check, never a role check.
 export default [
   route("login", "routes/login.tsx"),
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
 
-  // Needs a session but not the shell: a temporary password has nowhere else to go
-  // until it is replaced, so this sits outside the protected layout.
+  // Needs a session but not the shell: a temporary password has nowhere else to go.
   route("set-password", "routes/set-password.tsx"),
 
-  // The component gallery, which is a style guide rather than a real screen.
+  // The component gallery, a style guide rather than a real screen.
   route("dev/preview", "routes/dev/preview.tsx"),
 
   layout("routes/protected.tsx", [
@@ -41,8 +36,7 @@ export default [
       route(":projectId", "routes/marking/workspace.tsx"),
     ]),
 
-    // The coordinator surface is one frame with tabs inside it, in the order the work
-    // actually happens: intake and the rubric before assignments, grades and export last.
+    // One frame with tabs, in the order the work happens: intake and rubric first, export last.
     route("offerings/:offeringId", "routes/offerings/layout.tsx", [
       index("routes/offerings/index.tsx"),
       route("settings", "routes/offerings/settings.tsx"),
@@ -56,12 +50,10 @@ export default [
       route("audit", "routes/offerings/audit.tsx"),
     ]),
 
-    // Outside the offering frame: a case is reached from the list, and its own header
-    // names the student rather than the offering.
+    // Outside the offering frame: a case names the student rather than the offering.
     route("discrepancies/:caseId", "routes/discrepancy.tsx"),
 
-    // The unit surface is one frame with tabs inside it, so the layout owns the header
-    // and each tab is only its own content.
+    // The unit surface is one frame with tabs, so the layout owns the header.
     route("units/:unitId", "routes/units/layout.tsx", [
       index("routes/units/index.tsx"),
       route("dashboard", "routes/units/dashboard.tsx"),

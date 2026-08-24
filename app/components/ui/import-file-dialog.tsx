@@ -22,16 +22,7 @@ import { downloadCsv } from "~/utils/download-file";
 /** Every tabular import route caps the file at 5MB, so the client check mirrors it. */
 const MAX_TABULAR_BYTES = 5 * 1024 * 1024;
 
-/**
- * The upload half every dryRun-capable import shares: pick a file, preview it as a dry run,
- * then apply the same file for real. The preview is advisory, because apply re-validates
- * from scratch on the server, so the applied report is always the one rendered at the end,
- * never the remembered preview.
- *
- * The route-specific parts (copy, columns, the actual request) come in as props; the
- * caller's mutation hook owns cache invalidation. The users bulk import does not use this
- * dialog because its route has no dryRun yet.
- */
+// Preview then apply. The preview is advisory, since apply re-validates from scratch.
 export function ImportFileDialog({
   open,
   onOpenChange,

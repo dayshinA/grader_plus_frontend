@@ -6,12 +6,7 @@ import { ProtectedRoute } from "~/features/auth/components/protected-route";
 import { useAuth } from "~/features/auth/api/auth-context";
 import { useLogout } from "~/features/auth/api/use-auth";
 
-/**
- * The screen a temporary password lands on. It needs a session, so it sits behind the same
- * guard as everything else, but it is deliberately outside the app shell: while the flag is
- * set there is nowhere else to go, and a sidebar full of links that all bounce back here is
- * a worse answer than no sidebar at all.
- */
+// Outside the app shell: while the flag is set, a sidebar of links that all bounce back is worse.
 function SetPasswordScreen() {
   const { mustChangePassword, user, session } = useAuth();
   const logout = useLogout();

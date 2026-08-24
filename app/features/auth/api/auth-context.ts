@@ -17,11 +17,7 @@ export interface AuthContextValue {
   /** From GET /me/permissions. Every gate in the app reads this and never a role name. */
   grants: ResolvedGrant[];
   status: AuthStatus;
-  /**
-   * Why the last session ended, and whose it was. ProtectedRoute preserves the
-   * interrupted destination only when the loss was not deliberate, and the login form
-   * resumes it only for the same account, so one person's route never leaks to the next.
-   */
+  // Why the last session ended and whose it was, so only its owner resumes the destination.
   sessionEnd: { deliberate: boolean; userId: string } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -46,10 +42,7 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
-/**
- * Shorthand for gating one action on one permission. Coarse by design: it ignores scope,
- * so a rendered button can still come back with a 403 and must handle it.
- */
+/** Gates one action on one permission. Ignores scope, so the request can still 403. */
 export function usePermission(permission: Permission): boolean {
   return useAuth().can(permission);
 }

@@ -144,11 +144,7 @@ function ImportDialog({
   );
 }
 
-/**
- * The allocation, project by project. This screen names markers, which is correct:
- * deciding who marks what requires knowing who they are, and blindness is between markers
- * rather than between a coordinator and their own allocation.
- */
+// Names markers, correctly: blindness is between markers, not from a coordinator.
 export function AssignmentsPage({ offeringId }: { offeringId: string }) {
   const canWrite = usePermission("assignment.write");
   const canOpenMarking = usePermission("offering.update");

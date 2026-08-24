@@ -8,8 +8,7 @@ export function meta() {
   return [{ title: "Marking | GraderPlus" }];
 }
 
-// Read by the shell: the document pane is the work surface, so this screen gets the whole
-// window instead of the reading-width cap every other screen sits in.
+// Read by the shell: the document is the work surface, so this screen skips the width cap.
 export const handle = { fullWidth: true };
 
 export default function MarkingWorkspaceRoute() {

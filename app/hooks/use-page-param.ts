@@ -1,16 +1,7 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router";
 
-/**
- * A list screen's page number, held in the URL rather than in component state.
- *
- * It lives there for the same reason the filters do: so the page an admin is on survives opening a
- * record and coming back (see `backTo`, which carries the whole query string as the back
- * target), and so "the row I meant is on page 3" is something you can send to a colleague.
- *
- * Page 1 is the absence of the param rather than `?page=1`: the first page and no page are the
- * same list, and two URLs for one view is a URL nobody can compare.
- */
+// In the URL, so a page survives opening a record. Page 1 is the absence of the param.
 export function usePageParam(): [number, (page: number) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -26,8 +17,7 @@ export function usePageParam(): [number, (page: number) => void] {
           else params.set("page", String(next));
           return params;
         },
-        // Replace, so paging through a list doesn't bury the screen you arrived from under a dozen
-        // history entries that the browser's own back button then has to walk out of.
+        // Replace, or paging buries the screen you arrived from under a dozen history entries.
         { replace: true },
       );
     },

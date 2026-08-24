@@ -96,10 +96,7 @@ function CopyRubricDialog({
   );
 }
 
-/**
- * The rubric for one offering. A 404 from the read is a normal state during setup rather
- * than a failure, so the screen offers an empty editor instead of an error.
- */
+// A 404 is normal during setup, so the screen offers an empty editor rather than an error.
 export function RubricPage({ offeringId }: { offeringId: string }) {
   const canWrite = usePermission("rubric.write");
   const { offering } = useOfferingHeader(offeringId);
@@ -111,8 +108,7 @@ export function RubricPage({ offeringId }: { offeringId: string }) {
 
   const closed = offering?.isClosed ?? false;
 
-  // The server locks structural edits once any evaluation exists. There is no route that
-  // says so directly, but a marker who is past "not started" has one.
+  // No route says the structure is locked, but a marker past "not started" means it is.
   const anyMarkingStarted = (dashboard?.projects ?? []).some((project) =>
     project.markers.some((marker) => marker.state !== "not_started"),
   );

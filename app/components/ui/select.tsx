@@ -4,15 +4,7 @@ import { Select as SelectPrimitive } from "radix-ui";
 
 import { cn } from "~/lib/utils";
 
-/**
- * The single-choice picker. Styled to sit beside `Input`/`Button` in the same design system —
- * same `h-8`/`rounded-lg` geometry, same focus ring, same popover surface as `DropdownMenu` —
- * because a form row that mixes two visual languages reads as a bug.
- *
- * There is no shadcn `Select` in the component set this app's primitives came from, so this is
- * the one hand-maintained control here. Keep its classes in step with `input.tsx` and
- * `dropdown-menu.tsx` if either of those changes.
- */
+// Hand-maintained: keep its classes in step with `input.tsx` and `dropdown-menu.tsx`.
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
@@ -34,8 +26,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        // `h-11 sm:h-8` for the same reason `FormField` uses it: 32px is a comfortable mouse
-        // target and well under the 44px minimum for a thumb.
+        // `h-11 sm:h-8`: 32px is fine with a mouse and under the 44px thumb minimum.
         "flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base whitespace-nowrap transition-colors outline-none data-placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 sm:h-8 md:text-sm dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
@@ -51,11 +42,7 @@ function SelectTrigger({
 
 export interface SelectContentProps
   extends React.ComponentProps<typeof SelectPrimitive.Content> {
-  /**
-   * Portal target. A `Select` inside a `Dialog` must portal into the dialog's own node — the
-   * dialog's focus trap otherwise fights a popover mounted on `document.body`, and clicking an
-   * option closes the dialog instead of choosing the option.
-   */
+  // A `Select` in a `Dialog` must portal into it, or clicking an option closes the dialog.
   container?: HTMLElement | null;
 }
 

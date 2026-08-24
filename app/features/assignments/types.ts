@@ -1,10 +1,7 @@
 import type { Project } from "~/features/intake/types";
 import type { User } from "~/features/users/types";
 
-/**
- * A value on the assignment, not a role in the permission system. Every value marks blind
- * on the same screens, moderator included, so there is no separate moderator UI.
- */
+// A value on the assignment, not a role. Every value marks blind, moderator included.
 export const ASSIGNMENT_ROLES = [
   "first_marker",
   "second_marker",

@@ -3,7 +3,6 @@ import { useEffect, useMemo } from "react";
 import { usePageParam } from "~/hooks/use-page-param";
 
 export interface PagedList<T> {
-  /** The rows for the current page. */
   rows: T[];
   page: number;
   pageCount: number;
@@ -12,24 +11,14 @@ export interface PagedList<T> {
   total: number;
 }
 
-/**
- * Client-side paging for a list screen.
- *
- * The API returns every row in one response, because it has no pagination anywhere, so paging
- * is entirely ours. The page number still lives in the URL, see `usePageParam`, so it survives
- * opening a record and coming back.
- *
- * Filtering happens before this: pass the already-filtered rows, and the hook resets to page 1
- * whenever the filter shrinks the list past the page the screen is sitting on.
- */
+// The API is unpaged, so paging is ours. Pass filtered rows: it resets to page 1 when they shrink.
 export function usePagedList<T>(rows: T[], pageSize = 10): PagedList<T> {
   const [page, setPage] = usePageParam();
 
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const safePage = Math.min(page, pageCount);
 
-  // Typing into search on page 3 of a list that now has one page would otherwise leave the screen
-  // on a page that no longer exists, rendering empty.
+  // Or searching on page 3 of a now single page list leaves the screen rendering nothing.
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount, setPage]);

@@ -2,13 +2,7 @@ import { api } from "~/lib/api-client";
 import type { RawApiResult } from "~/lib/api-client";
 import type { ExportPreview } from "~/features/export/types";
 
-/**
- * Reads final_grades and nothing else.
- *
- * The preview is JSON through the usual envelope. The three downloads are raw files with no
- * envelope at all, so they come back as a Blob and are handed to the browser as downloads
- * rather than parsed.
- */
+// Reads final_grades only. The downloads are raw files, so they arrive as a Blob.
 export const exportService = {
   /** Always read first. It names every gap with its reason. */
   preview(offeringId: string): Promise<ExportPreview> {

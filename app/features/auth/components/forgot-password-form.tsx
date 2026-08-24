@@ -8,12 +8,7 @@ import { SubmitButton } from "~/components/ui/submit-button";
 import { useForgotPassword } from "~/features/auth/api/use-auth";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * The route answers the same way whether the address exists, belongs to a deactivated
- * account or matches nothing, so the confirmation is worded as "if that address has an
- * account". Saying anything more would turn this screen into a way of asking who works
- * here.
- */
+// The route answers the same either way, or this becomes a way of asking who works here.
 export function ForgotPasswordForm() {
   const forgot = useForgotPassword();
   const [email, setEmail] = useState("");

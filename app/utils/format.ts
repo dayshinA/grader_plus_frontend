@@ -2,10 +2,7 @@
 
 const LOCALE = "en-GB";
 
-/**
- * What a table cell shows where there is no value. A word rather than a dash, because a
- * dash in a column of marks reads as a zero at a glance.
- */
+/** What a cell shows with no value. A word, because a dash in a column of marks reads as zero. */
 export const NOT_SET = "Not set";
 
 export function formatDate(value: string | Date | null | undefined, fallback = NOT_SET): string {
@@ -65,7 +62,7 @@ export function pluralise(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-/** Turns a snake_case enum value into something readable when there is no label map. */
+/** Turns a snake_case value into something readable when there is no label map. */
 export function humanise(value: string): string {
   const spaced = value.replace(/[_-]+/g, " ").trim();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);

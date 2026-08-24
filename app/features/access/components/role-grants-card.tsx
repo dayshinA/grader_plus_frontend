@@ -48,8 +48,7 @@ function GrantRoleDialog({
   const [role, setRole] = useState<Role>("marker");
   const [scopeId, setScopeId] = useState("");
 
-  // Nobody grants a role at or above their own, so the ones this caller would be refused
-  // for are absent rather than offered and rejected on submit.
+  // Refused roles are absent rather than offered and rejected on submit.
   const roleOptions = grantableRoles(grants).map((option) => ({
     value: option,
     label: ROLE_LABELS[option],
@@ -144,11 +143,7 @@ function GrantRoleDialog({
   );
 }
 
-/**
- * `GET /users/:id/roles` names no scopes, so the name comes from the `roles` on the user
- * the detail screen already holds. A truncated id is the fallback for a grant that lookup
- * does not cover, which is better than nothing but is not meant to be read.
- */
+// The rows name no scope, so the name comes from the `roles` already on the user.
 function scopeLabel(grant: RoleAssignment, scopeNames: Map<string, string>): string {
   if (grant.scopeType === "system") return "Across the whole platform";
   if (grant.scopeId && scopeNames.has(grant.scopeId)) {
@@ -195,14 +190,7 @@ function GrantRow({
   );
 }
 
-/**
- * The grants on one account. Active ones only: revoking sets `revoked_at` rather than
- * deleting the row, but no route hands a revoked grant back, so there is no history to
- * show here.
- *
- * The list is also narrowed to the scopes the caller reaches, which is why this card can
- * be shorter than the one a system administrator sees on the same person.
- */
+// Active grants the caller reaches, so this can be shorter than an administrator's view.
 export function RoleGrantsCard({
   userId,
   userName,

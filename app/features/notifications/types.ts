@@ -1,7 +1,4 @@
-/**
- * Mirrors src/notifications. Payloads are already blindness safe, so the message renders
- * as given and is never enriched by fetching the project it mentions.
- */
+// Mirrors src/notifications. Payloads are blindness safe, so a message is never enriched.
 export const NOTIFICATION_TYPES = [
   "marker_assigned",
   "deadline_approaching",

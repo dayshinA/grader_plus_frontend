@@ -4,11 +4,7 @@ import { isApiError } from "~/lib/api-client";
 import type { AutosaveState } from "~/features/marking/hooks/use-autosave";
 import { cn } from "~/lib/utils";
 
-/**
- * Autosave failing has to be visible, and a closed offering has to read as "this offering
- * is closed" rather than as a generic failure, because it is the one refusal a marker can
- * hit that is not their fault and not fixable by retrying.
- */
+// A closed offering must read as closed: it is the one refusal retrying cannot fix.
 export function AutosaveIndicator({
   state,
   error,

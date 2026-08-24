@@ -88,14 +88,12 @@ const ToolbarIconButton = ({
 export interface ToolbarProps {
   /** When false, the toolbar animates out and unmounts. Default true. */
   visible?: boolean;
-  /** Controlled set of currently-active toggle formats. Omit to let the toolbar manage its own state. */
+  /** Controlled active toggle formats. Omit to let the toolbar manage its own state. */
   activeFormats?: ToolbarFormat[];
-  /** Initial active formats when uncontrolled. Default []. */
   defaultActiveFormats?: ToolbarFormat[];
   onFormatToggle?: (format: ToolbarFormat) => void;
   /** Controlled text alignment. Omit to let the toolbar manage its own state. */
   textAlign?: ToolbarTextAlign;
-  /** Initial alignment when uncontrolled. Default "left". */
   defaultTextAlign?: ToolbarTextAlign;
   onTextAlignChange?: (align: ToolbarTextAlign) => void;
   className?: string;

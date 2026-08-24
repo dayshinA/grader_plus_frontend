@@ -9,11 +9,7 @@ import {
 } from "~/components/ui/pagination";
 import { cn } from "~/lib/utils";
 
-/**
- * Page numbers to show: always the first and last, always the current page's neighbours, with
- * ellipses standing in for the rest. Keeps the control a fixed width whether there are 5 pages or
- * 500 — which matters most on a phone, where a full run of numbers would wrap.
- */
+// First, last and the current page's neighbours, so the control is a fixed width at any size.
 function pageRange(current: number, total: number): (number | "ellipsis")[] {
   if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
 
@@ -29,13 +25,7 @@ function pageRange(current: number, total: number): (number | "ellipsis")[] {
   return pages;
 }
 
-/**
- * Paging for a list screen. Renders nothing for a single page, so a screen can drop it in
- * unconditionally.
- *
- * The page numbers themselves collapse to a "Page 2 of 9" label below `sm:`: seven tap targets in
- * a row don't fit a phone, and prev/next is how you move through a list on one anyway.
- */
+// Renders nothing for a single page, and collapses to a label below `sm:`.
 export function ListPager({
   page,
   pageCount,

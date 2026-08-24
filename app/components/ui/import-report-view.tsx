@@ -23,12 +23,7 @@ const STATUS_LABELS: Record<ImportRowStatus, string> = {
   failed: "failed",
 };
 
-/**
- * The result half every import shows the same way: the counts, a preview banner when the
- * report was a dry run, and the per row outcomes. Rows are independent on every route that
- * answers with a report, so a failed row further down never undoes an earlier one, and the
- * consuming dialog's copy says so rather than this component guessing at the wording.
- */
+// Counts, a dry run banner, and the per row outcomes. Rows are independent.
 export function ImportReportView({
   report,
   statuses,

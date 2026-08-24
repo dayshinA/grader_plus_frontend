@@ -1,9 +1,6 @@
 # dashboard
 
 - Backend module: `src/dashboard/` (DashboardModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Dashboards"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Home", "Unit dashboard", "Progress dashboard",
-  "Platform overview"
 
 Read only aggregates, plus the role aware home screen.
 

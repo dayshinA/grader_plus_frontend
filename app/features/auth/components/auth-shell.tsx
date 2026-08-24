@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 
-/**
- * The frame for the four screens a signed out person can reach. One column on a phone, a
- * centred card from `sm` up, so the form is the whole screen where the screen is small.
- */
+// The frame for the signed out screens. One column on a phone, a centred card from `sm` up.
 export function AuthShell({
   title,
   description,

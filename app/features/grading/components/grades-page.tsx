@@ -35,10 +35,7 @@ const FILTERS: FilterTabOption<Filter>[] = [
   { id: "ungraded", label: "No grade yet" },
 ];
 
-/**
- * Grades come from `final_grades` and never from evaluations: nothing here assembles a mark
- * in the browser. A project with an open case has no grade yet and appears as such.
- */
+// From final_grades, never evaluations. An open case means no grade yet.
 export function GradesPage({ offeringId }: { offeringId: string }) {
   const canOverride = usePermission("grade.override");
   const canExport = usePermission("export.run");

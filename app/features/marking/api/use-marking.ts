@@ -31,17 +31,12 @@ export function useMarkingWorkspace(projectId: string | undefined) {
     queryKey: markingKeys.workspace(projectId ?? ""),
     queryFn: () => markingService.workspace(projectId as string),
     enabled: Boolean(projectId),
-    // The workspace is refetched on demand rather than on a timer: an autosave in flight
-    // must not be overwritten by a background read of what the server had a moment ago.
+    // On demand, not on a timer: a background read must not overwrite an autosave in flight.
     staleTime: Infinity,
   });
 }
 
-/**
- * Autosave. Deliberately does not invalidate the workspace: the response carries the
- * recomputed total, and refetching mid typing would fight the form. The queue and the
- * dashboards are refreshed on submit instead.
- */
+// Does not invalidate the workspace: refetching mid typing would fight the form.
 export function useSaveScores(projectId: string) {
   return useMutation({
     mutationFn: (payload: PutScoresPayload) => markingService.saveScores(projectId, payload),

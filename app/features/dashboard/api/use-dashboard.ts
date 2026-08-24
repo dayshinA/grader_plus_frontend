@@ -19,10 +19,7 @@ export function useHome() {
   });
 }
 
-/**
- * Markers submit while a coordinator watches this, so it goes stale quickly. Refetching on
- * an interval is cheaper than a screen that quietly disagrees with what happened.
- */
+/** Markers submit while a coordinator watches this, so it refetches on an interval. */
 export function useOfferingDashboard(offeringId: string) {
   return useQuery({
     queryKey: dashboardKeys.offering(offeringId),
@@ -50,12 +47,7 @@ export function useAdminOverview(enabled = true) {
   });
 }
 
-/**
- * Home enriches its offering and unit cards with the same responses the full dashboards
- * use, on the same query keys, so clicking through lands on a warm cache. One failed card
- * degrades to its base rendering rather than erroring the screen, which is why these
- * return maps instead of a combined error.
- */
+// Same query keys as the full dashboards, so clicking through is warm. Maps, so one card can fail.
 export function useOfferingSnapshots(offeringIds: string[]) {
   return useQueries({
     queries: offeringIds.map((offeringId) => ({

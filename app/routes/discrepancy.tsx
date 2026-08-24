@@ -10,8 +10,7 @@ export function meta() {
 
 export default function DiscrepancyRoute() {
   const { caseId = "" } = useParams();
-  // Reading a case detail requires the permission to settle it: this is the one screen
-  // where both markers' work is visible, and it is coordinator only by design.
+  // Reading a case needs the permission to settle it: both markers' work is visible here.
   const allowed = usePermission("discrepancy.resolve");
 
   return (

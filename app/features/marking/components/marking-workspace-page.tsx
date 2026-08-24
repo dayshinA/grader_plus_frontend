@@ -15,32 +15,17 @@ import { useDeclaredBackTarget, type BackTarget } from "~/hooks/use-back-link";
 import { isApiError, isForbidden, isNotFound } from "~/lib/api-client";
 import { cn } from "~/lib/utils";
 
-/**
- * Only the 404 uses this. The queue is the one route into the workspace, so it is where a
- * project that did exist would be.
- */
+/** Only the 404 uses this. The queue is the one route into the workspace. */
 const EXIT: BackTarget = { to: "/marking", label: "my marking" };
 
-/**
- * The blind marking workspace: the document on the left taking most of the width, the
- * caller's own rubric form on the right, stacking on a phone. The route escapes the
- * shell's usual width cap (via its handle), because the document is the work surface and
- * deserves the monitor. A focus toggle hides the form entirely while reading; it only
- * hides it, never unmounts it, so autosave state and any unsent debounce survive.
- *
- * Must not render, anywhere on this screen: another marker, their total, their feedback,
- * their annotations, how many markers the project has, or any discrepancy or moderation
- * state. None of that is in any response this screen makes, and none of it is inferred here
- * from timing, a status code or a latency either.
- */
+// Renders no other marker, no total but the caller's, and no discrepancy or moderation state.
 export function MarkingWorkspacePage({ projectId }: { projectId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } =
     useMarkingWorkspace(projectId);
   const [focusMode, setFocusMode] = useState(false);
   const declaredBack = useDeclaredBackTarget();
   const back = declaredBack ?? EXIT;
-  // The workspace response carries no offering status, so the queue is where a closed
-  // offering is visible before the first save discovers it.
+  // The workspace carries no offering status, so the queue is where a closed one shows first.
   const queue = useMarkingQueue();
   const closed =
     queue.data?.find((item) => item.projectId === projectId)?.offeringStatus === "closed";

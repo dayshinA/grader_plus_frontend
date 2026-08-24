@@ -36,10 +36,7 @@ const MARKER_COUNT_OPTIONS = [2, 3, 4, 5].map((count) => ({
   label: `${count} markers`,
 }));
 
-/**
- * A new academic year of an existing module. Nothing is copied from last year, the rubric
- * included: copying a rubric is a separate, deliberate action on the rubric screen.
- */
+// Nothing is copied from last year. Copying a rubric is a separate act on the rubric screen.
 export function OfferingFormDialog({
   open,
   onOpenChange,

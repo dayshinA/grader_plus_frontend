@@ -9,24 +9,12 @@ export interface FormFieldProps extends Omit<React.ComponentProps<"input">, "id"
   label: string;
   /** Validation message. Usually the API's own text, via `ApiError.fieldError(name)`. */
   error?: string;
-  /** Guidance shown when there's no error — an error replaces it, so both never compete. */
+  /** Guidance shown when there is no error. An error replaces it, so both never compete. */
   hint?: string;
   id?: string;
 }
 
-/**
- * Label + input + message, with the accessibility wiring done once so every admin form gets it:
- * a real `<label for>`, `aria-invalid` on the control, `aria-describedby` pointing at whichever
- * message is showing, and `role="alert"` so a screen reader announces a validation failure instead
- * of leaving it as a colour change.
- *
- * The control is `h-11` on mobile, dropping to the design system's `h-9` from `sm:` up — a 32px
- * target is comfortable with a mouse but under the 44px minimum for a thumb, and staff use this
- * on phones as much as desktops.
- *
- * A `type="password"` field gets a reveal toggle automatically; pass `revealable={false}` to opt
- * out.
- */
+// Label, input and message with the accessibility wiring done once. `h-11` on mobile for the thumb.
 function FormField({
   label,
   error,
@@ -64,9 +52,7 @@ function FormField({
           <button
             type="button"
             onClick={() => setRevealed((value) => !value)}
-            // Non-submitting, and deliberately not in the tab order: it's a convenience for
-            // pointer users, and keeping it out stops it sitting between the password field and
-            // the submit button for keyboard users.
+            // Out of the tab order on purpose: it would sit between the password field and submit.
             tabIndex={-1}
             aria-label={revealed ? "Hide password" : "Show password"}
             className="absolute inset-y-0 right-0 flex w-11 cursor-pointer items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"

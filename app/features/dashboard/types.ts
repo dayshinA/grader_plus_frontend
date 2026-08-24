@@ -1,10 +1,7 @@
 import type { AssignmentRole } from "~/features/assignments/types";
 import type { AcademicUnitLevel, OfferingStatus } from "~/features/structure/types";
 
-/**
- * Mirrors src/dashboard. No response in this file has a score column: the queries behind
- * them never fetch one, so there is nothing here to accidentally render.
- */
+// Mirrors src/dashboard. No response here has a score column, fetched or otherwise.
 
 /** `GET /me/home`. Already shaped for the caller, so the screen renders what it is given. */
 export interface HomeSummary {

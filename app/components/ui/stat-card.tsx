@@ -7,13 +7,13 @@ import { Skeleton } from "~/components/ui/skeleton"
 
 export interface StatCardData {
   title: string
-  /** Omitted while the number isn't known yet — the card renders its loading state instead. */
+  /** Omitted while the number is not known yet, so the card renders its loading state. */
   value?: number
-  /** Period-over-period change, in percent. Omit when there's nothing to compare against. */
+  /** Period-over-period change, in percent. Omit when there is nothing to compare against. */
   delta?: number
   lastMonth?: number
   format?: (value: number) => string
-  /** Replaces the "Vs last month" footer — e.g. "Across all client wallets". */
+  /** Replaces the "Vs last month" footer, for example "Across every offering". */
   caption?: ReactNode
 }
 
@@ -31,16 +31,9 @@ export function StatCard({
 }: {
   stat: StatCardData
   actions?: ReactNode
-  /**
-   * Renders the value, delta and footer as skeletons at the size the real content will take, so
-   * the number arriving doesn't move anything on the page.
-   */
+  // Skeletons at the real content's size, so the number arriving does not move the page.
   loading?: boolean
-  /**
-   * The number couldn't be fetched. Shows an em dash instead of skeletons, because a tile that
-   * loads forever reads as "still working" — an admin should be able to tell at a glance that this
-   * figure is missing rather than late. Pair it with a caption saying so.
-   */
+  // Shows a dash rather than skeletons, because loading forever reads as "still working".
   unavailable?: boolean
 }) {
   const format = stat.format ?? formatNumber

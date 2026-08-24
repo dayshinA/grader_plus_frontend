@@ -39,7 +39,7 @@ function CardTitle({
   asChild = false,
   ...props
 }: React.ComponentProps<"div"> & {
-  /** Renders the caller's element instead of a div — for the real heading level on a page. */
+  /** Renders the caller's element instead of a div, for the real heading level on a page. */
   asChild?: boolean
 }) {
   const Comp = asChild ? Slot.Root : "div"

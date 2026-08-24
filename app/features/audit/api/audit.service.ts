@@ -1,10 +1,7 @@
 import { api } from "~/lib/api-client";
 import type { AuditLogEntry, AuditQuery } from "~/features/audit/types";
 
-/**
- * Append only. There is no update route and no delete route, so nothing here builds a row
- * menu that would imply one.
- */
+// Append only, so nothing here builds a row menu implying an update or a delete.
 export const auditService = {
   /** The whole platform. System Administrator only. */
   all(query: AuditQuery = {}): Promise<AuditLogEntry[]> {

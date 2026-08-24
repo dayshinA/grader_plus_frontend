@@ -104,15 +104,7 @@ function CardLink({ to, children }: { to: string; children: React.ReactNode }) {
   );
 }
 
-/**
- * The platform surface, rendered as a section of home for a system administrator. It
- * replaced the separate /admin/overview screen, which now redirects here.
- *
- * Counts come from GET /admin/overview; the rows under them are the newest accounts, the
- * schools and the newest modules, fetched from the list routes the admin screens already
- * use, on the same query keys. Not academic data: no mark appears anywhere in this
- * component, and no query behind it fetches one.
- */
+// Replaced /admin/overview, which redirects here. No mark appears anywhere in it.
 export function PlatformHome() {
   const overview = useAdminOverview();
   const users = useUsers();

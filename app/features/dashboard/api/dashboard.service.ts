@@ -6,12 +6,8 @@ import type {
   UnitDashboard,
 } from "~/features/dashboard/types";
 
-/**
- * Read only aggregates. No query behind any of these fetches a score column, so there is
- * nothing on these screens to accidentally render, and nothing to enrich them with either.
- */
+// No query here fetches a score column, so there is nothing to accidentally render.
 export const dashboardService = {
-  /** Already shaped for the caller. The screen renders what it is given. */
   home(): Promise<HomeSummary> {
     return api.get<HomeSummary>("/me/home");
   },

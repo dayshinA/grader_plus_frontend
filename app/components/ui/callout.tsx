@@ -28,15 +28,7 @@ const icons = {
   error: OctagonX,
 } as const;
 
-/**
- * An inline note that belongs to the thing it sits next to: "you can't delegate here", "this
- * import found 3 problems", "no school access yet".
- *
- * Distinct from the two neighbouring components on purpose. A toast (`sonner`) is for something
- * that just happened and then goes away; `FormError` is specifically a form's submit failure and
- * knows how to read an `ApiError`. This is for standing context that stays on the page — so it
- * has no dismiss, no timeout, and no animation.
- */
+// Standing context, not a toast: no dismiss, no timeout, no animation.
 export function Callout({
   variant = "info",
   title,

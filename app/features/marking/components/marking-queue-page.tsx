@@ -41,13 +41,7 @@ function StateIcon({ state }: { state: QueueState }) {
   return <Icon className={cn("size-4 shrink-0", STATE_STYLE[state])} aria-hidden="true" />;
 }
 
-/**
- * What this marker still owes, and nothing else.
- *
- * Must not render: any other marker, any total but their own, any discrepancy or moderation
- * signal, any hint that a project is contested. None of that is in the response, and none of
- * it is manufactured here either.
- */
+// Their own work only: no other marker, no total but theirs, no hint that a project is contested.
 export function MarkingQueuePage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useMarkingQueue();
 

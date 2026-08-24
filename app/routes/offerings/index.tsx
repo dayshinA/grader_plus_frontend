@@ -5,10 +5,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { usePermission } from "~/features/auth/api/auth-context";
 import { useOfferingHeader } from "~/features/structure/api/use-offering-header";
 
-/**
- * Opening an offering means opening the stage that matters now. Settings has its own
- * explicit route so a deliberate click remains possible after this default redirect.
- */
+// Opens the stage that matters now. Settings keeps its own route for a deliberate click.
 export default function OfferingIndexRoute() {
   const { offeringId = "" } = useParams();
   const location = useLocation();

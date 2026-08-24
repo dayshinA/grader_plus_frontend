@@ -28,11 +28,7 @@ function toLocalInputValue(iso: string | null): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
-/**
- * Deadline, threshold, and the two irreversible acts. Closing is the freeze, and it is
- * warned about plainly rather than being a button that quietly changes what everything
- * else does.
- */
+// Closing is the freeze, so it is warned about rather than being a quiet button.
 export function OfferingSettingsPage({ offeringId }: { offeringId: string }) {
   const canUpdate = usePermission("offering.update");
   const canClose = usePermission("offering.close");

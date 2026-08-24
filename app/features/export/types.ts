@@ -1,9 +1,6 @@
 import type { OfferingStatus } from "~/features/structure/types";
 
-/**
- * Mirrors src/export. The preview is JSON; the two downloads are raw files with no
- * envelope, handled as downloads rather than parsed.
- */
+// Mirrors src/export. The preview is JSON; the downloads are raw files.
 export interface ExportPreview {
   offering: {
     id: string;

@@ -32,7 +32,6 @@ import { formatDateTime, pluralise } from "~/utils/format";
 type StatusFilter = "all" | "active" | "deactivated";
 type RoleFilter = Role | "all";
 
-/** How many grants a row shows before the rest collapse into a count. */
 const ROLES_SHOWN = 2;
 
 const STATUS_FILTERS: FilterTabOption<StatusFilter>[] = [
@@ -47,7 +46,6 @@ function scopeLabel(grant: UserRoleSummary): string | null {
   return grant.scopeType === "system" ? "Across the whole platform" : null;
 }
 
-/** Everything about a row that search should match, including its roles and their scopes. */
 function searchableText(user: User): string {
   const roles = (user.roles ?? [])
     .map((grant) => `${ROLE_LABELS[grant.role]} ${grant.scopeName ?? ""}`)
@@ -55,14 +53,7 @@ function searchableText(user: User): string {
   return `${user.fullName} ${user.email} ${roles}`.toLowerCase();
 }
 
-/**
- * The grants on one row.
- *
- * An empty array is not "this person holds nothing". The response carries only the grants
- * the caller's own scope reaches, so a coordinator reading an account that also works in
- * another School sees none of that, and saying "no roles" there would be a confident false
- * statement. Only a caller holding a system wide grant sees the whole picture.
- */
+// An empty array means "none you can see", so it never says "no roles".
 function UserRoles({
   grants,
   seesEverything,
@@ -99,17 +90,13 @@ function UserRoles({
   );
 }
 
-/**
- * Staff accounts. Deactivated rather than deleted, so somebody who has marked anything
- * stays readable, and the list keeps them visible under their own filter.
- */
+/** Staff accounts. Deactivated rather than deleted, so anyone who has marked stays readable. */
 export function UsersPage() {
   const canCreate = usePermission("user.create");
   const { grants } = useAuth();
   const { data, isLoading, isError, error, refetch, isFetching } = useUsers();
 
-  // Reads the scope on the caller's own grants rather than a role name, which is the same
-  // test and the one this app is allowed to make.
+  // Reads the scope on the caller's own grants rather than a role name.
   const seesEverything = isSystemWide(grants);
 
   const [search, setSearch] = useState("");
@@ -132,11 +119,7 @@ export function UsersPage() {
     });
   }, [data, search, status, role]);
 
-  /**
-   * The roles actually present in the response, not the four that exist. A coordinator
-   * mostly sees markers, and a tab that always empties the list is worse than no tab.
-   * `ROLES` is already ordered by reach, so filtering it keeps that order.
-   */
+  // Only the roles present in the response: a tab that always empties the list is worse than none.
   const roleFilters: FilterTabOption<RoleFilter>[] = useMemo(() => {
     const held = new Set((data ?? []).flatMap((user) => user.roles ?? []).map((g) => g.role));
     const present = ROLES.filter((option) => held.has(option));

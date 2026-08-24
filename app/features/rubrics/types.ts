@@ -36,7 +36,7 @@ export interface PutRubricPayload {
   criteria: PutRubricCriterion[];
 }
 
-/** `GET /offerings/:id/rubric/validate`. 33.33 three times is 99.99 and genuinely invalid. */
+/** `GET /offerings/:id/rubric/validate`. 33.33 three times is 99.99 and invalid. */
 export interface WeightingCheck {
   valid: boolean;
   total: number;

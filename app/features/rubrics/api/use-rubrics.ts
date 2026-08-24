@@ -10,10 +10,7 @@ export const rubricKeys = {
   validation: (offeringId: string) => [...rubricKeys.all, offeringId, "validate"] as const,
 };
 
-/**
- * A 404 here is a state rather than a failure: an offering in setup has no rubric yet. The
- * screen reads `isMissing` and shows an empty editor instead of an error.
- */
+// A 404 is a state, not a failure: the screen reads `isMissing` and offers an empty editor.
 export function useRubric(offeringId: string | undefined) {
   const query = useQuery({
     queryKey: rubricKeys.rubric(offeringId ?? ""),

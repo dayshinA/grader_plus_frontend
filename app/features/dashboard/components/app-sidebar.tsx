@@ -122,8 +122,7 @@ function AccountMenu() {
               className="cursor-pointer"
               disabled={logout.isPending}
               onSelect={(event) => {
-                // Keep the menu mounted while the request is in flight, so the disabled
-                // state is what a slow network shows rather than a vanished menu.
+                // Kept mounted in flight, so a slow network shows disabled rather than a vanished menu.
                 event.preventDefault();
                 logout.mutate();
               }}
@@ -138,11 +137,7 @@ function AccountMenu() {
   );
 }
 
-/**
- * Active state comes from the URL rather than local state, so a hard refresh, the back
- * button and a command palette jump all highlight the entry the address bar says you are
- * on.
- */
+// Active state comes from the URL, so a refresh and the back button highlight correctly.
 export function AppSidebar({ navGroups }: { navGroups: NavGroup[] }) {
   const { pathname } = useLocation();
   const active = findNavItem(navGroups, pathname);

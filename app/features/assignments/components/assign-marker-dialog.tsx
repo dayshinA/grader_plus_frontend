@@ -27,11 +27,7 @@ import {
 import type { Project } from "~/features/intake/types";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * One first marker, one second marker and one moderator at most.
- * `additional_marker` is the unconstrained value for a fourth or fifth opinion, so it is
- * the only one that stays available once taken.
- */
+// One of each at most. `additional_marker` is unconstrained, so it stays available once taken.
 function availableRoles(existing: MarkerAssignment[]): AssignmentRole[] {
   const taken = new Set(existing.map((assignment) => assignment.assignmentRole));
   return ASSIGNMENT_ROLES.filter(
@@ -63,7 +59,7 @@ export function AssignMarkerDialog({
   const [role, setRole] = useState<AssignmentRole>(roles[0] ?? "additional_marker");
 
   const assignedIds = new Set(existing.map((assignment) => assignment.markerId));
-  // The coordinator is already filtered out server side: they cannot mark their own offering.
+  // Filtered out server side already: a coordinator cannot mark their own offering.
   const options = (markers ?? [])
     .filter((marker) => !assignedIds.has(marker.id))
     .map((marker) => ({ value: marker.id, label: `${marker.fullName} · ${marker.email}` }));

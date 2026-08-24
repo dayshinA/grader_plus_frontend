@@ -3,11 +3,7 @@ import { useMemo, useState } from "react";
 import { SelectField } from "~/components/ui/select-field";
 import { useModules, useOfferings, useUnits } from "~/features/structure/api/use-structure";
 
-/**
- * Reaching one offering the way the structure is actually shaped: unit, then module, then
- * academic year. There is no route that lists every offering across the platform, and there
- * should not be: which offerings somebody can see is a scope question the server answers.
- */
+// Unit, then module, then year: no route lists every offering, because that is a scope question.
 export function OfferingPicker({
   value,
   onChange,

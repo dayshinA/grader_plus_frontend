@@ -4,16 +4,7 @@ import type { ReactNode } from "react";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 
-/**
- * The row above every list: a search box, and whatever filters that list has.
- *
- * One component rather than the same flex/`relative`/icon-offset block copied into each list
- * screen — five near-identical copies is exactly how a search box ends up 36px tall on one screen
- * and 44px on the next.
- *
- * Mobile-first: search takes the full width on a phone with the filters wrapping under it, and the
- * two sit on one line from `sm:` up.
- */
+// Search and that list's filters. Full width on a phone, one line from `sm:` up.
 export function ListToolbar({
   search,
   onSearchChange,
@@ -25,7 +16,7 @@ export function ListToolbar({
   search: string;
   onSearchChange: (value: string) => void;
   placeholder?: string;
-  /** What the search covers, for screen readers — e.g. "Search schools by code or name". */
+  /** What the search covers, for screen readers, e.g. "Search schools by code or name". */
   searchLabel: string;
   /** Filter controls for this list, usually one or more `FilterTabs`. */
   filters?: ReactNode;

@@ -14,19 +14,11 @@ import { formatDate, formatRelativeDays } from "~/utils/format";
 import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { cn } from "~/lib/utils";
 
-/**
- * The frame around one offering. The surface is stage ordered, so the tabs stay in the
- * order the work happens: intake and the rubric come before assignments, and grades and
- * export come last.
- *
- * A closed offering is the freeze, and it is said once here rather than repeated as a
- * generic failure on each screen underneath.
- */
+// Tabs in the order the work happens. The freeze is said once here, not per screen underneath.
 export function OfferingLayout() {
   const { offeringId = "" } = useParams();
   const { grants } = useAuth();
-  // The tabs are the same navigation the unit frame does: hand the trail along, or opening
-  // intake from an offering opened from a unit loses the unit.
+  // Hand the trail along, or opening intake from an offering opened from a unit loses the unit.
   const declaredBack = useDeclaredBackTarget();
   const { offering, isPending, isError } = useOfferingHeader(offeringId);
 

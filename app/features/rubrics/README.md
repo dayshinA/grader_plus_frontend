@@ -1,8 +1,6 @@
 # rubrics
 
 - Backend module: `src/rubrics/` (RubricsModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Rubrics"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Rubric"
 
 One rubric per offering, written as a whole document.
 

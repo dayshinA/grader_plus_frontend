@@ -63,11 +63,7 @@ export type NavItemData = {
   id: string
   title: string
   icon: React.ElementType
-  /**
-   * Turns the item into a real link. With this set the item renders a router `<Link>`, so it gets
-   * middle-click, cmd-click and prefetch for free; without it the item is a button and selection
-   * is reported through `onSelect` (which is how the component preview drives it).
-   */
+  // Makes the item a router `<Link>`, so it gets middle-click, cmd-click and prefetch.
   href?: string
   badge?: number | string
   shortcut?: string
@@ -301,9 +297,9 @@ export function DashboardSidebar({
   onSelect?: (id: string) => void
   activeWorkspace?: string
   onWorkspaceSelect?: (workspace: string) => void
-  /** Replaces the built-in workspace switcher — e.g. with product branding. */
+  /** Replaces the built-in workspace switcher. */
   header?: React.ReactNode
-  /** Replaces the `bottomItems` menu — e.g. with an account dropdown. */
+  /** Replaces the `bottomItems` menu, for example with an account dropdown. */
   footer?: React.ReactNode
   searchPlaceholder?: string
 }) {
@@ -327,11 +323,9 @@ export function DashboardSidebar({
         setCommandOpen(true)
         return
       }
-      // On mobile the sidebar is an off-canvas drawer over the page: leaving it open after a tap
-      // would hide the screen the tap just navigated to.
+      // The drawer covers the page, so leaving it open hides the screen just navigated to.
       setOpenMobile(false)
-      // A linked item is already navigating via its `<Link>`; navigating again here would push the
-      // same entry twice.
+      // A linked item is already navigating, so this would push the same entry twice.
       if (item.href) return
       if (onSelect) onSelect(item.id)
       else setInternalActiveId(item.id)
@@ -411,7 +405,7 @@ export function DashboardSidebar({
                   key={item.id}
                   onSelect={() => {
                     setCommandOpen(false)
-                    // The palette isn't a link, so linked items navigate explicitly here.
+                    // The palette is not a link, so linked items navigate explicitly here.
                     if (item.href) {
                       setOpenMobile(false)
                       navigate(item.href)

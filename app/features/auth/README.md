@@ -1,8 +1,6 @@
 # auth
 
 - Backend module: `src/auth/` (AuthModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Auth"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Authentication and session"
 
 Turning credentials into a session. Knows nothing about academic structure.
 

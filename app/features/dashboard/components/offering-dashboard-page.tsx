@@ -65,14 +65,7 @@ function StatTile({ label, value, tone }: { label: string; value: number; tone?:
   );
 }
 
-/**
- * Per project, per marker: not started, in draft, or submitted, and when.
- *
- * There is no score column in the response behind this screen, and the screen must not
- * acquire one by fetching grades alongside and joining them. Marker names are correct here,
- * because deciding who is behind requires knowing who they are: blindness is between
- * markers, not between a coordinator and their own allocation.
- */
+// States and timestamps, never a score, and this screen must not join grades on to get one.
 export function OfferingDashboardPage({ offeringId }: { offeringId: string }) {
   const { data, isLoading, isError, error, refetch, isFetching } =
     useOfferingDashboard(offeringId);

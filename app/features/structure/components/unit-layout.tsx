@@ -15,19 +15,11 @@ import { ACADEMIC_UNIT_LEVEL_LABELS } from "~/features/structure/types";
 import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { cn } from "~/lib/utils";
 
-/**
- * The chrome for one academic unit. Scope is the difference between a School and a
- * constituent unit, not the screens, so this frame is identical either way and the server
- * decides what is behind each tab.
- *
- * Unit create and edit are absent here rather than present and refused: the structure comes
- * from University governance and a unit admin does not redraw it.
- */
+// Identical for a School and a constituent unit. Governance owns the structure, so no create here.
 export function UnitLayout() {
   const { unitId = "" } = useParams();
   const { grants } = useAuth();
-  // Moving between tabs is a navigation like any other, so the trail has to be handed
-  // along or the back link degrades to its fallback on the first tab click.
+  // Tabs are navigations too, so the trail is handed along or the back link degrades.
   const declaredBack = useDeclaredBackTarget();
   const { data: units, isPending } = useUnits();
   const [rolloverOpen, setRolloverOpen] = useState(false);

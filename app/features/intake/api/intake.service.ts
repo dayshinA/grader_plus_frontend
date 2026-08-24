@@ -11,13 +11,8 @@ import type {
   UpdateProjectPayload,
 } from "~/features/intake/types";
 
-/** The Learn archive walk, the projects it produces, and the files hanging off each. */
 export const intakeService = {
-  /**
-   * One request, and a large archive over a slow connection will time out. The caller
-   * passes an upload progress callback so the screen shows real progress rather than a
-   * spinner that ends in silence.
-   */
+  // A progress callback, so a slow archive shows progress rather than a silent spinner.
   uploadArchive(
     offeringId: string,
     file: File,
@@ -37,12 +32,10 @@ export const intakeService = {
 
     return apiWithMessage
       .post<IntakeRunResult>(url, body, {
-        // The walk itself happens after the bytes land, so the default 30 seconds is not
-        // enough for a real archive.
+        // The walk happens after the bytes land, so the default 30 seconds is not enough.
         timeout: 10 * 60 * 1000,
         onUploadProgress: (event) => {
-          // Whether any bytes leave the browser at all is the thing worth knowing when
-          // the request dies below HTTP.
+          // Whether any bytes left the browser is what matters when a request dies below HTTP.
           console.log("[intake] bytes sent", {
             loaded: event.loaded,
             total: event.total ?? "unknown",
@@ -97,10 +90,7 @@ export const intakeService = {
     return apiWithMessage.delete<Project>(`/projects/${projectId}`);
   },
 
-  /**
-   * A coordinator saying this student's work can never be graded. The reason is required,
-   * at least five characters, and it stays on the record.
-   */
+  /** A coordinator saying this work can never be graded. The reason is required and kept. */
   excludeProject(
     projectId: string,
     payload: ExcludeProjectPayload,

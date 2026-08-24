@@ -11,11 +11,7 @@ import type {
 import type { ModuleOffering } from "~/features/structure/types";
 import type { User } from "~/features/users/types";
 
-/**
- * Who marks what. This surface names markers, and that is correct: deciding an allocation
- * requires knowing who they are. Blindness is between markers, not between a coordinator
- * and their own allocation.
- */
+// Names markers, correctly: blindness is between markers, not from a coordinator.
 export const assignmentsService = {
   list(offeringId: string): Promise<MarkerAssignment[]> {
     return api.get<MarkerAssignment[]>(`/offerings/${offeringId}/assignments`);

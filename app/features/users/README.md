@@ -1,8 +1,6 @@
 # users
 
 - Backend module: `src/users/` (UsersModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Users"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Accounts and roles", "Account"
 
 Accounts, and the caller's own profile.
 

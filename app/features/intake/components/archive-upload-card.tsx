@@ -13,11 +13,7 @@ import { pluralise } from "~/utils/format";
 
 const MAX_BYTES = 512 * 1024 * 1024;
 
-/**
- * The report is the working screen, not a summary. Folders that failed are listed
- * individually with their reason and never guessed at, because a guess here means the wrong
- * student's name on somebody's grade.
- */
+// Failures are listed individually: a guess means the wrong student's name on a grade.
 function ReportPanel({ report }: { report: IntakeReport }) {
   const failed = report.failed.length;
 
@@ -83,7 +79,6 @@ function ReportPanel({ report }: { report: IntakeReport }) {
   );
 }
 
-/** Upload a Learn archive, then show what happened to it. */
 export function ArchiveUploadCard({
   offeringId,
   disabled,

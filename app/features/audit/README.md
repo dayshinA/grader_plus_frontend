@@ -1,8 +1,6 @@
 # audit
 
 - Backend module: `src/audit/` (AuditModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Audit"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Audit", "Unit structure and audit"
 
 The append only log. New in version 2, no version 1 counterpart.
 

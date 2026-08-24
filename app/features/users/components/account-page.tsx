@@ -19,15 +19,11 @@ import { backTo } from "~/hooks/use-back-link";
 import { formatDateTime } from "~/utils/format";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * Your own record and the roles you hold. The roles list is read only here: granting is
- * somebody else's screen, and this one exists so a person can see why they can see what
- * they can see.
- */
+// Read only. It exists so a person can see why they can see what they can see.
 export function AccountPage() {
   const { user, grants } = useAuth();
   const queryClient = useQueryClient();
-  // ProtectedRoute waits on GET /me, so the record is in hand on the first render here.
+  // ProtectedRoute waits on GET /me, so the record is in hand on the first render.
   const [fullName, setFullName] = useState(user?.fullName ?? "");
 
   const updateMe = useMutation({

@@ -21,9 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sessionUser, setSessionUser] = useState<SessionResponse["user"] | null>(null);
   const [sessionEnd, setSessionEnd] = useState<AuthContextValue["sessionEnd"]>(null);
 
-  // Nothing here navigates. ProtectedRoute is the only place a lost session redirects,
-  // and `deliberate` tells it whether to preserve the interrupted destination: a sign out
-  // ends the account's history, a 401 keeps it so its owner can resume.
+  // Nothing here navigates. ProtectedRoute reads `deliberate` to decide what to keep.
   const clearAuthentication = useCallback(
     (deliberate: boolean) => {
       const userId = getCurrentSession()?.user.id;
@@ -63,8 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [clearAuthentication]);
 
-  // A hard refresh has no token in memory. The httpOnly refresh cookie is the only way
-  // back in, and this is the one attempt per page load.
+  // A hard refresh has no token, so the cookie is the only way back in. One attempt per load.
   useEffect(() => {
     let cancelled = false;
     void ensureSessionBootstrap().then((recovered) => {

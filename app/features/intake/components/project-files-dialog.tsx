@@ -29,7 +29,6 @@ import { downloadUrlInNewTab } from "~/utils/download-file";
 
 const MAX_BYTES = 100 * 1024 * 1024;
 
-/** The files on one project: what is attached, and adding or removing one. */
 export function ProjectFilesDialog({
   open,
   onOpenChange,

@@ -29,12 +29,7 @@ const FILTERS: FilterTabOption<Filter>[] = [
   { id: "all", label: "All" },
 ];
 
-/**
- * Where two markers landed further apart than the offering's threshold.
- *
- * This list is coordinator facing only. A marker is never told a case exists, because the
- * existence of one says somebody disagreed with them.
- */
+// Coordinator facing only: a marker is never told a case exists.
 export function DiscrepanciesPage({ offeringId }: { offeringId: string }) {
   const { offering } = useOfferingHeader(offeringId);
   const { data, isLoading, isError, error, refetch, isFetching } = useDiscrepancies(offeringId);
@@ -53,8 +48,7 @@ export function DiscrepanciesPage({ offeringId }: { offeringId: string }) {
 
   const declaredBack = useDeclaredBackTarget();
   const open = (data ?? []).filter((row) => row.status === "open").length;
-  // Two steps from wherever the offering was opened, so the case carries the step behind
-  // it as well: coming back out of a case restores the offering's own back link.
+  // Carries the step behind it, so coming back out restores the offering's own back link.
   const backHere = backTo({
     to: `/offerings/${offeringId}/discrepancies`,
     label: "discrepancies",

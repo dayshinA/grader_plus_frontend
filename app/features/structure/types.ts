@@ -1,5 +1,4 @@
-// Mirrors src/structure. Two levels of academic unit, then programmes and modules as
-// siblings, then one offering per module per academic year.
+// Mirrors src/structure: two levels of unit, programmes and modules, then offerings.
 
 export const ACADEMIC_UNIT_LEVELS = ["school", "constituent_unit"] as const;
 export type AcademicUnitLevel = (typeof ACADEMIC_UNIT_LEVELS)[number];
@@ -95,7 +94,7 @@ export interface UpdateProgrammePayload {
   isActive?: boolean;
 }
 
-/** `project_modules` on the backend. A module is permanent; an offering is one year of it. */
+/** `project_modules` on the backend. A module is permanent, an offering is one year of it. */
 export interface ProjectModule {
   id: string;
   administrativeUnitId: string;
