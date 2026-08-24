@@ -20,11 +20,7 @@ import { isApiError } from "~/lib/api-client";
 
 const MINIMUM_REASON = 5;
 
-/**
- * Excluding is a coordinator saying this student's work can never be graded, so it is
- * confirmed properly and the reason stays on the record. It is reversible, but the reason
- * is not a formality.
- */
+// Reversible, but the reason is required and stays on the record.
 export function ExcludeProjectDialog({
   open,
   onOpenChange,

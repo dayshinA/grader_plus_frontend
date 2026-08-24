@@ -26,10 +26,7 @@ export function useDiscrepancies(offeringId: string | undefined) {
   });
 }
 
-/**
- * Marks can still change while a case is open, because an edit after submitting silently
- * re-runs comparison. So this is held loosely and refetched rather than cached hard.
- */
+/** An edit after submitting re-runs comparison, so this is refetched rather than cached hard. */
 export function useDiscrepancy(caseId: string | undefined) {
   return useQuery({
     queryKey: gradingKeys.discrepancy(caseId ?? ""),

@@ -13,18 +13,7 @@ import {
 import { isApiError } from "~/lib/api-client";
 import { cn } from "~/lib/utils";
 
-/**
- * What a screen shows when its data didn't load.
- *
- * Every list and detail screen needs the same three things here — say what failed, say why in the
- * API's own words, and offer the retry — so this is one component rather than a block copied per
- * screen and drifting.
- *
- * The message comes from the `ApiError` when there is one: "This collection could not be found"
- * tells an admin what to do next, and "Something went wrong" doesn't. Anything that isn't an
- * `ApiError` (a thrown TypeError, a bug in a selector) has no message worth showing, so the
- * fallback stands in.
- */
+// The message comes from the `ApiError`, because "Something went wrong" tells nobody anything.
 export function ErrorCard({
   title = "Couldn't load this",
   error,
@@ -37,15 +26,15 @@ export function ErrorCard({
   className,
 }: {
   title?: string;
-  /** The rejected value. An `ApiError` supplies the description; anything else falls back. */
+  /** The rejected value. An `ApiError` supplies the description, anything else falls back. */
   error?: unknown;
-  /** Overrides the message derived from `error` — for a state with no error object behind it. */
+  /** Overrides the message derived from `error`, for a state with no error object behind it. */
   description?: React.ReactNode;
   icon?: LucideIcon;
   onRetry?: () => void;
   isRetrying?: boolean;
   retryLabel?: string;
-  /** An escape route beside (or instead of) the retry — e.g. a link back to the list. */
+  /** An escape route beside or instead of the retry, for example a link back to the list. */
   action?: React.ReactNode;
   className?: string;
 }) {

@@ -10,11 +10,7 @@ export const accessKeys = {
   roles: (userId: string) => [...accessKeys.all, "roles", userId] as const,
 };
 
-/**
- * Active grants only, and only the ones the caller's own scope reaches. A coordinator
- * reading a marker who also works in another School sees the offering they share and
- * nothing else, so this list can be shorter than the person actually holds.
- */
+// Only the scopes the caller reaches, so this can be shorter than the person actually holds.
 export function useUserRoles(userId: string | undefined) {
   return useQuery({
     queryKey: accessKeys.roles(userId ?? ""),
@@ -24,11 +20,7 @@ export function useUserRoles(userId: string | undefined) {
   });
 }
 
-/**
- * A grant changes what somebody can do, so anything derived from it is refetched. When the
- * grant is the caller's own, that includes their own permission set and therefore their
- * navigation.
- */
+// A grant changes what somebody can do, including their own navigation.
 function invalidateAfterGrantChange(
   queryClient: ReturnType<typeof useQueryClient>,
   userId: string,
@@ -55,10 +47,7 @@ export function useRevokeRole(userId: string) {
   });
 }
 
-/**
- * The eligible marker list on the assignment screen is what this feeds, so that is what is
- * refetched. On a dry run nothing was written, so nothing is invalidated.
- */
+/** Feeds the eligible marker list on the assignment screen. A dry run writes nothing. */
 export function useImportMarkerRoles(offeringId: string) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -14,8 +14,7 @@ export function meta() {
 }
 
 export default function AdminAuditRoute() {
-  // Hidden for now. The screen is intact and mounts again with the flag, and nothing is
-  // requested while it does not.
+  // Hidden for now. The screen is intact and mounts again with the flag.
   return AUDIT_HIDDEN ? <NotFoundPage /> : <AdminAuditScreen />;
 }
 

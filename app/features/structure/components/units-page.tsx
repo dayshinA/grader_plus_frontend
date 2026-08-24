@@ -46,8 +46,7 @@ function buildTree(units: AcademicUnit[]): UnitNode[] {
     }))
     .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
 
-  // A unit admin scoped to one constituent unit sees it without its parent, so it still
-  // needs somewhere to render rather than vanishing out of the tree.
+  // A unit admin scoped to a constituent unit sees it without its parent, so it needs a home.
   const orphans = constituents.filter(
     (child) => !schools.some((school) => school.id === child.parentUnitId),
   );
@@ -132,10 +131,7 @@ function UnitRow({
   );
 }
 
-/**
- * The academic hierarchy, as a two level tree and nothing deeper. There is no delete here
- * because the API only deactivates, and a unit with academic history stays in the data.
- */
+// Two levels and nothing deeper. No delete: the API deactivates and keeps the history.
 export function UnitsPage() {
   const canCreate = usePermission("unit.create");
   const canEdit = usePermission("unit.update");
@@ -157,8 +153,7 @@ export function UnitsPage() {
     const matches = (unit: AcademicUnit) =>
       `${unit.name} ${unit.code ?? ""}`.toLowerCase().includes(term);
 
-    // A School stays visible when one of its constituent units matches, otherwise the
-    // match would appear with no context around it.
+    // A School stays visible when a child matches, or the match appears with no context.
     return buildTree(units)
       .map((node) => ({
         unit: node.unit,

@@ -13,19 +13,7 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 
-/**
- * Confirmation step for an action that can't simply be undone — suspending a client, deleting one,
- * regenerating a key that stops the old one working, saving a new fee rate.
- *
- * `details` is where the change itself goes (usually a `ChangeSummary`): the prose says what the
- * action means, the details block says what is being changed and to what. It sits outside
- * `AlertDialogDescription` on purpose — that renders a `<p>`, and a list nested in a paragraph is
- * invalid markup that SSR and the client would hydrate differently.
- *
- * Controlled on purpose: the dialog stays open while the request is in flight and closes only when
- * the caller says so, so a failure leaves the admin looking at the thing they were confirming
- * (with the error in a toast) rather than at a list that silently didn't change.
- */
+// Controlled, so a failed request leaves the dialog open on what was being confirmed.
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -81,15 +69,13 @@ export function ConfirmDialog({
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
-            // The variant prop, not a background class: `AlertDialogAction` renders a `Button`
-            // with `asChild`, and Slot concatenates the two class lists instead of merging them —
-            // so a hand-rolled `bg-destructive` loses to the button's own background.
+            // The variant prop: Slot concatenates class lists, so a hand-rolled background loses.
             variant={destructive ? "destructive" : "default"}
             disabled={isPending}
             aria-busy={isPending}
             className="h-11 cursor-pointer sm:h-9"
             onClick={(event) => {
-              // Closing is the caller's call — see the note above.
+              // Closing is the caller's call, see the note above.
               event.preventDefault();
               onConfirm();
             }}

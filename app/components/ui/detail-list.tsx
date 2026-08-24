@@ -3,21 +3,13 @@ import type { ReactNode } from "react";
 import { cn } from "~/lib/utils";
 
 export interface DetailListItem {
-  /** Stable key, and the field's label. */
   label: string;
   value: ReactNode;
-  /** Spans both columns from `sm:` up — for a long value like an address or a key. */
+  /** Spans both columns from `sm:` up, for a long value. */
   wide?: boolean;
 }
 
-/**
- * The label/value block a detail screen is mostly made of, as a real `<dl>` so a screen reader
- * announces each value with the field it belongs to.
- *
- * Mobile-first: one field per row with the label above its value, because two columns at 375px
- * leaves neither side room to breathe. From `sm:` the label moves into a fixed-width first column
- * so the values line up into a scannable edge.
- */
+// A real `<dl>`. One field per row on a phone, label in a fixed column from `sm:` up.
 export function DetailList({
   items,
   className,

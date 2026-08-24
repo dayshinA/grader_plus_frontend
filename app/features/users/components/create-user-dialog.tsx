@@ -24,11 +24,7 @@ import { useCreateUser } from "~/features/users/api/use-users";
 import type { CreatedUser } from "~/features/users/types";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * Every account is created with its first role, because an account with no grant opens
- * nothing. The temporary password comes back exactly once, so this dialog stays on screen
- * showing it rather than closing straight into a list.
- */
+// The first role goes in with the account, and the temporary password comes back exactly once.
 export function CreateUserDialog({
   open,
   onOpenChange,
@@ -45,8 +41,7 @@ export function CreateUserDialog({
   const [scopeId, setScopeId] = useState("");
   const [created, setCreated] = useState<CreatedUser | undefined>();
 
-  // An account is created with its first role, so the same delegation rule applies here as
-  // on the grant dialog: a role at or above the caller's own level is not offered.
+  // Same delegation rule as the grant dialog: a role at or above the caller's own is not offered.
   const roleOptions = grantableRoles(grants).map((option) => ({
     value: option,
     label: ROLE_LABELS[option],

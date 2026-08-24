@@ -19,20 +19,12 @@ import { can, isSystemWide } from "~/features/access/permissions";
 import { AUDIT_HIDDEN } from "~/features/audit/visibility";
 import type { HomeSummary } from "~/features/dashboard/types";
 
-/**
- * One nav entry, one screen. The sidebar, the breadcrumb and the command palette all read
- * this, so a screen added here appears in all three and cannot drift between them.
- *
- * Navigation is built from `GET /me/permissions` and never from a role name. Somebody
- * holding coordinator on one offering and marker on another gets both sections, which is
- * the normal case rather than an edge case.
- */
+// The sidebar, breadcrumb and palette all read this, so they cannot drift apart.
 export interface NavItem {
   id: string;
   title: string;
   href: string;
   icon: LucideIcon;
-  /** One line on what the screen is for, shown under the page title. */
   description: string;
 }
 
@@ -108,18 +100,18 @@ export const NAV: Record<string, NavItem> = {
   },
 };
 
-/** The offering surface, which is per offering rather than a fixed set of destinations. */
+/** The offering tabs, which are per offering rather than a fixed set. */
 export interface OfferingNavItem {
   id: string;
   title: string;
-  /** Appended to /offerings/:id. The index route selects a default from lifecycle status. */
+  /** Appended to /offerings/:id. The index route picks a default from lifecycle status. */
   segment: string;
   icon: LucideIcon;
   description: string;
   permission: Permission;
 }
 
-/** Audit is hidden for now, so its tab is filtered out rather than deleted from the list. */
+/** Audit is hidden for now, so its tab is filtered out rather than deleted. */
 const isVisibleTab = (item: { id: string }) => !AUDIT_HIDDEN || !item.id.endsWith("-audit");
 
 export const OFFERING_NAV: OfferingNavItem[] = ([
@@ -197,7 +189,6 @@ export const OFFERING_NAV: OfferingNavItem[] = ([
   },
 ] satisfies OfferingNavItem[]).filter(isVisibleTab);
 
-/** The unit surface, likewise per unit. */
 export interface UnitNavItem {
   id: string;
   title: string;
@@ -242,11 +233,7 @@ export const UNIT_NAV: UnitNavItem[] = ([
   },
 ] satisfies UnitNavItem[]).filter(isVisibleTab);
 
-/**
- * The sidebar for this caller. The offering and unit entries come from `GET /me/home`,
- * which already knows which ones they hold. A caller with one useful work surface goes
- * straight to it, so Home is not another stop above the work it would only repeat.
- */
+// A caller with one useful place to work goes straight there rather than via Home.
 export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | undefined): NavGroup[] {
   const groups: NavGroup[] = [];
 
@@ -262,8 +249,7 @@ export function buildNavGroups(grants: ResolvedGrant[], home: HomeSummary | unde
     groups.push({ heading: "Marking", items: marking });
   }
 
-  // One entry per offering they coordinate, because the surface is offering scoped and a
-  // generic "Offerings" link would have nothing to point at.
+  // One entry per coordinated offering: a generic "Offerings" link has nothing to point at.
   const coordinated = sortedCoordinatedOfferings(home);
   if (coordinated.length > 0) {
     groups.push({
@@ -327,11 +313,7 @@ function sortedCoordinatedOfferings(home: HomeSummary | undefined): HomeSummary[
   );
 }
 
-/**
- * Home combines work across surfaces. If the caller has exactly one kind of work,
- * `/` routes straight through to marking or the first available scoped entry point.
- * This is deliberately capability and entry-point driven, never a branch on a role name.
- */
+// Driven by capability and entry point, never by a role name.
 export function singleSurfaceLandingPath(
   grants: ResolvedGrant[],
   home: HomeSummary | undefined,

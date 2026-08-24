@@ -13,26 +13,17 @@ import {
 import { cn } from "~/lib/utils";
 
 export interface DataTableColumn<T> {
-  /** Stable key for the column. */
   id: string;
   header: ReactNode;
   cell: (row: T) => ReactNode;
-  /** Right-aligns money and counts, where digits should line up. */
+  /** Right-aligns numbers and counts, where digits should line up. */
   align?: "start" | "end";
-  /** Applied to both the header cell and the body cells — e.g. `hidden lg:table-cell`. */
+  /** Applied to the header cell and the body cells, for example `hidden lg:table-cell`. */
   className?: string;
-  /** Width of the skeleton stand-in for this column while loading. */
   skeletonClassName?: string;
 }
 
-/**
- * The list surface every admin screen with records uses: a table from `md:` up, and — because
- * staff read these on phones — a caller-supplied card per row below that, since a five-column
- * table on a 375px screen is a horizontal scroll nobody wins.
- *
- * Loading and empty are part of the component rather than each screen's problem: skeleton rows
- * occupy the same geometry as real ones, so a list arriving doesn't move the page.
- */
+// A table from `md:` up, cards below, because five columns at 375px is a sideways scroll.
 export function DataTable<T>({
   columns,
   rows,
@@ -51,9 +42,7 @@ export function DataTable<T>({
   renderCard?: (row: T) => ReactNode;
   isLoading?: boolean;
   skeletonRows?: number;
-  /** Shown when there's nothing to list and nothing in flight. */
   empty?: ReactNode;
-  /** Screen-reader description of what the table holds. */
   caption?: string;
   className?: string;
 }) {

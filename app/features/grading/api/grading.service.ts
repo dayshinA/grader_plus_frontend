@@ -10,10 +10,7 @@ import type {
 } from "~/features/grading/types";
 import type { ModuleOffering } from "~/features/structure/types";
 
-/**
- * Comparison, discrepancy cases and final grades. The only module that writes a grade, and
- * the only place both markers' work is ever visible.
- */
+// The only module that writes a grade, and the only place both markers' work is visible.
 export const gradingService = {
   listDiscrepancies(offeringId: string): Promise<DiscrepancyListItem[]> {
     return api.get<DiscrepancyListItem[]>(`/offerings/${offeringId}/discrepancies`);
@@ -41,10 +38,7 @@ export const gradingService = {
     return api.get<FinalGrade>(`/projects/${projectId}/grade`);
   },
 
-  /**
-   * The exceptional path, for a marker who became permanently unavailable. Refused while a
-   * discrepancy on the project is still open, because that is a moderation not an override.
-   */
+  // The exceptional path. Refused while a case is open, because that is a moderation.
   overrideGrade(
     projectId: string,
     payload: OverrideGradePayload,

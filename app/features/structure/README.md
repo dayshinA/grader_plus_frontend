@@ -1,9 +1,6 @@
 # structure
 
 - Backend module: `src/structure/` (StructureModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Structure"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Academic units", "Programmes and modules",
-  "Offering settings"
 
 The academic hierarchy: schools and their constituent units, plus programmes, modules and
 offerings. Replaces the version 1 `schools`, `departments` and `academic-modules` folders,

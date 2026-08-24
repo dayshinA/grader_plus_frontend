@@ -31,14 +31,7 @@ function Figure({ label, value, tone }: { label: string; value: number; tone?: "
   );
 }
 
-/**
- * The preview comes first, always. It names every gap with its reason, which is what makes
- * an incomplete export a decision somebody made rather than something discovered a week
- * later.
- *
- * The two downloads are raw files rather than JSON, so they are handed to the browser as
- * downloads and a failure on them is read back out of the body rather than flattened.
- */
+// The preview comes first, so an incomplete export is a decision rather than a discovery.
 export function ExportPage({ offeringId }: { offeringId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } = useExportPreview(offeringId);
   const [busy, setBusy] = useState<"grades" | "feedback" | undefined>();

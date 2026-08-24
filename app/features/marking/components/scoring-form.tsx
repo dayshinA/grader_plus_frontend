@@ -39,16 +39,7 @@ function initialDraft(workspace: MarkingWorkspace): Record<string, ScoreDraft> {
   return draft;
 }
 
-/**
- * The caller's own rubric form.
- *
- * The displayed total comes from the save response and is never computed here: every save
- * recomputes it server side, and two implementations of one formula is two answers.
- *
- * Submitting is a deliberate act rather than the last autosave. An edit after submitting is
- * allowed and silently re-runs comparison, and the UI says nothing about what that concluded
- * because there is nothing to say: no hint, no badge, no inference from timing.
- */
+// The total comes from the save response. Submitting is deliberate, and says nothing of the outcome.
 export function ScoringForm({
   projectId,
   workspace,
@@ -254,8 +245,7 @@ export function ScoringForm({
             disabled={submit.isPending}
             aria-busy={submit.isPending}
             onClick={() => {
-              // Flush first: submitting with a keystroke still in the debounce window
-              // would submit the previous state.
+              // Flush first, or a keystroke still in the debounce window submits the previous state.
               scoreAutosave.flush();
               feedbackAutosave.flush();
               submit.mutate(undefined, {

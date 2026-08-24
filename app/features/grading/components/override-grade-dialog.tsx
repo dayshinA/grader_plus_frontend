@@ -21,12 +21,7 @@ import { isApiError } from "~/lib/api-client";
 
 const MINIMUM_REASON = 10;
 
-/**
- * The exceptional path, for a project that cannot complete the normal workflow, a marker
- * becoming permanently unavailable being the usual case. It is never the way to settle an
- * ordinary disagreement, and it is worded that way because the server refuses it outright
- * while a discrepancy is open.
- */
+// The exceptional path, and the server refuses it while a case is open.
 export function OverrideGradeDialog({
   open,
   onOpenChange,

@@ -2,17 +2,14 @@ import { api, apiWithMessage } from "~/lib/api-client";
 import type { ApiResult } from "~/lib/api-client";
 import type { PutRubricPayload, Rubric, WeightingCheck } from "~/features/rubrics/types";
 
-/**
- * One rubric per offering, written and saved as a whole document rather than criterion by
- * criterion. Structural edits lock once any evaluation exists.
- */
+// One rubric per offering, saved as a whole document. Structure locks once an evaluation exists.
 export const rubricsService = {
   /** 404 when the offering has no rubric yet, which is a normal state during setup. */
   get(offeringId: string): Promise<Rubric> {
     return api.get<Rubric>(`/offerings/${offeringId}/rubric`);
   },
 
-  /** A full replace. Adding, removing or reweighting is refused once marking has produced anything. */
+  /** A full replace. Adding, removing or reweighting is refused once marking has begun. */
   put(offeringId: string, payload: PutRubricPayload): Promise<ApiResult<Rubric>> {
     return apiWithMessage.put<Rubric>(`/offerings/${offeringId}/rubric`, payload);
   },

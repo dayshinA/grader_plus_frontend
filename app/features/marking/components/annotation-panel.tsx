@@ -27,8 +27,7 @@ function round5(value: number): number {
   return Number(value.toFixed(5));
 }
 
-// The DTO caps the payload: 120 rects, 2000 characters of quote. Truncating here beats a
-// 422 on a selection that was simply generous.
+// The DTO caps this at 120 rects and 2000 characters, so truncating beats a 422.
 function selectionPayload(
   page: number,
   selection: PdfTextSelection,
@@ -51,11 +50,7 @@ function selectionPayload(
   };
 }
 
-/**
- * The notes on the caller's own evaluation, pins and highlights alike. Two markers
- * annotating the same page never see each other's, because the note is keyed on the
- * evaluation and not on the submission alone.
- */
+// Keyed on the evaluation, so two markers on the same page never see each other's notes.
 export function AnnotationPanel({
   submissionId,
   annotations,
@@ -71,7 +66,7 @@ export function AnnotationPanel({
   page: number;
   /** Set when the marker clicked the page. Cleared once the note is saved or cancelled. */
   pendingPoint: { x: number; y: number } | null;
-  /** Set when the marker selected text on the page. Same lifecycle as a pending pin. */
+  /** Set when the marker selected text. Same lifecycle as a pending pin. */
   pendingSelection: PdfTextSelection | null;
   onPendingHandled: () => void;
   onFocusPin: (annotation: Annotation) => void;

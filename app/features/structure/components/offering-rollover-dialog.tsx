@@ -18,14 +18,10 @@ import { useRolloverOfferings } from "~/features/structure/api/use-structure";
 import { isApiError } from "~/lib/api-client";
 import type { ImportReport } from "~/types/import-report";
 
-/** The 422 would say the same thing, but the typo is cheaper to catch before the request. */
+/** The 422 says the same thing, but a typo is cheaper to catch before the request. */
 const YEAR_PATTERN = /^\d{4}\/\d{2}$/;
 
-/**
- * Opens the new academic year's offering for every active module this unit administers.
- * Not an upload: the system already knows which modules ran last year, so the form is just
- * the year pair, previewed as a dry run before anything is written.
- */
+// Not an upload: the system knows which modules ran last year, so the form is the year pair.
 export function OfferingRolloverDialog({
   open,
   onOpenChange,

@@ -7,10 +7,7 @@ export const exportKeys = {
   preview: (offeringId: string) => [...exportKeys.all, "preview", offeringId] as const,
 };
 
-/**
- * Deliberately short lived: a marker submitting or a case being settled changes what is
- * exportable, and an export decision made from a stale preview is the wrong decision.
- */
+// Short lived: an export decision made from a stale preview is the wrong decision.
 export function useExportPreview(offeringId: string | undefined) {
   return useQuery({
     queryKey: exportKeys.preview(offeringId ?? ""),

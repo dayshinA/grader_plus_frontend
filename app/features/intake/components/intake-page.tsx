@@ -47,11 +47,7 @@ const FILTERS: FilterTabOption<Filter>[] = [
   { id: "excluded", label: "Excluded" },
 ];
 
-/**
- * Upload the archive, then work through what it produced. The project list is the record
- * this offering marks against, so everything the archive could not read is fixed here by
- * hand rather than guessed at.
- */
+// The project list is what this offering marks against, so unreadable folders are fixed by hand.
 export function IntakePage({ offeringId }: { offeringId: string }) {
   const canUpload = usePermission("intake.upload");
   const canCreate = usePermission("project.create");

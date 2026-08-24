@@ -6,20 +6,13 @@ import { cn } from "~/lib/utils";
 
 export interface FileInputProps {
   id?: string;
-  /** File extensions this picker accepts, e.g. `[".csv", ".xlsx"]` — drives both the
-   * native `accept` attribute and the client-side rejection message. Checked
-   * case-insensitively against the selected file's name. */
+  /** Accepted extensions, for example `[".csv", ".xlsx"]`. Matched case-insensitively. */
   accept: string[];
-  /** Client-side size cap in bytes — a file over this is rejected locally before
-   * `onFileSelect` is ever called with it, so an oversized file never reaches a caller's
-   * upload logic. Should mirror (not exceed) whatever the receiving endpoint enforces. */
+  /** Size cap in bytes, rejected locally. Should mirror what the endpoint enforces, not exceed it. */
   maxSizeBytes: number;
-  /** Called with the chosen `File`, or `null` when cleared. Only fires with a file that
-   * already passed the `accept`/`maxSizeBytes` checks — a rejected file never reaches
-   * this callback; see `onError` for that path instead. */
+  /** Called with the chosen file, or null when cleared. A rejected file goes to `onError`. */
   onFileSelect: (file: File | null) => void;
-  /** Called when a picked/dropped file fails client-side validation, with a
-   * ready-to-display reason. Does not clear a previously accepted selection. */
+  /** Called when a file fails validation. Does not clear a previously accepted selection. */
   onError?: (message: string) => void;
   disabled?: boolean;
   className?: string;
@@ -34,14 +27,7 @@ function extensionOf(fileName: string): string {
   return dot === -1 ? "" : fileName.slice(dot).toLowerCase();
 }
 
-/**
- * Click-or-drag file picker with client-side extension/size validation — built as a
- * shared primitive (not inlined into the bulk user-import screen) because FR9
- * (marker-assignment bulk CSV) and FR4 (submissions ZIP upload) need the same
- * click-or-drag-plus-validate shape. Selection is uncontrolled internally (mirrors
- * `PasswordInput`'s visibility state) — the selected `File` itself is the source of
- * truth a caller keeps, handed back via `onFileSelect`.
- */
+// Uncontrolled: the caller keeps the `File` handed back by `onFileSelect`.
 const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(
   ({ id, accept, maxSizeBytes, onFileSelect, onError, disabled, className }, ref) => {
     const inputRef = React.useRef<HTMLInputElement>(null);

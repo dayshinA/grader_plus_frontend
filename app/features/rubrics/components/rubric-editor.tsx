@@ -40,14 +40,7 @@ function totalWeighting(criteria: DraftCriterion[]): number {
   );
 }
 
-/**
- * The rubric is a whole document, so the editor holds the full set and PUTs it.
- *
- * Once any evaluation exists in the offering, structural edits are refused: no adding,
- * removing or reweighting, because a coordinator moving a weighting mid marking moves the
- * totals underneath markers who have already submitted. Wording stays editable, and the
- * editor reflects that rather than letting the save fail.
- */
+// A whole document, PUT as one. Reweighting mid marking would move totals under submitted work.
 export function RubricEditor({
   offeringId,
   rubric,

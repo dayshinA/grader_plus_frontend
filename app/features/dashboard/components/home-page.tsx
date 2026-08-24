@@ -110,14 +110,7 @@ function deadlineOrder(a: MarkingQueueItem, b: MarkingQueueItem) {
   return new Date(a.markingDeadline).getTime() - new Date(b.markingDeadline).getTime();
 }
 
-/**
- * Role aware, but not role branched: `GET /me/home` names the caller's entry points, and
- * this screen fills each one in with data those entry points already answer with. The
- * enrichment runs on the same query keys as the full pages, so clicking through is warm.
- *
- * No total appears anywhere on it, including the caller's own. Queue rows carry the
- * caller's own state, dashboards carry states and counts, and nothing joins grades on.
- */
+// Entry points from `GET /me/home`, filled in on the full pages' query keys. No total anywhere.
 export function HomePage() {
   const { user, session, grants, can } = useAuth();
   const { data, isLoading, isError, error, refetch, isFetching } = useHome();

@@ -17,14 +17,9 @@ import type {
   UpdateUnitPayload,
 } from "~/features/structure/types";
 
-/**
- * The academic hierarchy. Two levels of unit, then programmes and modules as siblings
- * linked many to many, then one offering per module per academic year.
- *
- * Every list here returns its full set: there is no pagination anywhere in this API.
- */
+// Units, programmes and modules, then offerings. Every list returns its full set, unpaged.
 export const structureService = {
-  /** Narrowed server side to what the caller's grants reach. A 403 means out of scope. */
+  /** Narrowed server side to the caller's grants. A 403 means out of scope. */
   listUnits(): Promise<AcademicUnit[]> {
     return api.get<AcademicUnit[]>("/units");
   },
@@ -70,11 +65,7 @@ export const structureService = {
     return api.get<ModuleProgrammeLink[]>(`/modules/${moduleId}/programmes`);
   },
 
-  /**
-   * A full set replace, not a tag picker: what you send is what the module has afterwards,
-   * and an empty array unlinks everything. A link crossing two schools is service teaching
-   * and only a system administrator can make it, so anyone else gets a 403.
-   */
+  // A full set replace. Cross-school links are service teaching, so anyone else gets a 403.
   setModuleProgrammes(
     moduleId: string,
     programmeIds: string[],
@@ -108,10 +99,7 @@ export const structureService = {
     return apiWithMessage.post<ModuleOffering>(`/offerings/${id}/reopen`);
   },
 
-  /**
-   * Create only, partial, idempotent on re-upload. A row matching an existing programme
-   * exactly is unchanged; a code held with a different title or level fails its row.
-   */
+  /** Create only and idempotent: an identical row is unchanged, a clashing code fails. */
   importProgrammes(
     unitId: string,
     file: File,
@@ -120,15 +108,11 @@ export const structureService = {
     return postImport(`/units/${unitId}/programmes/import`, file, dryRun);
   },
 
-  /** The programme import's mirror: code and title, no link columns by design. */
   importModules(unitId: string, file: File, dryRun: boolean): Promise<ApiResult<ImportReport>> {
     return postImport(`/units/${unitId}/modules/import`, file, dryRun);
   },
 
-  /**
-   * Additive only: a row adds one link and an import never removes one. Removal stays with
-   * the module's programme editor, which replaces the full set.
-   */
+  /** Additive only. Removing a link is the module's programme editor's job. */
   importModuleProgrammeLinks(
     unitId: string,
     file: File,
@@ -137,11 +121,7 @@ export const structureService = {
     return postImport(`/units/${unitId}/module-programmes/import`, file, dryRun);
   },
 
-  /**
-   * Opens the new year's offering for every active module the unit administers, carrying
-   * threshold and marker cap forward and never the deadline. Not an upload: the system
-   * already knows which modules ran last year.
-   */
+  // Carries threshold and marker cap forward, never the deadline.
   rolloverOfferings(
     unitId: string,
     payload: { fromYear: string; toYear: string; dryRun?: boolean },
@@ -152,7 +132,7 @@ export const structureService = {
   },
 };
 
-/** The upload routes all take multipart `file` plus `dryRun` as a literal string. */
+/** The upload routes take multipart `file` plus `dryRun` as a literal string. */
 function postImport(
   url: string,
   file: File,

@@ -46,11 +46,7 @@ function CompletionBar({ percent }: { percent: number }) {
   );
 }
 
-/**
- * Progress across the offerings beneath one unit. It says that a case exists and how far
- * marking has got. It does not show individual scores, and there is no route here that
- * would let it.
- */
+// Whether a case exists and how far marking got. No scores, and no route that would show them.
 export function UnitDashboardPage({ unitId }: { unitId: string }) {
   const { data, isLoading, isError, error, refetch, isFetching } = useUnitDashboard(unitId);
   const declaredBack = useDeclaredBackTarget();

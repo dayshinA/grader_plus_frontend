@@ -9,10 +9,7 @@ import type {
   ResetPasswordPayload,
 } from "~/features/auth/types";
 
-/**
- * Every rejection is an ApiError, so a form reads `error.fieldError(name)` for the field
- * messages and `error.message` for the rest. Nothing here renders an error itself.
- */
+// Every rejection is an ApiError, so forms read fieldError(name). Nothing here renders one.
 
 export function useLogin() {
   const { signIn } = useAuth();
@@ -35,11 +32,7 @@ export function useResetPassword() {
   });
 }
 
-/**
- * Changing a password revokes every refresh token on the account, so the session this tab
- * holds is already dead by the time this resolves. The caller signs out and sends the user
- * back to login rather than pretending the tab survived.
- */
+// The session is dead by the time this resolves, so the caller signs out.
 export function useChangePassword() {
   return useMutation({
     mutationFn: (payload: ChangePasswordPayload) => authService.changePassword(payload),
@@ -50,8 +43,7 @@ export function useLogout() {
   const { signOut } = useAuth();
 
   return useMutation({
-    // The local session goes either way. An already dead token is exactly when logging out
-    // matters most, and it is also when this call fails.
+    // A dead token is when logging out matters most, and also when this call fails.
     mutationFn: () => authService.logout().catch(() => null),
     onSettled: signOut,
   });

@@ -5,19 +5,12 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-/** Keeps the masked form the same length as the real one so revealing doesn't resize the box. */
+/** Masks to the same length as the real value so revealing does not resize the box. */
 function mask(value: string): string {
   return "•".repeat(Math.min(value.length, 48));
 }
 
-/**
- * A credential shown on screen: monospace, wrapping rather than truncating (half an API key is
- * worse than none), with reveal and copy.
- *
- * Masked by default when `maskable` — an admin often has this page open while someone else is
- * looking, and a key on screen is a live credential. The toggle is per-render state, never
- * persisted, so navigating back re-hides it.
- */
+// A generated temporary password. Masked per render, so navigating back re-hides it.
 export function SecretField({
   value,
   label,
@@ -27,7 +20,7 @@ export function SecretField({
   className,
 }: {
   value: string | null | undefined;
-  /** Names the value in the copy/reveal buttons' accessible labels, e.g. "API key". */
+  /** Names the value in the copy and reveal buttons' accessible labels. */
   label: string;
   maskable?: boolean;
   copyLabel?: string;
@@ -49,7 +42,7 @@ export function SecretField({
       toast.success(`${label} copied.`);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard access is denied outside a secure context — it's on screen to copy by hand.
+      // Clipboard access is denied outside a secure context. It is on screen to copy by hand.
       toast.error("Couldn't copy automatically. Select the value and copy it.");
     }
   }

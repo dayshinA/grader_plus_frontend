@@ -1,8 +1,6 @@
 # grading
 
 - Backend module: `src/grading/` (GradingModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Grading"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Discrepancies", "Grades and export"
 
 Discrepancy cases and final grades. **Not the marking workspace**: version 1 used this name
 for the marker's evaluation screen, which is now `marking/`. Replaces the version 1

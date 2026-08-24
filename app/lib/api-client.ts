@@ -43,7 +43,6 @@ export class ApiError extends Error {
     this.errors = response.errors;
   }
 
-  /** `errors[].field` as a map, which is what the form components read. */
   get fieldErrors(): Record<string, string[]> {
     const map: Record<string, string[]> = {};
     for (const entry of this.errors ?? []) {
@@ -65,7 +64,7 @@ export function isStatus(error: unknown, statusCode: number): boolean {
   return error instanceof ApiError && error.statusCode === statusCode;
 }
 
-/** Out of scope, or the permission is not held. Never rendered as a not found. */
+/** Out of scope, or the permission is not held. Never render this as a not found. */
 export function isForbidden(error: unknown): boolean {
   return isStatus(error, 403);
 }
@@ -74,7 +73,6 @@ export function isNotFound(error: unknown): boolean {
   return isStatus(error, 404);
 }
 
-/** What `POST /auth/login` and `POST /auth/refresh` put in the body. */
 export interface SessionResponse {
   access_token: string;
   expires_in: number;
@@ -86,9 +84,7 @@ export interface SessionResponse {
   };
 }
 
-// The access token lives here rather than in AuthProvider state. A clientLoader can run
-// before the provider mounts on a hard reload, and module state is available either way.
-// Never localStorage: a 15 minute token in storage outlives the tab it was issued to.
+// Module state, because a clientLoader can run before the provider mounts. Never localStorage.
 let currentSession: SessionResponse | null = null;
 
 export function setSession(session: SessionResponse | null): void {
@@ -118,11 +114,7 @@ export function configureApiClient(handlers: {
 const REQUEST_TIMEOUT_MS = 30_000;
 const REFRESH_URL = "/auth/refresh";
 
-// withCredentials carries the httpOnly refresh cookie on the /auth routes that set it.
-// Leave the adapter alone. Setting it to "fetch" breaks every upload that passes
-// onUploadProgress: axios then streams the body as a ReadableStream, Chrome requires
-// HTTP/2 for a streamed request body, and the dev backend is plain HTTP/1.1, so the
-// request dies as ERR_ALPN_NEGOTIATION_FAILED before it leaves the browser.
+// Do not switch the adapter to "fetch": streamed upload bodies need HTTP/2 and dev is HTTP/1.1.
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: config.apiBaseUrl,
   timeout: REQUEST_TIMEOUT_MS,
@@ -163,11 +155,7 @@ function throwApiError(envelope: ApiErrorResponse, hadToken: boolean): never {
 
 let refreshPromise: Promise<boolean> | null = null;
 
-/**
- * Single flight. The backend rotates the refresh cookie on every use and treats a second
- * call with an already rotated token as a replay, revoking the whole chain. Two concurrent
- * 401s must therefore join one refresh rather than fire one each.
- */
+// Single flight: the backend rotates the cookie and treats a reused one as a replay.
 export function refreshSession(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = axiosInstance
@@ -187,10 +175,7 @@ export function refreshSession(): Promise<boolean> {
 
 let bootstrapPromise: Promise<boolean> | null = null;
 
-/**
- * The one session recovery attempt per page load. A hard refresh has no token in memory,
- * so the cookie is the only way back in, and whoever asks first triggers it.
- */
+/** One session recovery attempt per page load. After a hard refresh the cookie is the only way back in. */
 export function ensureSessionBootstrap(): Promise<boolean> {
   if (!bootstrapPromise) {
     bootstrapPromise = refreshSession();
@@ -228,7 +213,6 @@ export function parseContentDispositionFilename(
 
 export interface RawApiResult<T> {
   data: T;
-  /** From Content-Disposition, or null when the response carried none. */
   filename: string | null;
 }
 
@@ -280,9 +264,7 @@ axiosInstance.interceptors.response.use(
       throwApiError(error.response.data, hadToken);
     }
 
-    // No response at all means the request died below HTTP and never reached the server,
-    // which is a different fault to any status code it could have answered with. The
-    // envelope thrown below flattens that distinction, so record it before it is lost.
+    // No response means it died below HTTP, and the envelope below loses that distinction.
     if (!error.response) {
       console.error("[api] request failed before any response", {
         method: originalRequest?.method,
@@ -346,13 +328,7 @@ export const api = {
     return response.data;
   },
 
-  /**
-   * A download rather than JSON: the grade CSV and the feedback zip. Comes back as a Blob
-   * with whatever filename the backend chose.
-   *
-   * A failure on these routes still arrives as a JSON envelope, so the blob is read back as
-   * text and re-thrown as a real ApiError rather than flattened into a generic failure.
-   */
+  // A Blob for the CSV and the zip. A failure still arrives as JSON, so it is read back and re-thrown.
   download: async (
     url: string,
     requestConfig?: AxiosRequestConfig,
@@ -394,14 +370,10 @@ async function reinterpretBlobError(error: unknown): Promise<unknown> {
 
 export interface ApiResult<T> {
   data: T;
-  /** The backend's own confirmation message, for the success toast. */
   message: string;
 }
 
-/**
- * The same requests, resolving `{ data, message }`. For mutations whose result is confirmed
- * back to the user, so the toast says what the backend said rather than a guess at it.
- */
+/** The same requests, resolving `{ data, message }` so a toast can use the backend's wording. */
 export const apiWithMessage = {
   post: async <T>(
     url: string,

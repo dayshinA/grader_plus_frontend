@@ -1,13 +1,7 @@
 import { ImportFileDialog } from "~/components/ui/import-file-dialog";
 import { useImportMarkerRoles } from "~/features/access/api/use-access";
 
-/**
- * Grants marker eligibility on one offering from a file of emails. Eligibility is not
- * assignment: any number of people can be made assignable, and the two-to-five marker rule
- * applies later, per project, on the assignment screen. Lives in access because the route
- * belongs to AccessModule, and is opened from the assignment screen where the eligible
- * list renders.
- */
+// Eligibility, not assignment: the two-to-five rule applies later, per project.
 export function MarkerEligibilityImportDialog({
   open,
   onOpenChange,

@@ -24,7 +24,6 @@ import type { AuditLogEntry } from "~/features/audit/types";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { formatDateTime, humanise, pluralise } from "~/utils/format";
 
-/** Before and after, only when there is something to show. */
 function ChangeDetail({ entry }: { entry: AuditLogEntry }) {
   if (!entry.before && !entry.after) {
     return <span className="text-xs text-muted-foreground">No details recorded</span>;
@@ -53,10 +52,7 @@ function ChangeDetail({ entry }: { entry: AuditLogEntry }) {
   );
 }
 
-/**
- * The shared audit list. Read only in the strongest sense: the table has no update route
- * and no delete route behind it, so there is no row menu here that would imply one.
- */
+/** The shared audit list. There is no update or delete route, so there is no row menu. */
 export function AuditTable({
   entries,
   isLoading,

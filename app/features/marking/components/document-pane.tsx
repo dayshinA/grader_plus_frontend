@@ -16,10 +16,7 @@ import { formatFileSize } from "~/utils/format";
 import { downloadUrlInNewTab } from "~/utils/download-file";
 import { cn } from "~/lib/utils";
 
-/**
- * Signed URLs are short lived, so one is fetched when a file is opened rather than when the
- * workspace loads, and refetched before it expires rather than being held in state.
- */
+/** Signed URLs are short lived, so one is fetched per file open and refetched before it expires. */
 function useSignedUrl(submissionId: string) {
   return useQuery({
     queryKey: ["marking", "submission-url", submissionId],
@@ -53,10 +50,7 @@ function Pin({
   );
 }
 
-/**
- * The boxes of one text highlight. Decorative: the note itself is announced through the
- * panel's list, the same as a pin.
- */
+/** The boxes of one text highlight. Decorative: the note is announced through the panel's list. */
 function HighlightMarks({
   rects,
   focused = false,
@@ -89,11 +83,7 @@ function HighlightMarks({
   );
 }
 
-/**
- * One file, its pages, and the caller's own notes on them. Mounted keyed on the submission
- * id, so switching files resets the page, the zoom and any half placed note without an
- * effect chasing the change.
- */
+// Keyed on the submission id, so switching files resets page, zoom and any half placed note.
 function FileViewer({
   file,
   readOnly,
@@ -113,8 +103,7 @@ function FileViewer({
   const [pendingSelection, setPendingSelection] = useState<PdfTextSelection | null>(null);
   const [focusedPin, setFocusedPin] = useState<string | undefined>();
 
-  // One pending note at a time: starting a pin abandons a half placed highlight and the
-  // other way round, matching what the panel's single form can show.
+  // One pending note at a time, matching what the panel's single form can show.
   function handlePointSelect(point: { x: number; y: number }) {
     setPendingSelection(null);
     setPendingPoint(point);
@@ -123,8 +112,7 @@ function FileViewer({
   function handleTextSelect(selection: PdfTextSelection) {
     setPendingPoint(null);
     setPendingSelection(selection);
-    // The preview boxes take over from the browser's own selection paint; leaving both
-    // visible doubles the tint and makes the pending state look saved already.
+    // Both selection paints at once doubles the tint and makes the pending state look saved.
     window.getSelection()?.removeAllRanges();
   }
 
@@ -287,13 +275,7 @@ function FileViewer({
   );
 }
 
-/**
- * The document pane: a file switcher, and the file currently open.
- *
- * The notes shown here belong to the caller's own evaluation. Two markers annotating the
- * same page never see each other's, because a note is keyed on the evaluation and not on
- * the submission alone.
- */
+// The notes belong to the caller's own evaluation, so markers never see each other's.
 export function DocumentPane({
   files,
   readOnly,
@@ -301,7 +283,6 @@ export function DocumentPane({
 }: {
   files: Submission[];
   readOnly: boolean;
-  /** Rendered after the zoom controls. The workspace puts its focus toggle here. */
   toolbarExtra?: ReactNode;
 }) {
   const [activeId, setActiveId] = useState(files[0]?.id);

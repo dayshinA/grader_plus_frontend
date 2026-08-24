@@ -1,8 +1,6 @@
 # notifications
 
 - Backend module: `src/notifications/` (NotificationsModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Notifications"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Notifications"
 
 The caller's own notifications. New in version 2, no version 1 counterpart.
 

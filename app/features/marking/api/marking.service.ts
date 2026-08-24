@@ -11,13 +11,7 @@ import type {
   UpdateAnnotationPayload,
 } from "~/features/marking/types";
 
-/**
- * The blind marking surface.
- *
- * No call in this file carries a marker identity, and there is no field anywhere in it that
- * could: which marker is always the token. Sending one is rejected with a 422 rather than
- * ignored, which is the point.
- */
+// No call here carries a marker identity. Sending one is a 422 rather than being ignored.
 export const markingService = {
   /** What the caller still owes. Their own state, never a count of anybody else's. */
   queue(): Promise<MarkingQueueItem[]> {
@@ -29,11 +23,7 @@ export const markingService = {
     return api.get<MarkingWorkspace>(`/marking/projects/${projectId}`);
   },
 
-  /**
-   * Autosave. The total is recomputed server side on every save, so the figure on screen
-   * comes from this response rather than being worked out in the browser: two
-   * implementations of one formula is two answers.
-   */
+  // The total is recomputed server side, so the figure on screen comes from this response.
   saveScores(projectId: string, payload: PutScoresPayload): Promise<EvaluationRow> {
     return api.put<EvaluationRow>(`/marking/projects/${projectId}/scores`, payload);
   },
@@ -42,11 +32,7 @@ export const markingService = {
     return api.put<EvaluationRow>(`/marking/projects/${projectId}/feedback`, payload);
   },
 
-  /**
-   * Deliberate, and separate from saving. Refused while any criterion is unscored, and the
-   * server names which. An edit after submitting is allowed and silently re-runs
-   * comparison: the response says nothing about what that concluded, and neither does the UI.
-   */
+  // Deliberate, and refused while any criterion is unscored. A later edit re-runs comparison silently.
   submit(projectId: string): Promise<ApiResult<EvaluationRow>> {
     return apiWithMessage.post<EvaluationRow>(`/marking/projects/${projectId}/submit`);
   },

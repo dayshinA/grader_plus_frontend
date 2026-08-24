@@ -1,8 +1,6 @@
 # marking
 
 - Backend module: `src/marking/` (MarkingModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Marking"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Marker surface"
 
 The blind marking surface. This is version 1's `grading` folder renamed, and the name
 matters: in version 2 `grading` means discrepancies and final grades, not the workspace.

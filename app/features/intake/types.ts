@@ -87,13 +87,12 @@ export interface SubmissionUrl {
 export const INTAKE_JOB_STATUSES = ["running", "finished", "failed"] as const;
 export type IntakeJobStatus = (typeof INTAKE_JOB_STATUSES)[number];
 
-/** What the archive walk found. Failures are named individually and never guessed at. */
+/** What the archive walk found. Failures are named individually, never guessed at. */
 export interface IntakeReport {
   created: number;
   matchedExisting: number;
   filesStored: number;
   filesReplaced: number;
-  /** Files left alone because somebody had already annotated the copy on record. */
   filesKeptBecauseAnnotated: string[];
   failed: { folder: string; reason: string }[];
 }

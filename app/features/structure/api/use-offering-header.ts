@@ -12,14 +12,7 @@ export interface OfferingHeader {
   isClosed: boolean;
 }
 
-/**
- * The offering itself, for the frame around the coordinator surface.
- *
- * There is no `GET /offerings/:id` in the API, so this reads the header out of
- * `GET /offerings/:id/dashboard`, which carries everything the chrome needs except
- * `maxMarkersPerProject`. That one is fixed at creation and has no read route, so nothing
- * displays it.
- */
+// There is no `GET /offerings/:id`, so the header comes out of the dashboard response.
 export function useOfferingHeader(offeringId: string) {
   const query = useOfferingDashboard(offeringId);
   const offering = query.data?.offering;

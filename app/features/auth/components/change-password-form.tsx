@@ -11,14 +11,7 @@ import { useChangePassword, useLogin } from "~/features/auth/api/use-auth";
 import { MINIMUM_PASSWORD_LENGTH } from "~/features/auth/types";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * Changing a password revokes every refresh token on the account, so this tab's session is
- * dead the moment it succeeds.
- *
- * The voluntary change signs out here and says why, rather than letting the next request
- * discover it. The forced change cannot do that without asking somebody to sign in twice on
- * their first visit, so it signs back in with the password just set and carries on.
- */
+// The session dies on success, so a forced change signs back in rather than asking twice.
 export function ChangePasswordForm({ forced = false }: { forced?: boolean }) {
   const { user, session, signOut } = useAuth();
   const navigate = useNavigate();
@@ -52,10 +45,7 @@ export function ChangePasswordForm({ forced = false }: { forced?: boolean }) {
             signOut();
             return;
           }
-
-          // The token in memory outlives the change by up to its remaining fifteen minutes,
-          // but nothing can renew it, so take a fresh pair rather than drop them at login
-          // partway through their first visit.
+          // Nothing can renew the token in memory, so take a fresh pair rather than drop them.
           login.mutate(
             { email, password: newPassword },
             {

@@ -16,14 +16,7 @@ export interface SelectFieldOption {
   disabled?: boolean;
 }
 
-/**
- * `FormField`'s counterpart for a choice rather than free text: same label + control + message
- * layout, same `aria-invalid`/`aria-describedby`/`role="alert"` wiring, so a form built from both
- * lines up and announces the same way.
- *
- * `container` exists for the same reason it does on `SelectContent` — a select inside a dialog
- * has to portal into the dialog's own node.
- */
+// `FormField` for a choice. `container` is there because a dialog select must portal into it.
 export function SelectField({
   label,
   value,
@@ -45,13 +38,12 @@ export function SelectField({
   placeholder?: string;
   /** Validation message. Usually the API's own text, via `ApiError.fieldError(name)`. */
   error?: string;
-  /** Guidance shown when there's no error — an error replaces it, so both never compete. */
+  /** Guidance shown when there is no error. An error replaces it, so both never compete. */
   hint?: string;
   id?: string;
   disabled?: boolean;
   container?: HTMLElement | null;
   className?: string;
-  /** Shown in place of the list when there is nothing to pick. */
   emptyText?: string;
 }) {
   const generatedId = React.useId();

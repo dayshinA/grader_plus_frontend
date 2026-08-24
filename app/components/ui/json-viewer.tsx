@@ -5,10 +5,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-/**
- * How many top-level keys (or entries) the payload has, so the summary line says whether opening
- * it is worth it. Anything that isn't an object or array has no count worth printing.
- */
+/** Top-level key or entry count, so the summary line says whether opening it is worth it. */
 function describe(value: unknown): string | undefined {
   if (Array.isArray(value)) {
     return `${value.length} ${value.length === 1 ? "entry" : "entries"}`;
@@ -20,16 +17,7 @@ function describe(value: unknown): string | undefined {
   return undefined;
 }
 
-/**
- * A raw JSON payload on a detail screen — the gateway's own reply, a client's attached metadata:
- * things an admin needs verbatim when tracing a payment, and that no amount of field-by-field
- * modelling would keep up with, since their shape is the vendor's to change.
- *
- * Collapsed by default and built on native `<details>`, so it costs one line until someone wants
- * it, works without JavaScript, and comes with the disclosure keyboard behaviour already right.
- * The payload scrolls inside its own box in both directions rather than stretching the page — a
- * deeply nested response is wide, and a detail screen shouldn't scroll sideways because of it.
- */
+// For audit before and after values, whose shape depends on what was changed.
 export function JsonViewer({
   value,
   label,
@@ -41,7 +29,6 @@ export function JsonViewer({
   /** Names the payload in the summary line and the copy button's accessible label. */
   label: string;
   defaultOpen?: boolean;
-  /** Shown instead of the disclosure when there is no payload at all. */
   emptyText?: string;
   className?: string;
 }) {
@@ -61,7 +48,7 @@ export function JsonViewer({
       toast.success(`${label} copied.`);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard access is denied outside a secure context — it's on screen to copy by hand.
+      // Clipboard access is denied outside a secure context. It is on screen to copy by hand.
       toast.error("Couldn't copy automatically. Select the payload and copy it.");
     }
   }

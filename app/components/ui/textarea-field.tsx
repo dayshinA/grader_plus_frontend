@@ -9,25 +9,12 @@ export interface TextareaFieldProps
   label: string;
   /** Validation message. Usually the API's own text, via `ApiError.fieldError(name)`. */
   error?: string;
-  /** Guidance shown when there's no error — an error replaces it, so both never compete. */
+  /** Guidance shown when there is no error. An error replaces it, so both never compete. */
   hint?: string;
   id?: string;
 }
 
-/**
- * The multi-line member of the field trio, alongside `FormField` (text) and `SelectField`
- * (choice) — same label + control + message layout and the same `aria-invalid` /
- * `aria-describedby` / `role="alert"` wiring, so a form built from all three lines up visually and
- * announces identically to a screen reader.
- *
- * Added 2026-08-10 for the rubric criterion's description, which is the first genuinely long-form
- * input in the app. Built now rather than inlining a `Label` + `Textarea` pair at that one call
- * site, because hand-wiring the accessibility attributes per form is exactly what `FormField`
- * exists to stop.
- *
- * Height is left to `Textarea`'s own `field-sizing-content` (it grows with what's typed) — pass
- * `rows` for a taller starting point.
- */
+// The multi-line field. Height grows with `field-sizing-content`, so pass `rows` to start taller.
 function TextareaField({
   label,
   error,

@@ -1,8 +1,6 @@
 # access
 
 - Backend module: `src/access/` (AccessModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Access"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Ground rules", "Accounts and roles"
 
 Role grants, and what the caller currently holds. This is what the whole UI renders from.
 

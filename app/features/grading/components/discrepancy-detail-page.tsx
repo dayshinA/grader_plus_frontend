@@ -23,7 +23,6 @@ import { isApiError, isNotFound } from "~/lib/api-client";
 
 const MINIMUM_NOTE = 10;
 
-/** One marker's column: their total, their scores against each criterion, their feedback. */
 function MarkerColumn({
   marker,
   criteria,
@@ -227,23 +226,13 @@ function ResolveForm({ detail }: { detail: DiscrepancyDetail }) {
   );
 }
 
-/**
- * Only the 404 uses this. A case belongs to its offering's case list, but the response
- * carries no offering id to name that list with, so a dead end here can only offer home.
- */
+/** Only the 404 uses this. The response carries no offering id, so home is all it can offer. */
 const EXIT: BackTarget = { to: "/", label: "home" };
 
-/**
- * The one screen where both markers' work appears side by side, reachable only by the
- * offering's coordinator and only once a case exists.
- *
- * Marks can still change while a case is open, because an edit after submitting silently
- * re-runs comparison, so this view is refetched rather than cached hard.
- */
+// Both markers side by side, coordinator only. Refetched, because marks can still change.
 export function DiscrepancyDetailPage({ caseId }: { caseId: string }) {
   const { data, isPending, isError, error, refetch, isFetching } = useDiscrepancy(caseId);
-  // The response carries no offering id, so a cold entry genuinely has nowhere better than
-  // home to offer. Reached the normal way, from an offering's case list, this is that list.
+  // Reached the normal way, from an offering's case list, that list is the back target.
   const declaredBack = useDeclaredBackTarget();
   const back = declaredBack ?? EXIT;
 

@@ -10,14 +10,7 @@ import {
   useUnits,
 } from "~/features/structure/api/use-structure";
 
-/**
- * A grant is a role and a scope, and the scope picker changes shape with the role: system
- * takes none, unit admin takes an academic unit, and coordinator and marker take a module
- * offering.
- *
- * The API has no "list every offering" route, so an offering is reached the way the
- * structure is actually shaped: unit, then module, then year.
- */
+// The picker changes shape with the role. No route lists every offering, so it goes unit to year.
 export function ScopePicker({
   role,
   scopeId,

@@ -37,15 +37,7 @@ function responsibleSchoolId(unit: AcademicUnit | undefined): string | undefined
   return unit.level === "school" ? unit.id : (unit.parentUnitId ?? undefined);
 }
 
-/**
- * Programmes and modules are siblings linked many to many, so this is a set editor rather
- * than a tag picker: what is saved replaces what was there, and clearing everything unlinks
- * everything.
- *
- * A link whose two sides answer to different Schools is service teaching, and only a system
- * administrator can make one. For anybody else those programmes are marked unavailable with
- * the reason rather than left to fail on save.
- */
+// A set editor: saving replaces the links. Cross-school ones are system administrator only.
 export function ModuleProgrammesDialog({
   open,
   onOpenChange,
@@ -64,8 +56,7 @@ export function ModuleProgrammesDialog({
   const links = useModuleProgrammes(module.id);
   const save = useSetModuleProgrammes(module.id);
 
-  // Every programme the caller can see, across every unit they reach, because a module can
-  // legitimately serve a programme run elsewhere.
+  // Every unit the caller reaches, because a module can serve a programme run elsewhere.
   const unitIds = useMemo(() => (units ?? []).map((candidate) => candidate.id), [units]);
 
   const [search, setSearch] = useState("");
@@ -181,7 +172,6 @@ export function ModuleProgrammesDialog({
   );
 }
 
-/** One unit's programmes, so the list reads as a set of groups rather than a flat wall. */
 function ProgrammesForUnit({
   unitId,
   units,

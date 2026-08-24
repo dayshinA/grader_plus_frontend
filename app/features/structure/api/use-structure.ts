@@ -35,11 +35,7 @@ export function useUnits(enabled = true) {
   });
 }
 
-/**
- * There is no cross university module route, so a screen that wants modules from several
- * units asks per unit and flattens. Same keys as `useModules`, so the per unit screens
- * land on a warm cache.
- */
+// No cross university module route, so this asks per unit on the same keys and flattens.
 export function useModulesForUnits(unitIds: string[]) {
   return useQueries({
     queries: unitIds.map((unitId) => ({
@@ -178,10 +174,7 @@ export function useCreateOffering(moduleId: string) {
   });
 }
 
-/**
- * Offering status is something several people can move, so everything that reads it is
- * invalidated rather than patched by hand.
- */
+/** Several people can move an offering's status, so readers are invalidated, not patched. */
 export function useUpdateOffering(offeringId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -205,8 +198,7 @@ export function useReopenOffering(offeringId: string) {
   });
 }
 
-// The import mutations invalidate on apply only: a dry run writes nothing, so the caches
-// it would refresh have not moved.
+// The import mutations invalidate on apply only: a dry run writes nothing.
 
 export function useImportProgrammes(unitId: string) {
   const queryClient = useQueryClient();
@@ -247,10 +239,7 @@ export function useImportModuleProgrammeLinks(unitId: string) {
   });
 }
 
-/**
- * The report does not carry the created offerings, so every cached offering list under the
- * unit is refetched rather than patched.
- */
+/** The report does not carry the created offerings, so the lists are refetched. */
 export function useRolloverOfferings(unitId: string) {
   const queryClient = useQueryClient();
   return useMutation({

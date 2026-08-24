@@ -1,8 +1,6 @@
 # export
 
 - Backend module: `src/export/` (ExportModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Export"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Grades and export"
 
 Reads `final_grades` and nothing else.
 

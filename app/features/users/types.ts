@@ -1,16 +1,7 @@
 import type { Role, RoleAssignment, ScopeType } from "~/features/access/types";
 import type { ImportReport } from "~/types/import-report";
 
-/**
- * One grant on an account, flattened for display, as it arrives on `GET /users` and
- * `GET /users/:id`. These are not `RoleAssignment` rows: there is no `grantedAt`,
- * `grantedBy` or `revokedAt` on them, and they exist to be read rather than acted on.
- *
- * `scopeName` is the academic unit's name, or "<module code> <academic year>" for an
- * offering, and null for a system wide grant. It comes down with the response because
- * labelling a scope in the browser would need the caller to hold `unit.read` and
- * `offering.read` over every scope in the list, which a coordinator does not.
- */
+// Read only. `scopeName` comes down because labelling a scope here would need read on every one.
 export interface UserRoleSummary {
   id: string;
   role: Role;
@@ -29,14 +20,7 @@ export interface User {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
-  /**
-   * Active grants only, and only the ones the caller's own scope reaches, so an empty
-   * array means "none you can see" rather than "none held". Only a caller with a system
-   * wide grant can read it as genuinely unplaced.
-   *
-   * Present on `GET /users` and `GET /users/:id` and nowhere else: `/me`, create, update,
-   * deactivate and bulk import all answer without it.
-   */
+  // The scopes the caller reaches, so an empty array means "none you can see".
   roles?: UserRoleSummary[];
 }
 
@@ -69,11 +53,7 @@ export interface UpdateMePayload {
   fullName?: string;
 }
 
-/**
- * `POST /users/bulk-import`. The shared row report, plus the created accounts with their
- * temporary passwords, which exist nowhere else in readable form. This route has no dryRun
- * yet, so `report.dryRun` is always false and `report.noChange` always 0 today.
- */
+// Carries the temporary passwords, which exist nowhere else in readable form.
 export interface BulkImportResult {
   report: ImportReport;
   createdUsers: {

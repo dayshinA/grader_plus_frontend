@@ -17,11 +17,7 @@ import { useCreateProject, useUpdateProject } from "~/features/intake/api/use-in
 import type { Project } from "~/features/intake/types";
 import { isApiError } from "~/lib/api-client";
 
-/**
- * Manual entry, for the folder the archive could not read and for a late addition. Editing
- * a project corrects the name shown on it only: the student record itself is untouched, so
- * a closed offering keeps saying what it said.
- */
+// For a folder the archive could not read. Editing corrects the project, not the student record.
 export function ProjectFormDialog({
   open,
   onOpenChange,

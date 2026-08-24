@@ -2,13 +2,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 
-/**
- * The title block every admin screen opens with: what this screen is, one line on why, and the
- * screen's primary actions.
- *
- * Mobile-first — the actions stack full-width under the title on a phone (where they're thumb
- * targets) and move up beside it from `sm:`.
- */
+// Actions stack full-width under the title on a phone and sit beside it from `sm:`.
 export function PageHeader({
   title,
   description,

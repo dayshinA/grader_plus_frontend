@@ -29,10 +29,7 @@ import { PROGRAMME_LEVEL_LABELS, type Programme } from "~/features/structure/typ
 import { usePagedList } from "~/hooks/use-paged-list";
 import { pluralise } from "~/utils/format";
 
-/**
- * The programme list for one unit. Used by the platform screen with a unit picker above it
- * and by the unit surface with the unit already fixed.
- */
+// Used by the platform screen with a unit picker, and by the unit surface with it fixed.
 export function ProgrammesPanel({ unitId }: { unitId: string }) {
   const canCreate = usePermission("programme.create");
   const canEdit = usePermission("programme.update");

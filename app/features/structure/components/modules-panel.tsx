@@ -41,11 +41,10 @@ import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 import { usePagedList } from "~/hooks/use-paged-list";
 import { formatDate, pluralise } from "~/utils/format";
 
-/** A module's offerings, one row each, opened on demand rather than fetched for every row. */
+/** A module's offerings, opened on demand rather than fetched for every row. */
 function OfferingList({ moduleId }: { moduleId: string }) {
   const { data, isPending, isError, error, refetch } = useOfferings(moduleId);
-  // This panel is mounted at two paths, /admin/modules and /units/:id/modules, so the back
-  // target is the screen the reader is actually on rather than a hardcoded one.
+  // Mounted at two paths, so the back target is the screen the reader is actually on.
   const { pathname, search } = useLocation();
   const declaredBack = useDeclaredBackTarget();
 
@@ -98,11 +97,7 @@ function OfferingList({ moduleId }: { moduleId: string }) {
   );
 }
 
-/**
- * The module list for one unit, with each module's offerings and its programme links
- * reachable from the row. Modules and programmes are siblings, so the links open a set
- * editor rather than appearing as children here.
- */
+// Modules and programmes are siblings, so links open a set editor rather than nesting.
 export function ModulesPanel({ unitId }: { unitId: string }) {
   const canCreate = usePermission("module.create");
   const canEdit = usePermission("module.update");

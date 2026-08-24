@@ -4,14 +4,7 @@ import { useSearchParams } from "react-router";
 import { useUnits } from "~/features/structure/api/use-structure";
 import type { AcademicUnit } from "~/features/structure/types";
 
-/**
- * Programmes and modules are read per unit, so the administration screens need a unit
- * chosen before they have anything to ask for. The choice lives in the URL so a link to
- * "the modules in Science" is a link somebody can send.
- *
- * Schools are listed first with their constituent units indented under them, which is the
- * order the tree is actually in.
- */
+// The chosen unit lives in the URL, so "the modules in Science" is a link somebody can send.
 export function useUnitScope() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, isLoading, isError, error, refetch, isFetching } = useUnits();
@@ -33,8 +26,7 @@ export function useUnitScope() {
       }
     }
 
-    // A caller scoped to one constituent unit never sees its parent, so it would otherwise
-    // be missing from its own picker.
+    // A caller scoped to one constituent unit never sees its parent, so add it to its own picker.
     for (const unit of units) {
       if (!ordered.some((entry) => entry.unit.id === unit.id)) {
         ordered.push({ unit, nested: false });

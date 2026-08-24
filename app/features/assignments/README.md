@@ -1,8 +1,6 @@
 # assignments
 
 - Backend module: `src/assignments/` (AssignmentsModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Assignments"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Assignments"
 
 Who marks what. Replaces the version 1 `marker-assignments` folder.
 

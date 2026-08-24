@@ -9,13 +9,7 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty";
 
-/**
- * Stands in for a screen that is routed and navigable but not built yet.
- *
- * It deliberately says what the screen *will* do — an unbuilt screen that looks broken and an
- * unbuilt screen that looks planned are very different things to hand a colleague. `planned`
- * lists the concrete capabilities so the scaffold doubles as the spec for the real screen.
- */
+// A routed screen that is not built yet. `planned` doubles as its spec.
 export function PagePlaceholder({
   icon: Icon,
   title,

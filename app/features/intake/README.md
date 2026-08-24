@@ -1,8 +1,6 @@
 # intake
 
 - Backend module: `src/intake/` (IntakeModule)
-- API reference: `.claude/API-REFERENCE.md`, section "Intake"
-- Design: `.claude/FRONTEND-DESIGN.md`, "Intake"
 
 The Learn archive walk, students, projects and submitted files. Replaces the version 1
 `submissions` folder.

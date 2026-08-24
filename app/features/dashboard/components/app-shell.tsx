@@ -16,25 +16,16 @@ import { useHome } from "~/features/dashboard/api/use-dashboard";
 import { buildNavGroups, findNavGroupHeading, findNavItem } from "~/features/dashboard/nav";
 import { cn } from "~/lib/utils";
 
-/**
- * The frame every signed in screen renders inside: a sidebar built from the caller's
- * permission set, a top bar that names where they are, and the routed screen below it.
- *
- * On a phone the sidebar is an off canvas drawer, so the trigger is always rendered and
- * the top bar is sticky. Whichever way down a long list of projects somebody has
- * scrolled, the way back to navigation stays reachable.
- */
+// The frame every signed in screen renders inside. The sidebar is a drawer on a phone.
 export function AppShell() {
   const { pathname } = useLocation();
   const { grants } = useAuth();
-  // A route whose handle asks for it escapes the reading-width cap. The marking workspace
-  // does: the document is the work surface and the cap was making it small.
+  // A route handle can escape the reading-width cap. The marking workspace does.
   const matches = useMatches();
   const fullWidth = matches.some(
     (match) => (match.handle as { fullWidth?: boolean } | undefined)?.fullWidth,
   );
-  // A failure here narrows the sidebar rather than blocking the app: /me/home is a
-  // convenience, and the screens it links to are all reachable by URL anyway.
+  // A failure narrows the sidebar rather than blocking the app: /me/home is a convenience.
   const { data: home } = useHome();
 
   const navGroups = useMemo(() => buildNavGroups(grants, home), [grants, home]);

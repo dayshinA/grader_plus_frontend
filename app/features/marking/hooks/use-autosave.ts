@@ -2,14 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type AutosaveState = "idle" | "pending" | "saving" | "saved" | "failed";
 
-/**
- * Debounced autosave with a visible state.
- *
- * Two things matter here beyond the debounce. A failure has to be visible and must not lose
- * the form, so the last value stays in component state and the state machine says `failed`
- * rather than silently reverting. And a save in flight when the component unmounts is
- * flushed, so navigating away from a workspace mid keystroke does not drop the keystroke.
- */
+// A failure reports `failed` without losing the form, and a save in flight at unmount is flushed.
 export function useAutosave<T>(
   save: (value: T) => Promise<unknown>,
   delayMs = 800,
@@ -26,8 +19,7 @@ export function useAutosave<T>(
 
   const pendingRef = useRef<{ value: T } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Held in a ref so a new closure from the caller does not restart the debounce, and
-  // written in an effect because a ref must not be touched during render.
+  // In a ref so a new closure does not restart the debounce, set in an effect not during render.
   const saveRef = useRef(save);
   useEffect(() => {
     saveRef.current = save;
@@ -41,8 +33,7 @@ export function useAutosave<T>(
     setState("saving");
     saveRef.current(queued.value).then(
       () => {
-        // Another keystroke landed while this was in flight, so the answer is already
-        // stale and the next run reports the real outcome.
+        // Another keystroke landed in flight, so the next run reports the real outcome.
         if (!pendingRef.current) {
           setError(null);
           setState("saved");
@@ -76,8 +67,7 @@ export function useAutosave<T>(
   useEffect(
     () => () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      // Unmounting with something queued would lose it, and losing a marker's typing is
-      // exactly what autosave exists to prevent.
+      // Unmounting with something queued would lose the typing autosave exists to protect.
       if (pendingRef.current) {
         const queued = pendingRef.current;
         pendingRef.current = null;

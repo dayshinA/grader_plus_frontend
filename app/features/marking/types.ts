@@ -2,10 +2,7 @@ import type { Submission } from "~/features/intake/types";
 import type { OfferingStatus } from "~/features/structure/types";
 import type { Rubric } from "~/features/rubrics/types";
 
-/**
- * Mirrors src/marking. Nothing in this file names another marker, and nothing in it
- * carries a marker identity: which marker is always the token.
- */
+// Mirrors src/marking. Nothing here names another marker or carries a marker identity.
 
 export const EVALUATION_STATUSES = ["draft", "final"] as const;
 export type EvaluationStatus = (typeof EVALUATION_STATUSES)[number];
@@ -19,7 +16,6 @@ export const QUEUE_STATE_LABELS: Record<QueueState, string> = {
   final: "Submitted",
 };
 
-/** A row of `GET /me/marking-queue`. */
 export interface MarkingQueueItem {
   projectId: string;
   title: string;
@@ -53,7 +49,6 @@ export interface OwnEvaluation {
   scores: CriterionScore[];
 }
 
-/** `GET /marking/projects/:id`. */
 export interface MarkingWorkspace {
   project: {
     id: string;
@@ -66,7 +61,6 @@ export interface MarkingWorkspace {
   myEvaluation: OwnEvaluation | null;
 }
 
-/** What a save answers with: the evaluation row, total included. */
 export interface EvaluationRow {
   id: string;
   assignmentId: string;
@@ -94,10 +88,7 @@ export interface AnnotationRect {
   height: number;
 }
 
-/**
- * A note on the caller's own evaluation. Two markers on one page never see each other's.
- * With `rects` it is a text highlight; without, a point pin.
- */
+// With `rects` a highlight, without one a pin. Keyed on the caller's own evaluation.
 export interface Annotation {
   id: string;
   evaluationId: string;

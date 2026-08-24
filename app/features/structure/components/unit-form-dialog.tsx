@@ -35,11 +35,7 @@ const KIND_OPTIONS = ACADEMIC_UNIT_KINDS.map((kind) => ({
   label: ACADEMIC_UNIT_KIND_LABELS[kind],
 }));
 
-/**
- * Two levels and no deeper. Choosing constituent unit requires a parent, and the parent
- * list holds schools only: a third level is refused by the server with a 422, and this
- * form should not offer it in the first place.
- */
+// Two levels and no deeper, so the parent list holds schools only. The server refuses a third.
 export function UnitFormDialog({
   open,
   onOpenChange,
@@ -50,7 +46,6 @@ export function UnitFormDialog({
   onOpenChange: (open: boolean) => void;
   /** Present when editing. Absent when creating. */
   unit?: AcademicUnit;
-  /** Every top level school, for the parent picker. */
   schools: AcademicUnit[];
 }) {
   const create = useCreateUnit();

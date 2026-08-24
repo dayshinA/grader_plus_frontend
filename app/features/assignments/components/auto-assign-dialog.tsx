@@ -26,11 +26,7 @@ import {
 import { ASSIGNMENT_ROLE_LABELS, type AutoAssignPreview } from "~/features/assignments/types";
 import { pluralise } from "~/utils/format";
 
-/**
- * The auto route proposes and does not write, so this is a two step screen: pick the pool,
- * read the proposal, then apply it. Applying is a series of ordinary create calls, which is
- * why a partial apply is reported rather than hidden.
- */
+// Two steps, because the route proposes and does not write. A partial apply is reported.
 export function AutoAssignDialog({
   open,
   onOpenChange,

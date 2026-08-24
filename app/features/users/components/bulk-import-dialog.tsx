@@ -27,15 +27,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const TEMPLATE_CSV =
   "email,full_name,role,school_code,unit_name,module_code,academic_year\n";
 
-/**
- * A spreadsheet of people, one row each, with the role's scope named by what the uploader
- * has in front of them rather than by ids. The result is per row, and the created rows
- * carry a temporary password that is shown here once and never again, so this screen stays
- * on the result until it is dismissed.
- *
- * This route has no dry run yet, so unlike the other import dialogs there is no preview
- * step: the upload applies directly.
- */
+// The temporary passwords show once, so the screen stays on the result. No dry run on this route.
 export function BulkImportDialog({
   open,
   onOpenChange,

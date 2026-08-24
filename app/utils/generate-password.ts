@@ -14,14 +14,7 @@ function randomChar(pool: string): string {
   return pool[randomIndex(pool.length)];
 }
 
-/**
- * `crypto.getRandomValues`-backed, not `Math.random()`, because this fills a field the
- * Super Admin hands to someone else as their login credential, so it needs to
- * be unguessable, not just "looks random". Guarantees one char from each of
- * lower/upper/digit/symbol (comfortably clears the backend's `MinLength(8)`
- * at the default length), then Fisher-Yates shuffles so those aren't always
- * in the same leading positions.
- */
+// `crypto.getRandomValues`, one character of each class, then a Fisher-Yates shuffle.
 export function generateSecurePassword(length = 16): string {
   const required = [
     randomChar(LOWERCASE),

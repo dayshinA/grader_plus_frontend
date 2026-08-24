@@ -8,14 +8,7 @@ import { useUnits } from "~/features/structure/api/use-structure";
 import { ACADEMIC_UNIT_KIND_LABELS } from "~/features/structure/types";
 import { backTo, useDeclaredBackTarget } from "~/hooks/use-back-link";
 
-/**
- * The units that sit under a School, so somebody inside the School can reach a department
- * without going back out to the system wide unit list, which most of them cannot see.
- *
- * `GET /units` already returns the children of any School the caller can reach, so this is
- * a filter over the list the unit frame loaded rather than a request of its own. It renders
- * nothing at all for a constituent unit: there is no third level.
- */
+// Filters the list the unit frame already loaded. Renders nothing for a constituent unit.
 export function ConstituentUnitsPanel({ unitId }: { unitId: string }) {
   const { data: units, isPending } = useUnits();
   const declaredBack = useDeclaredBackTarget();
